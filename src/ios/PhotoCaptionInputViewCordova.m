@@ -7,9 +7,9 @@
 //
 
 #import "PhotoCaptionInputViewCordova.h"
-#import "MWPhotoBrowser.h"
+// #import "MWPhotoBrowser.h"
 #import <Cordova/CDVViewController.h>
-#import "MHOverviewController.h"
+// #import "MHOverviewController.h"
 // #import <Cordova/CDVDebug.h>
 
 
@@ -48,20 +48,13 @@
     
     self.photos = images;
     self.thumbnails = thumbs;
-    // Create & present browser
-    MWPhotoBrowser *browser = [[MWPhotoBrowser alloc] initWithDelegate: self];
-    // Set options
-    browser.startOnGrid = YES;
-    browser.wantsFullScreenLayout = NO; // Decide if you want the photo browser full screen, i.e. whether the status bar is affected (defaults to YES)
-    browser.displayActionButton = YES; // Show action button to save, copy or email photos (defaults to NO)
-    [browser setCurrentPhotoIndex: photoIndex]; // Example: allows second image to be presented first
     
-    // Modal
-    UINavigationController *nc = [[UINavigationController alloc] initWithRootViewController:browser];
-    nc.modalTransitionStyle = UIModalTransitionStyleCrossDissolve;
-    [self.viewController presentViewController:nc animated:YES completion:^{
+    PhotoCaptionInputViewController *vc = [[PhotoCaptionInputViewController alloc] initWithPhotos:images thumbnails:thumbs];
+    vc.delegate = self;
+    [self.viewController presentViewController:vc animated:YES completion:^{
         
     }];
+
     //[nc release];
     
     // Release
@@ -92,6 +85,9 @@
     self.photos = images;
     self.thumbnails = thumbs;
 }
+
+#pragma mark - PhotoCaptionInputViewDelegate
+
 
 #pragma mark - MWPhotoBrowserDelegate
 
