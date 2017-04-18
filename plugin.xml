@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<plugin xmlns="http://cordova.apache.org/ns/plugins/1.0"
+           id="cordova-plugin-caption-input"
+      version="1.0.4">
+
+  <name>PhotoCaptionInputView</name>
+  <author>Calvin Lai</author>
+  <description>Caption input view</description>
+  <dependency id="cordova-plugin-cocoapod-support" version="~1.3.0" />
+  
+  <js-module src="www/mw-photo-browser.js" name="PhotoCaptionInputView">
+    <clobbers target="plugins.mwPhotoBrowser" />
+  </js-module>
+
+  <!-- ios -->
+  <platform name="ios">
+    <config-file target="config.xml" parent="/*">
+      <feature name="PhotoCaptionInputView">
+        <param name="ios-package" value="PhotoCaptionInputView" />
+      </feature>
+    </config-file>
+    <header-file src="src/ios/PhotoCaptionInputViewCordova.h" />
+    <source-file src="src/ios/PhotoCaptionInputViewCordova.m" />
+    <pod name="PhotoCaptionInputView" git="https://github.com/nixplay/PhotoCaptionInputView.git" branch="develop"/>
+    
+  </platform>
+
+</plugin>
