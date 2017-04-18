@@ -2,7 +2,7 @@
 
 <plugin xmlns="http://cordova.apache.org/ns/plugins/1.0"
            id="cordova-plugin-caption-input"
-      version="1.0.5">
+      version="1.0.6">
 
   <name>PhotoCaptionInputViewCordova</name>
   <author>James Kong</author>

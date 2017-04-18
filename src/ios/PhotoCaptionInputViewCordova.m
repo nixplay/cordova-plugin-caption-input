@@ -46,7 +46,7 @@
     self.photos = images;
     self.thumbnails = thumbs;
     
-    PhotoCaptionInputViewController *vc = [[PhotoCaptionInputViewController alloc] initWithPhotos:images thumbnails:thumbs];
+    PhotoCaptionInputViewController *vc = [[PhotoCaptionInputViewController alloc] initWithPhotos:images thumbnails:thumbs delegate:self];
 //    vc.delegate = self;
     [self.viewController presentViewController:vc animated:YES completion:^{
         
@@ -59,6 +59,8 @@
 #pragma mark - PhotoCaptionInputViewDelegate
 
 
-
+-(void) onDismiss{
+    [self.viewController dismissViewControllerAnimated:YES completion:nil ;]
+}
 
 @end
