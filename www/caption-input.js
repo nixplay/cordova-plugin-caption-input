@@ -13,8 +13,8 @@ var PhotoCaptionInputView = function() {
 };
 
 // Call this to register for push notifications and retreive a deviceToken
-PhotoCaptionInputView.prototype.shoCaptionInput = function(images, callback) {
-  cordova.exec(callback, callback, "PhotoCaptionInputViewCordova", "shoCaptionInput", images ? [images] : []);
+PhotoCaptionInputView.prototype.showCaptionInput = function(images, callback) {
+  cordova.exec(callback, callback, "PhotoCaptionInputViewCordova", "showCaptionInput", images ? [images] : []);
 };
 
 
