@@ -46,7 +46,7 @@
     self.photos = images;
     self.thumbnails = thumbs;
     
-    PhotoCaptionInputViewController *vc = [[PhotoCaptionInputViewController alloc] initWithPhotos:photos thumbnails:thumbs delegate:self];
+    PhotoCaptionInputViewController *vc = [[PhotoCaptionInputViewController alloc] initWithPhotos:_photos thumbnails:_thumbnails delegate:self];
     UINavigationController *nc = [[UINavigationController alloc]initWithRootViewController:vc];
     nc.modalPresentationStyle = UIModalPresentationPopover;
     [self.viewController presentViewController:nc animated:YES completion:^{
