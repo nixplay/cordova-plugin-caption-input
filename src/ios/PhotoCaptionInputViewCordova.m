@@ -63,5 +63,9 @@
 -(void) onDismiss{
     [self.viewController dismissViewControllerAnimated:YES completion:nil];
 }
-
+-(void) photoCaptionInputViewCaptions:(NSArray *)captions{
+    __block CDVPluginResult* result = nil;
+    result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: [NSDictionary dictionaryWithObjectsAndKeys: self.photos, @"images", captions, @"captions", nil]];
+    [self.commandDelegate sendPluginResult:result callbackId:self.callbackId];
+}
 @end
