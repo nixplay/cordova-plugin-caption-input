@@ -22,6 +22,10 @@
 @property (nonatomic, retain) NSArray *thumbnails;
 @property (nonatomic, retain) NSMutableDictionary *selected_photos;
 @property (nonatomic, assign) NSArray *preSelectedAssets;
-- (void)showGallery:(CDVInvokedUrlCommand*)command;
+@property (nonatomic, assign) NSInteger width;
+@property (nonatomic, assign) NSInteger height;
+@property (nonatomic, assign) NSInteger quality;
+@property (nonatomic, assign) NSInteger outputType;
+- (void)showCaptionInput:(CDVInvokedUrlCommand*)command ;
 
 @end
