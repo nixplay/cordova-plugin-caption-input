@@ -9,7 +9,7 @@
 #import "PhotoCaptionInputViewCordova.h"
 #import <Cordova/CDVViewController.h>
 
-
+#import "MWPhotoExt.h"
 @implementation PhotoCaptionInputViewCordova
 
 @synthesize callbackId;
@@ -36,11 +36,11 @@
     
     for (NSString* url in [options objectForKey:@"images"])
     {
-        [images addObject:[MWPhoto photoWithURL:[NSURL URLWithString: url]]];
+        [images addObject:[MWPhotoExt photoWithURL:[NSURL URLWithString: url]]];
     }
     for (NSString* url in [options objectForKey:@"thumbnails"])
     {
-        [thumbs addObject:[MWPhoto photoWithURL:[NSURL URLWithString: url]]];
+        [thumbs addObject:[MWPhotoExt photoWithURL:[NSURL URLWithString: url]]];
     }
     
     self.photos = images;
@@ -63,9 +63,9 @@
 -(void) onDismiss{
     [self.viewController dismissViewControllerAnimated:YES completion:nil];
 }
--(void) photoCaptionInputViewCaptions:(NSArray *)captions{
+-(void) photoCaptionInputViewCaptions:(NSArray *)captions photos:(NSArray*)photos{
     __block CDVPluginResult* result = nil;
-    result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: [NSDictionary dictionaryWithObjectsAndKeys: self.photos, @"images", captions, @"captions", nil]];
+    result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: [NSDictionary dictionaryWithObjectsAndKeys: photos, @"images", captions, @"captions", nil]];
     [self.commandDelegate sendPluginResult:result callbackId:self.callbackId];
 }
 @end
