@@ -19,7 +19,7 @@
 - (NSMutableDictionary*)callbackIds {
     if(_callbackIds == nil) {
         _callbackIds = [[NSMutableDictionary alloc] init];
-        self.selected_photos = [[NSMutableDictionary alloc] init];
+        
     }
     return _callbackIds;
 }
@@ -33,7 +33,7 @@
     NSMutableArray *images = [[NSMutableArray alloc] init];
     NSMutableArray *thumbs = [[NSMutableArray alloc] init];
     NSUInteger photoIndex = [[options objectForKey:@"index"] intValue];
-    
+    self.preSelectedAssets = [options objectForKey:@"assets"];
     for (NSString* url in [options objectForKey:@"images"])
     {
         [images addObject:[MWPhotoExt photoWithURL:[NSURL URLWithString: url]]];
@@ -46,7 +46,7 @@
     self.photos = images;
     self.thumbnails = thumbs;
     
-    PhotoCaptionInputViewController *vc = [[PhotoCaptionInputViewController alloc] initWithPhotos:_photos thumbnails:_thumbnails delegate:self];
+    PhotoCaptionInputViewController *vc = [[PhotoCaptionInputViewController alloc] initWithPhotos:_photos thumbnails:_thumbnails preselectedAssets:preselectedAssets delegate:self];
     UINavigationController *nc = [[UINavigationController alloc]initWithRootViewController:vc];
     nc.modalPresentationStyle = UIModalPresentationPopover;
     [self.viewController presentViewController:nc animated:YES completion:^{
