@@ -15,6 +15,7 @@
 		</config-file>
 		<header-file src="src/ios/PhotoCaptionInputViewCordova.h"/>
 		<source-file src="src/ios/PhotoCaptionInputViewCordova.m"/>
+		<pod name="MWPhotoBrowser" git="https://github.com/nixplay/MWPhotoBrowser" branch="develop"/>
 		<pod branch="develop" git="https://github.com/nixplay/PhotoCaptionInputView.git" name="PhotoCaptionInputView"/>
 	</platform>
 	<platform name="android">
