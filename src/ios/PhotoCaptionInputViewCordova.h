@@ -1,8 +1,8 @@
 //
-//  ImageViewer.h
+//  PhotoCaptionInputViewCordova.h
 //  Helper
 //
-//  Created by Calvin Lai on 7/11/13.
+//  Created by James Kong on 21/04/2017.
 //
 //
 

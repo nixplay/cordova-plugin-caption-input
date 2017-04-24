@@ -1,8 +1,8 @@
 //
-//  ImageViewer.m
+//  PhotoCaptionInputViewCordova.m
 //  Helper
 //
-//  Created by Calvin Lai on 7/11/13.
+//  Created by James Kong on 21/04/2017.
 //
 //
 
@@ -50,7 +50,11 @@
     }
     
     self.photos = images;
-    self.thumbnails = thumbs;
+    if([thumbs count] == 0){
+        self.thumbnails = images;
+    }else{
+        self.thumbnails = thumbs;
+    }
     
     PhotoCaptionInputViewController *vc = [[PhotoCaptionInputViewController alloc] initWithPhotos:_photos thumbnails:_thumbnails preselectedAssets:self.preSelectedAssets delegate:self];
     UINavigationController *nc = [[UINavigationController alloc]initWithRootViewController:vc];
