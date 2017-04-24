@@ -39,7 +39,7 @@
     self.quality = [[options objectForKey:@"quality"] integerValue];
     
     NSUInteger photoIndex = [[options objectForKey:@"index"] intValue];
-    self.preSelectedAssets = [options objectForKey:@"assets"];
+        self.preSelectedAssets = [options objectForKey:@"preSelectedAssets"];
     for (NSString* url in [options objectForKey:@"images"])
     {
         [images addObject:[MWPhotoExt photoWithURL:[NSURL URLWithString: url]]];
@@ -72,6 +72,14 @@
 
 -(void) onDismiss{
     [self.viewController dismissViewControllerAnimated:YES completion:nil];
+    
+    CDVPluginResult* pluginResult = nil;
+    NSArray* emptyArray = [NSArray array];
+    pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsArray:emptyArray];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:self.callbackId];
+
+    NSLog(@"PhotoCaptionInputView: User pressed cancel button");
+    
 }
 -(void) photoCaptionInputView:(PhotoCaptionInputViewController*)controller captions:(NSArray *)captions photos:(NSArray*)photos{
 
