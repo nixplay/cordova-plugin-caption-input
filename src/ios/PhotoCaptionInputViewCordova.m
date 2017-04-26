@@ -69,8 +69,8 @@
 #pragma mark - PhotoCaptionInputViewDelegate
 
 
--(void) onDismiss{
-    [self.viewController dismissViewControllerAnimated:YES completion:nil];
+-(void) dismissPhotoCaptionInputView:(PhotoCaptionInputViewController*)controller{
+    [controller dismissViewControllerAnimated:YES completion:nil];
     
     CDVPluginResult* pluginResult = nil;
     NSArray* emptyArray = [NSArray array];
@@ -119,13 +119,8 @@
                                                        );
     [progressHUD show: YES];
     dispatch_group_async(dispatchGroup, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-//        __block NSString* filePath;
-//        NSError* err = nil;
+
         __block NSData *imgData;
-//        // Index for tracking the current image
-//        __block int index = 0;
-        // If image fetching fails then retry 3 times before giving up
-//        do {
         NSMutableArray* localIdentifiers = [NSMutableArray array];
         [photos enumerateObjectsUsingBlock:^(NSString*  _Nonnull photo, NSUInteger idx, BOOL * _Nonnull stop) {
             
@@ -184,82 +179,17 @@
                 }
             }];
         }];
-
-//
-//                    [manager requestImageDataForAsset:asset
-//                                              options:requestOptions
-//                                        resultHandler:^(NSData *imageData,
-//                                                        NSString *dataUTI,
-//                                                        UIImageOrientation orientation,
-//                                                        NSDictionary *info) {
-//                                            if([dataUTI isEqualToString:@"public.png"] || [dataUTI isEqualToString:@"public.jpeg"] || [dataUTI isEqualToString:@"public.jpeg-2000"]) {
-//                                                imgData = [imageData copy];
-//                                                NSString* fullFilePath = [info objectForKey:@"PHImageFileURLKey"];
-//                                                NSLog(@"fullFilePath: %@: " , fullFilePath);
-//                                                NSString* fileName = [[localIdentifier componentsSeparatedByString:@"/"] objectAtIndex:0];
-//                                                filePath = [NSString stringWithFormat:@"%@/%@.%@", docsPath, fileName, @"jpg"];
-//                                            } else {
-//                                                imgData = nil;
-//                                                [invalidImages addObject: localIdentifier];
-//                                                index++;
-//                                            }
-//                                        }];
-//                    
-//                    
-//                    requestOptions.deliveryMode = PHImageRequestOptionsDeliveryModeFastFormat;
-//                    
-//                    if (imgData != nil) {
-//                        requestOptions.deliveryMode = PHImageRequestOptionsDeliveryModeHighQualityFormat;
-//                        @autoreleasepool {
-//                            NSData* data = nil;
-//                            if (self.width == 0 && self.height == 0) {
-//                                // no scaling required
-//                                if (self.quality == 100) {
-//                                    data = [imgData copy];
-//                                } else {
-//                                    image = [UIImage imageWithData:imgData];
-//                                    // resample first
-//                                    data = UIImageJPEGRepresentation(image, self.quality/100.0f);
-//                                }
-//                            } else {
-//                                image = [UIImage imageWithData:imgData];
-//                                // scale
-//                                UIImage* scaledImage = [self imageByScalingNotCroppingForSize:image toSize:targetSize];
-//                                data = UIImageJPEGRepresentation(scaledImage, self.quality/100.0f);
-//                            }
-//                            if (![data writeToFile:filePath options:NSAtomicWrite error:&err]) {
-//                                result = [CDVPluginResult resultWithStatus:CDVCommandStatus_IO_EXCEPTION messageAsString:[err localizedDescription]];
-//                                break;
-//                            } else {
-//                                [fileStrings addObject:[[NSURL fileURLWithPath:filePath] absoluteString]];
-//                                [preSelectedAssets addObject: localIdentifier];
-//                            }
-//                            data = nil;
-//                        }
-//                        index++;
-//                    }
-//                
-//                }
-//        } while (index < fetchArray.count);
-//        
         if (result == nil) {
             result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: [NSDictionary dictionaryWithObjectsAndKeys: preSelectedAssets, @"preSelectedAssets", fileStrings, @"images", invalidImages, @"invalidImages", nil]];
         }
     });
-//
+
     dispatch_group_notify(dispatchGroup, dispatch_get_main_queue(), ^{
-//        if (nil == result) {
-//            result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: [NSDictionary dictionaryWithObjectsAndKeys: preSelectedAssets, @"preSelectedAssets", fileStrings, @"images", livePhotoFileStrings, @"live_photos",  invalidImages, @"invalidImages", nil]];
-//        }
-//        
         progressHUD.progress = 1.f;
         [progressHUD hide:YES];
         [self.viewController dismissViewControllerAnimated:YES completion:nil];
         [self.commandDelegate sendPluginResult:result callbackId:self.callbackId];
     });
-    
-//    CDVPluginResult* result =  [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: [NSDictionary dictionaryWithObjectsAndKeys: photos, @"images", captions, @"captions", nil]];
-//    [self.commandDelegate sendPluginResult:result callbackId:self.callbackId];
 }
 
 - (UIImage*)imageByScalingNotCroppingForSize:(UIImage*)anImage toSize:(CGSize)frameSize
