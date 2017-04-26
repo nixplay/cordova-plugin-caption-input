@@ -40,6 +40,11 @@
     
     NSUInteger photoIndex = [[options objectForKey:@"index"] intValue];
         self.preSelectedAssets = [options objectForKey:@"preSelectedAssets"];
+    
+    NSDictionary * data = [options objectForKey:@"data"];
+    
+    NSLog(@"data %@",data);
+    
     for (NSString* url in [options objectForKey:@"images"])
     {
         [images addObject:[MWPhotoExt photoWithURL:[NSURL URLWithString: url]]];
@@ -58,7 +63,15 @@
     
     PhotoCaptionInputViewController *vc = [[PhotoCaptionInputViewController alloc] initWithPhotos:_photos thumbnails:_thumbnails preselectedAssets:self.preSelectedAssets delegate:self];
     UINavigationController *nc = [[UINavigationController alloc]initWithRootViewController:vc];
-    [self.viewController presentViewController:nc animated:YES completion:^{
+//    [self.viewController presentViewController:nc animated:YES completion:^{
+//        
+//    }];
+    CATransition *transition = [[CATransition alloc] init];
+    transition.duration = 0.35;
+    transition.type = kCATransitionPush;
+    transition.subtype = kCATransitionFromRight;
+    [self.viewController.view.window.layer addAnimation:transition forKey:kCATransition];
+    [self.viewController presentViewController:nc animated:NO completion:^{
         
     }];
 
@@ -70,8 +83,6 @@
 
 
 -(void) dismissPhotoCaptionInputView:(PhotoCaptionInputViewController*)controller{
-    [controller dismissViewControllerAnimated:YES completion:nil];
-    
     CDVPluginResult* pluginResult = nil;
     NSArray* emptyArray = [NSArray array];
     pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsArray:emptyArray];
@@ -79,6 +90,9 @@
 
     NSLog(@"PhotoCaptionInputView: User pressed cancel button");
     
+
+    [controller dismissViewControllerAnimated:YES completion:nil];
+
 }
 -(void) photoCaptionInputView:(PhotoCaptionInputViewController*)controller captions:(NSArray *)captions photos:(NSArray*)photos{
 
