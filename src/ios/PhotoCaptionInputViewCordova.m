@@ -71,6 +71,14 @@
     transition.type = kCATransitionPush;
     transition.subtype = kCATransitionFromRight;
     [self.viewController.view.window.layer addAnimation:transition forKey:kCATransition];
+    
+    
+    
+    UIButton *button = [[UIButton alloc]initWithFrame:CGRectMake(self.viewController.view.frame.size.width-100,self.viewController.view.frame.size.width-100 , 50, 50)];
+    [button setImage:[UIImage imageNamed:[NSString stringWithFormat:@"%@.bundle/%@", NSStringFromClass([self class]), @"images/send.png"]] forState:UIControlStateNormal];
+    button.autoresizesSubviews = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleTopMargin;
+    [nc.view addSubview:button];
+    
     [self.viewController presentViewController:nc animated:NO completion:^{
         
     }];
