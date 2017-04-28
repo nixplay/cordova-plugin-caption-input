@@ -158,7 +158,7 @@
         // Index for tracking the current image
         __block int index = 0;
         // If image fetching fails then retry 3 times before giving up
-        PHFetchResult<PHAsset *> * featchArray = [PHAsset fetchAssetsWithLocalIdentifiers:inPhotos options:nil];
+        PHFetchResult<PHAsset *> * featchArray = [PHAsset fetchAssetsWithLocalIdentifiers:preselectAssets options:nil];
         do {
             
             PHAsset *asset = [featchArray objectAtIndex:index];
