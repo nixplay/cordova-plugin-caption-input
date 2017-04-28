@@ -156,8 +156,9 @@
         NSMutableArray* localIdentifiers = [NSMutableArray array];
         [photos enumerateObjectsUsingBlock:^(NSString*  _Nonnull photo, NSUInteger idx, BOOL * _Nonnull stop) {
             
-            if ([NSURL URLWithString:photo]) {
+            if ([[NSURL URLWithString:photo] isFileReferenceURL]) {
                 //??
+                [fileStrings addObject:photo];
             }else{
                 //save to temp
                 [localIdentifiers addObject:photo];
@@ -214,14 +215,15 @@
         if (result == nil) {
             result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: [NSDictionary dictionaryWithObjectsAndKeys: preSelectedAssets, @"preSelectedAssets", fileStrings, @"images", captions, @"caption", invalidImages, @"invalidImages", nil]];
         }
+        dispatch_group_notify(dispatchGroup, dispatch_get_main_queue(), ^{
+            progressHUD.progress = 1.f;
+            [progressHUD hide:YES];
+            [self.viewController dismissViewControllerAnimated:YES completion:nil];
+            [self.commandDelegate sendPluginResult:result callbackId:self.callbackId];
+        });
     });
 
-    dispatch_group_notify(dispatchGroup, dispatch_get_main_queue(), ^{
-        progressHUD.progress = 1.f;
-        [progressHUD hide:YES];
-        [self.viewController dismissViewControllerAnimated:YES completion:nil];
-        [self.commandDelegate sendPluginResult:result callbackId:self.callbackId];
-    });
+    
 }
 
 
