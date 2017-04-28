@@ -74,10 +74,14 @@
     
     
     
-    UIButton *button = [[UIButton alloc]initWithFrame:CGRectMake(self.viewController.view.frame.size.width-100,self.viewController.view.frame.size.width-100 , 50, 50)];
+    UIButton *button = [[UIButton alloc]initWithFrame:
+                        CGRectMake(self.viewController.view.frame.size.width-60,
+                                   self.viewController.view.frame.size.height-150,
+                                   50,
+                                   50)];
     [button setImage:[UIImage imageNamed:[NSString stringWithFormat:@"%@.bundle/%@", NSStringFromClass([self class]), @"images/send.png"]] forState:UIControlStateNormal];
 //    [button setTitle:@"send" forState:UIControlStateNormal];
-    button.autoresizesSubviews = UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleWidth;;
+    button.autoresizingMask = UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleLeftMargin;
     [nc.view addSubview:button];
     
     [self.viewController presentViewController:nc animated:NO completion:^{
