@@ -16,6 +16,7 @@
 @synthesize callbackIds = _callbackIds;
 @synthesize photos = _photos;
 @synthesize thumbnails = _thumbnails;
+@synthesize photoCaptionInputViewController = _photoCaptionInputViewController;
 - (NSMutableDictionary*)callbackIds {
     if(_callbackIds == nil) {
         _callbackIds = [[NSMutableDictionary alloc] init];
@@ -62,6 +63,7 @@
     }
     
     PhotoCaptionInputViewController *vc = [[PhotoCaptionInputViewController alloc] initWithPhotos:_photos thumbnails:_thumbnails preselectedAssets:self.preSelectedAssets delegate:self];
+    _photoCaptionInputViewController = vc;
     UINavigationController *nc = [[UINavigationController alloc]initWithRootViewController:vc];
 //    [self.viewController presentViewController:nc animated:YES completion:^{
 //        
@@ -82,6 +84,7 @@
     [button setImage:[UIImage imageNamed:[NSString stringWithFormat:@"%@.bundle/%@", NSStringFromClass([self class]), @"images/send.png"]] forState:UIControlStateNormal];
 //    [button setTitle:@"send" forState:UIControlStateNormal];
     button.autoresizingMask = UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleLeftMargin;
+    [button addTarget:self action:@selector(onSendPressed:) forControlEvents:UIControlEventTouchUpInside];
     [nc.view addSubview:button];
     
     [self.viewController presentViewController:nc animated:NO completion:^{
@@ -91,7 +94,9 @@
     
 }
 
-
+-(void) onSendPressed:(id) sender{
+    [_photoCaptionInputViewController getPhotosCaptions];
+}
 #pragma mark - PhotoCaptionInputViewDelegate
 
 
@@ -107,7 +112,7 @@
     [controller dismissViewControllerAnimated:YES completion:nil];
 
 }
--(void) photoCaptionInputView:(PhotoCaptionInputViewController*)controller captions:(NSArray *)captions photos:(NSArray*)photos{
+-(void) photoCaptionInputView:(PhotoCaptionInputViewController*)controller captions:(NSArray *)captions photos:(NSArray*)photos preSelectedAssets:(NSArray*)preselectAssets{
 
     [controller.presentingViewController dismissViewControllerAnimated:YES completion:nil];
     
@@ -207,7 +212,7 @@
             }];
         }];
         if (result == nil) {
-            result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: [NSDictionary dictionaryWithObjectsAndKeys: preSelectedAssets, @"preSelectedAssets", fileStrings, @"images", invalidImages, @"invalidImages", nil]];
+            result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: [NSDictionary dictionaryWithObjectsAndKeys: preSelectedAssets, @"preSelectedAssets", fileStrings, @"images", captions, @"caption", invalidImages, @"invalidImages", nil]];
         }
     });
 
@@ -218,6 +223,8 @@
         [self.commandDelegate sendPluginResult:result callbackId:self.callbackId];
     });
 }
+
+
 
 - (UIImage*)imageByScalingNotCroppingForSize:(UIImage*)anImage toSize:(CGSize)frameSize
 {
@@ -261,5 +268,6 @@
     UIGraphicsEndImageContext();
     return newImage;
 }
+
 
 @end
