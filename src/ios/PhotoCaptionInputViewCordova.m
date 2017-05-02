@@ -40,27 +40,36 @@
     self.quality = [[options objectForKey:@"quality"] integerValue];
     
     NSUInteger photoIndex = [[options objectForKey:@"index"] intValue];
-        self.preSelectedAssets = [options objectForKey:@"preSelectedAssets"];
+    self.preSelectedAssets = [options objectForKey:@"preSelectedAssets"];
     
     NSDictionary * data = [options objectForKey:@"data"];
     
     NSLog(@"data %@",data);
+    UIScreen *screen = [UIScreen mainScreen];
+    CGFloat scale = screen.scale;
+    // Sizing is very rough... more thought required in a real implementation
+    CGFloat imageSize = MAX(screen.bounds.size.width, screen.bounds.size.height) * 1.5;
+    CGSize imageTargetSize = CGSizeMake(imageSize * scale, imageSize * scale);
+    CGSize thumbTargetSize = CGSizeMake(imageSize / 3.0 * scale, imageSize / 3.0 * scale);
     
-    for (NSString* url in [options objectForKey:@"images"])
-    {
-        [images addObject:[MWPhotoExt photoWithURL:[NSURL URLWithString: url]]];
-    }
-    for (NSString* url in [options objectForKey:@"thumbnails"])
-    {
-        [thumbs addObject:[MWPhotoExt photoWithURL:[NSURL URLWithString: url]]];
-    }
+    PHFetchResult<PHAsset *> * result = [PHAsset fetchAssetsWithLocalIdentifiers:self.preSelectedAssets options:nil];
+    [result enumerateObjectsUsingBlock:^(PHAsset * _Nonnull asset, NSUInteger idx, BOOL * _Nonnull stop) {
+        [images addObject:[MWPhotoExt photoWithAsset:asset targetSize:imageTargetSize] ];
+        [thumbs addObject:[MWPhotoExt photoWithAsset:asset targetSize:thumbTargetSize] ];
+    }];
+
+//    for (NSString* url in [options objectForKey:@"images"])
+//    {
+//        [images addObject:[MWPhotoExt photoWithURL:[NSURL URLWithString: url]]];
+//    }
+//    for (NSString* url in [options objectForKey:@"thumbnails"])
+//    {
+//        [thumbs addObject:[MWPhotoExt photoWithURL:[NSURL URLWithString: url]]];
+//    }
     
     self.photos = images;
-    if([thumbs count] == 0){
-        self.thumbnails = images;
-    }else{
-        self.thumbnails = thumbs;
-    }
+    self.thumbnails = thumbs;
+    
     
     PhotoCaptionInputViewController *vc = [[PhotoCaptionInputViewController alloc] initWithPhotos:_photos thumbnails:_thumbnails preselectedAssets:self.preSelectedAssets delegate:self];
     _photoCaptionInputViewController = vc;
