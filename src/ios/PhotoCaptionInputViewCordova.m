@@ -84,10 +84,10 @@
     [self.viewController.view.window.layer addAnimation:transition forKey:kCATransition];
     
     
-    
+    float initHeight = self.viewController.view.frame.size.height * (8.5f/12.0f);
     UIButton *button = [[UIButton alloc]initWithFrame:
                         CGRectMake(self.viewController.view.frame.size.width-60,
-                                   self.viewController.view.frame.size.height-150,
+                                   initHeight,
                                    50,
                                    50)];
     [button setImage:[UIImage imageNamed:[NSString stringWithFormat:@"%@.bundle/%@", NSStringFromClass([self class]), @"images/send.png"]] forState:UIControlStateNormal];
@@ -111,8 +111,10 @@
 
 -(void) dismissPhotoCaptionInputView:(PhotoCaptionInputViewController*)controller{
     CDVPluginResult* pluginResult = nil;
-    NSArray* emptyArray = [NSArray array];
-    pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsArray:emptyArray];
+    NSString *message = [NSString stringWithFormat:@"No Result in PhotoCaptionInputViewCordova (%@) ", NSLocalizedString(@"User canceled", nil)];
+    NSLog(@"%@", message);
+
+    pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_NO_RESULT messageAsString:message];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:self.callbackId];
 
     NSLog(@"PhotoCaptionInputView: User pressed cancel button");
