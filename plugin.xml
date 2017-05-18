@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<plugin id="cordova-plugin-caption-input" version="1.0.26" xmlns="http://cordova.apache.org/ns/plugins/1.0">
+<plugin id="cordova-plugin-caption-input" version="1.0.27" xmlns="http://cordova.apache.org/ns/plugins/1.0">
 	<!-- pre add gradle dependencies -->
 	<name>PhotoCaptionInputViewCordova</name>
 	<author>James Kong</author>
@@ -18,7 +18,7 @@
 		<source-file src="src/ios/PhotoCaptionInputViewCordova.m"/>
 		<pod name="MWPhotoBrowser" git="https://github.com/nixplay/MWPhotoBrowser" branch="develop"/>
 		<pod branch="develop" git="https://github.com/nixplay/PhotoCaptionInputView.git" name="PhotoCaptionInputView"/>
-		<pod name="SDWebImage" version="3.7.5"/>
+		<pod name="SDWebImage" version="4.0.0"/>
 		<resource-file src="src/ios/PhotoCaptionInputViewCordova.bundle" />
 	</platform>
 	<platform name="android">
