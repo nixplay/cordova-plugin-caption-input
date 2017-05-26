@@ -27,6 +27,7 @@
 		<framework src="com.android.support:support-v4:25.1.1"/>
 		<framework src="com.android.support:cardview-v7:25.1.1"/>
 		<framework src="com.facebook.fresco:fresco:1.2.0"/>
+		<framework src="com.github.stfalcon:frescoimageviewer:0.5.0"/>
 		<framework src="com.github.mmin18:realtimeblurview:1.1.0"/>
 		<framework src="me.relex:circleindicator:1.2.2@aar"/>
 		<framework src="jp.wasabeef:fresco-processors:2.0.0"/>
