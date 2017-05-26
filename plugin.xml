@@ -35,7 +35,7 @@
 		<framework src="com.android.support:cardview-v7:24.0.0"/>
 		<config-file parent="/*" target="res/xml/config.xml">
 			<feature name="PhotoCaptionInputViewCordova">
-				<param name="android-package" value="ccom.creedon.cordova.plugin.captioninput.PhotoCaptionInputViewCordova"/>
+				<param name="android-package" value="com.creedon.cordova.plugin.captioninput.PhotoCaptionInputViewCordova"/>
 			</feature>
 		</config-file>
 		<config-file parent="/*" target="AndroidManifest.xml"/>
