@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<plugin id="cordova-plugin-caption-input" version="1.0.29" xmlns="http://cordova.apache.org/ns/plugins/1.0">
+<plugin id="cordova-plugin-caption-input" version="1.0.30" xmlns="http://cordova.apache.org/ns/plugins/1.0">
 	<!-- pre add gradle dependencies -->
 	<name>PhotoCaptionInputViewCordova</name>
 	<author>James Kong</author>
@@ -27,7 +27,6 @@
 		<framework src="com.android.support:support-v4:25.1.1"/>
 		<framework src="com.android.support:cardview-v7:25.1.1"/>
 		<framework src="com.facebook.fresco:fresco:1.2.0"/>
-		<framework src="com.github.stfalcon:frescoimageviewer:0.5.0"/>
 		<framework src="com.github.mmin18:realtimeblurview:1.1.0"/>
 		<framework src="me.relex:circleindicator:1.2.2@aar"/>
 		<framework src="jp.wasabeef:fresco-processors:2.0.0"/>
