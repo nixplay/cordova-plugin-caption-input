@@ -1,5 +1,6 @@
 package com.creedon.cordova.plugin.captioninput;
 
+import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
@@ -15,8 +16,11 @@ import org.json.JSONObject;
  */
 public class PhotoCaptionInputViewCordova extends CordovaPlugin {
 
+    private CallbackContext callbackContext;
+
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
+        this.callbackContext = callbackContext;
         if (action.equals("showCaptionInput")) {
             JSONObject options = args.getJSONObject(0);
             this.showCaptionInput(options, callbackContext);
@@ -28,7 +32,6 @@ public class PhotoCaptionInputViewCordova extends CordovaPlugin {
     private void showCaptionInput(JSONObject options, CallbackContext callbackContext) {
         if (options != null && options.length() > 0) {
 
-            callbackContext.success(options);
             android.app.FragmentManager fm = this.cordova.getActivity().getFragmentManager();
             ActivityManager.MemoryInfo mi = new ActivityManager.MemoryInfo();
             ActivityManager activityManager = (ActivityManager) this.cordova.getActivity().getApplicationContext().getSystemService(Context.ACTIVITY_SERVICE);
@@ -44,5 +47,26 @@ public class PhotoCaptionInputViewCordova extends CordovaPlugin {
         } else {
             callbackContext.error("Expected one non-empty string argument.");
         }
+    }
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (resultCode == Activity.RESULT_OK && data != null) {
+            JSONObject res = new JSONObject();
+            this.callbackContext.success(res);
+        } else if (resultCode == Activity.RESULT_CANCELED && data != null) {
+            String error = data.getStringExtra("ERRORMESSAGE");
+            if (error == null)
+                this.callbackContext.error("Error");
+            this.callbackContext.error(error);
+        } else if (resultCode == Activity.RESULT_CANCELED) {
+            JSONObject res = new JSONObject();
+            if(this.callbackContext != null )
+                this.callbackContext.error(res);
+
+        } else {
+            JSONObject res = new JSONObject();
+            if(this.callbackContext != null )
+                this.callbackContext.error(res);
+        }
+
     }
 }
