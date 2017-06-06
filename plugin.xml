@@ -34,6 +34,7 @@
 		<framework src="com.android.support:recyclerview-v7:24.0.0"/>
 		<framework src="com.android.support:cardview-v7:24.0.0"/>
 		<source-file src="src/android/activity_photoscaptioninput.xml" target-dir="res/layout" />
+		<source-file src="src/android/menu_photoscaptioninput.xml" target-dir="res/menu" />
 		<config-file target="AndroidManifest.xml" parent="/manifest/application">
 	    	<activity
 	      	android:name="package com.creedon.cordova.plugin.captioninput.PhotoCaptionInputViewActivity"
