@@ -10,8 +10,13 @@ import android.view.ViewGroup;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolders> {
+public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolders> implements RecyclerViewHolders.RecyclerViewHoldersListener {
     private static final String TAG = RecyclerViewAdapter.class.getSimpleName();
+
+    @Override
+    public Context getContext() {
+        return this.context;
+    }
 
     public interface RecyclerViewAdapterListener {
         boolean isPhotoSelected(int position);
@@ -49,7 +54,7 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolder
     public RecyclerViewHolders onCreateViewHolder(ViewGroup parent, int viewType) {
 
         View layoutView = LayoutInflater.from(parent.getContext()).inflate(f.getId("layout", "layout_photocaption_card_view"), null);
-        RecyclerViewHolders rcv = new RecyclerViewHolders(layoutView);
+        RecyclerViewHolders rcv = new RecyclerViewHolders(layoutView, this);
 
         return rcv;
     }
@@ -58,6 +63,7 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolder
     public void onBindViewHolder(RecyclerViewHolders holder, int position) {
         holder.simpleDraweeView.setImageURI(itemList.get(position));
 
+//        holder.simpleDraweeView.setImageResource(R.drawable.bin);
     }
 
     @Override

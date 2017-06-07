@@ -6,7 +6,6 @@ import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 
 import com.creedon.androidphotobrowser.common.data.models.CustomImage;
-import com.creedon.androidphotobrowser.common.views.ImageOverlayView;
 import com.facebook.drawee.backends.pipeline.Fresco;
 import com.facebook.imagepipeline.common.ResizeOptions;
 import com.stfalcon.frescoimageviewer.ImageViewer;
@@ -16,6 +15,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * _   _ _______   ________ _       _____   __
@@ -28,7 +28,7 @@ import java.util.ArrayList;
  * Created by jameskong on 6/6/2017.
  */
 
-public class PhotoCaptionInputViewActivity extends AppCompatActivity {
+public class PhotoCaptionInputViewActivity extends AppCompatActivity implements OverlayView.OverlayVieListener{
 
     private FakeR fakeR;
     private ArrayList<String> captions;
@@ -48,27 +48,32 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity {
     };
     private ImageViewer imageViewer;
     protected OverlayView overlayView;
-    private ImageOverlayView.ImageOverlayVieListener imageOverlayViewListener = new ImageOverlayView.ImageOverlayVieListener() {
-        @Override
-        public void onDownloadButtonPressed(JSONObject data) {
 
-        }
+    @Override
+    public void onDownloadButtonPressed(JSONObject data) {
 
-        @Override
-        public void onTrashButtonPressed(JSONObject data) {
+    }
 
-        }
+    @Override
+    public void onTrashButtonPressed(JSONObject data) {
 
-        @Override
-        public void onCaptionchnaged(JSONObject data, String caption) {
+    }
 
-        }
+    @Override
+    public void onCaptionchnaged(JSONObject data, String caption) {
+        captions.set(currentPosition, caption);
+    }
 
-        @Override
-        public void onCloseButtonClicked() {
-            finish();
-        }
-    };
+    @Override
+    public void onCloseButtonClicked() {
+        finish();
+    }
+
+    @Override
+    public List<String> getItemlist() {
+        return poster;
+    }
+    private ArrayList<String> poster;
 
 
     @Override
@@ -80,16 +85,15 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity {
 
         fakeR = new FakeR(this.getApplicationContext());
         setContentView(fakeR.getId("layout", "activity_photoscaptioninput"));
-//        setupToolBar();
         if (getIntent().getExtras() != null) {
             Bundle bundle = getIntent().getExtras();
             String optionsJsonString = bundle.getString("options");
             try {
                 JSONObject jsonObject = new JSONObject(optionsJsonString);
 
-                String tc = jsonObject.getString("ts");
+//                String tc = jsonObject.getString("ts");
                 JSONArray images = jsonObject.getJSONArray("images");
-                JSONArray preSelectedAssets = jsonObject.getJSONArray("preSelectedAssets");
+//                JSONArray preSelectedAssets = jsonObject.getJSONArray("preSelectedAssets");
                 if (!jsonObject.get("friends").equals(null)) {
                     JSONArray friends = jsonObject.getJSONArray("friends");
                 }
@@ -107,14 +111,15 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity {
                     }
                 }
                 currentPosition = 0;
+
+                poster = stringArray;
                 overlayView = new OverlayView(this);
-                overlayView.setListener(this.imageOverlayViewListener);
 
 
-                showPicker(stringArray);
+                showPicker(poster);
 
                 //show image view
-                //add toobar item
+
             } catch (Exception e) {
                 e.printStackTrace();
                 //TODO setresult failed
@@ -129,11 +134,13 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity {
     }
 
     private void showPicker(ArrayList<String> stringArray) {
+
         imageViewer = new ImageViewer.Builder(this, stringArray)
                 .setCustomImageRequestBuilder(ImageViewer
                         .createImageRequestBuilder()
                         .setResizeOptions(
                                 ResizeOptions
+                                        //TODO can be more dynamic
                                         .forDimensions(1820, 1820)
                         )
                 )
@@ -145,41 +152,11 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity {
 
     }
 
-//    protected void setupToolBar() {
-//
-//        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-//        getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_up_white_24dp);
-//
-//    }
-
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
 
     }
-//    @Override
-//    public boolean onCreatePanelMenu(int featureId, Menu menu) {
-//        MenuInflater inflater = getMenuInflater();
-//
-//        inflater.inflate(fakeR.getId("menu", "menu_photoscaptioninput"), menu);
-//
-//        return true;
-//    }
-
-//    @Override
-//    public boolean onOptionsItemSelected(MenuItem item) {
-//        // Handle item selection
-//        int id = item.getItemId();
-//        if (id == android.R.id.home) {
-//            setResult(Activity.RESULT_CANCELED);
-//            finish();
-//            return true;
-//        }
-////        else if(id == fakeR.getId("id","btnTrash")){
-////
-////        }
-//        return onOptionsItemSelected(item);
-//    }
 
     @Override
     public void onBackPressed() {
