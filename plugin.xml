@@ -34,11 +34,13 @@
 		<framework src="com.android.support:recyclerview-v7:24.0.0"/>
 		<framework src="com.android.support:cardview-v7:24.0.0"/>
 		<source-file src="src/android/activity_photoscaptioninput.xml" target-dir="res/layout" />
+		<source-file src="src/android/layout_imageoverlay.xml" target-dir="res/layout" />
+		<source-file src="src/android/layout_photocaption_card_view.xml" target-dir="res/layout" />
 		<source-file src="src/android/menu_photoscaptioninput.xml" target-dir="res/menu" />
 		<config-file target="AndroidManifest.xml" parent="/manifest/application">
 	    	<activity
 	      	android:name="package com.creedon.cordova.plugin.captioninput.PhotoCaptionInputViewActivity"
-	      	android:screenOrientation="portrait">
+	      	android:screenOrientation="portrait"  android:theme="@style/AppTheme" >
 	    	</activity>
 		</config-file>
 		<config-file parent="/*" target="res/xml/config.xml">
