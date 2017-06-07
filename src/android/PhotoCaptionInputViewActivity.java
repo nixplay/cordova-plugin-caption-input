@@ -1,6 +1,9 @@
 package com.creedon.cordova.plugin.captioninput;
 
 import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
+import android.graphics.Rect;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -10,14 +13,19 @@ import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.Button;
+import android.widget.EditText;
 
-import com.creedon.Nixplay.R;
 import com.facebook.drawee.backends.pipeline.Fresco;
-import com.stfalcon.frescoimageviewer.ImageViewer;
+import com.rengwuxian.materialedittext.MaterialEditText;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -37,54 +45,26 @@ import java.util.List;
  * Created by jameskong on 6/6/2017.
  */
 
-public class PhotoCaptionInputViewActivity extends AppCompatActivity implements OverlayView.OverlayVieListener, RecyclerItemClickListener.OnItemClickListener {
+public class PhotoCaptionInputViewActivity extends AppCompatActivity implements RecyclerItemClickListener.OnItemClickListener {
 
+    private static final String KEY_IMAGE = "image";
+    private static final String KEY_CAPTION = "caption";
     private FakeR fakeR;
     private ArrayList<String> captions;
     private int currentPosition;
-//    private ImageViewer.OnImageChangeListener imageChangeListener = new ImageViewer.OnImageChangeListener() {
-//        @Override
-//        public void onImageChange(int position) {
-//            currentPosition = position;
-//            overlayView.setDescription(captions.get(position));
-//        }
-//    };
-    private ImageViewer.OnDismissListener dismissListener = new ImageViewer.OnDismissListener() {
-        @Override
-        public void onDismiss() {
-            finish();
-        }
-    };
+
+
     private ViewPager mPager;
     private ScreenSlidePagerAdapter mPagerAdapter;
-//    private ImageViewer imageViewer;
-//    protected OverlayView overlayView;
+    private MaterialEditText mEditText;
+    private RecyclerView recyclerView;
+    private LinearLayoutManager linearLayoutManager;
 
-    @Override
-    public void onDownloadButtonPressed(JSONObject data) {
 
-    }
-
-    @Override
-    public void onTrashButtonPressed(JSONObject data) {
-
-    }
-
-    @Override
-    public void onCaptionchnaged(JSONObject data, String caption) {
-        captions.set(currentPosition, caption);
-    }
-
-    @Override
-    public void onCloseButtonClicked() {
-        finish();
-    }
-
-    @Override
     public List<String> getItemlist() {
-        return poster;
+        return imageList;
     }
-    private ArrayList<String> poster;
+    private ArrayList<String> imageList;
 
 
     @Override
@@ -117,30 +97,58 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     try {
                         String jsonObj = images.getString(i);
                         stringArray.add(jsonObj);
-                        captions.add(i,"");
+                        captions.add(i, "");
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
                 }
                 currentPosition = 0;
 
-                poster = stringArray;
-//                showPicker(poster);
+                imageList = stringArray;
 
-                mPager = (ViewPager) findViewById(R.id.pager);
-                mPagerAdapter = new ScreenSlidePagerAdapter(getSupportFragmentManager(),poster);
+                mEditText = (MaterialEditText) findViewById(fakeR.getId("id", "etDescription"));
+                mEditText.addTextChangedListener(new TextWatcher() {
+                    @Override
+                    public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+                    }
+
+                    @Override
+                    public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+                    }
+
+                    @Override
+                    public void afterTextChanged(Editable editable) {
+                        captions.set(currentPosition, editable.toString());
+                    }
+                });
+                Button submitButton = (Button) findViewById(fakeR.getId("id", "btnSubmit"));
+                submitButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+
+                        try {
+                            finishWithResult();
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                            finishActivity(-1);
+                        }
+                    }
+                });
+                mPager = (ViewPager) findViewById(fakeR.getId("id", "pager"));
+                mPagerAdapter = new ScreenSlidePagerAdapter(getSupportFragmentManager(), stringArray);
                 mPager.setAdapter(mPagerAdapter);
 
 
-
-                RecyclerView recyclerView = (RecyclerView) findViewById(fakeR.getId("id", "recycleview"));
-                LinearLayoutManager linearLayoutManager2 = new LinearLayoutManager(this,LinearLayoutManager.HORIZONTAL,false);
-                RecyclerViewAdapter recyclerViewAdapter2 = new RecyclerViewAdapter(this, stringArray);
+                recyclerView = (RecyclerView) findViewById(fakeR.getId("id", "recycleview"));
+                linearLayoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
+                RecyclerViewAdapter recyclerViewAdapter = new RecyclerViewAdapter(this, stringArray);
                 recyclerView.setHasFixedSize(true);
-                recyclerView.setLayoutManager(linearLayoutManager2);
-                recyclerView.setAdapter(recyclerViewAdapter2);
+                recyclerView.setLayoutManager(linearLayoutManager);
+                recyclerView.setAdapter(recyclerViewAdapter);
                 recyclerView.addOnItemTouchListener(new RecyclerItemClickListener(this, recyclerView, this));
-
+                setActionBarTitle(imageList,currentPosition);
                 //show image view
 
             } catch (Exception e) {
@@ -158,7 +166,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     protected void setupToolBar() {
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_up_white_24dp);
+        getSupportActionBar().setHomeAsUpIndicator(fakeR.getId("drawable", "ic_up_white_24dp"));
 
     }
 
@@ -185,7 +193,17 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             finish();
             return true;
         }else if(id == fakeR.getId("id","btnTrash")){
-
+            //delete current page image
+            if(imageList.size()>0) {
+                imageList.remove(currentPosition);
+                captions.remove(currentPosition);
+                if(imageList.size()==0) {
+                    finishActivity(RESULT_CANCELED);
+                    return false;
+                }
+            }
+            ArrayList<String> clonedPoster = (ArrayList<String>) imageList.clone();
+            mPagerAdapter.swap(clonedPoster);
         }
         return onOptionsItemSelected(item);
     }
@@ -197,39 +215,42 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         finish();
     }
 
-//    private void showPicker(ArrayList<String> stringArray) {
-//        overlayView = new OverlayView(this);
-//        imageViewer = new ImageViewer.Builder(this, stringArray)
-//                .setCustomImageRequestBuilder(ImageViewer
-//                        .createImageRequestBuilder()
-//                        .setResizeOptions(
-//                                ResizeOptions
-//                                        //TODO can be more dynamic
-//                                        .forDimensions(1820, 1820)
-//                        )
-//                )
-//                .setOverlayView(overlayView)
-//                .setStartPosition(currentPosition)
-//                .setImageChangeListener(getImageChangeListener())
-//                .setOnDismissListener(getDismissListener())
-//                .show();
-//
-//    }
-
-
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent event) {
+        if (event.getAction() == MotionEvent.ACTION_DOWN) {
+            View v = getCurrentFocus();
+            if ( v instanceof EditText) {
+                Rect outRect = new Rect();
+                v.getGlobalVisibleRect(outRect);
+                if (!outRect.contains((int)event.getRawX(), (int)event.getRawY())) {
+                    v.clearFocus();
+                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                    imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
+                }
+            }
+        }
+        return super.dispatchTouchEvent( event );
+    }
 
     @Override
     public void onItemClick(View view, int position) {
-
+        currentPosition = position;
+        mPager.setCurrentItem(position);
     }
 
     @Override
     public void onItemLongClick(View view, int position) {
+        currentPosition = position;
+        mPager.setCurrentItem(position);
+    }
 
+    public void setActionBarTitle(ArrayList<String> actionBarTitle , int index) {
+
+        getSupportActionBar().setTitle( (index+1) + "/" + actionBarTitle.size());
     }
 
     private class ScreenSlidePagerAdapter extends FragmentStatePagerAdapter {
-        private final ArrayList<String> itemList;
+        private ArrayList<String> itemList;
 
         public ScreenSlidePagerAdapter(FragmentManager fm, ArrayList<String>itemList) {
             super(fm);
@@ -238,29 +259,40 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
         @Override
         public Fragment getItem(int position) {
+            currentPosition = position;
+            setActionBarTitle(itemList, position);
+            mEditText.setText(captions.get(position));
+            linearLayoutManager.scrollToPositionWithOffset(position, 0);
             return ScreenSlidePageFragment.newInstance(itemList.get(position));
         }
 
         @Override
         public int getCount() {
-            return getItemlist().size();
+            return itemList.size();
+        }
+
+        public void swap(ArrayList<String> poster) {
+            itemList = poster;
+
+            notifyDataSetChanged();
         }
     }
 
-//    public ImageViewer.OnImageChangeListener getImageChangeListener() {
-//        return imageChangeListener;
-//    }
-//
-//    public ImageViewer.OnDismissListener getDismissListener() {
-//        return dismissListener;
-//    }
-//
-//    public ImageViewer.Formatter getImageFormatter() {
-//        return new ImageViewer.Formatter<CustomImage>() {
-//            @Override
-//            public String format(CustomImage customImage) {
-//                return customImage.getUrl();
-//            }
-//        };
-//    }
+    private void finishWithResult() throws JSONException {
+        Bundle conData = new Bundle();
+        JSONArray jsonArray = new JSONArray();
+        for(int i = 0 , count = imageList.size(); i <count; i++ ) {
+            JSONObject object = new JSONObject();
+            object.put(KEY_IMAGE, imageList.get(i));
+            object.put(KEY_CAPTION, captions.get(i));
+            jsonArray.put(object);
+        }
+
+        conData.putString("result", jsonArray.toString());
+        Intent intent = new Intent();
+        intent.putExtras(conData);
+        setResult(RESULT_OK, intent);
+        finishActivity(Constants.REQUEST_SUBMIT);
+    }
+
 }

@@ -11,6 +11,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import static com.creedon.cordova.plugin.captioninput.Constants.REQUEST_SUBMIT;
+
 /**
  * This class echoes a string called from JavaScript.
  */
@@ -50,8 +52,21 @@ public class PhotoCaptionInputViewCordova extends CordovaPlugin {
     }
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == Activity.RESULT_OK && data != null) {
-            JSONObject res = new JSONObject();
-            this.callbackContext.success(res);
+            if(requestCode == REQUEST_SUBMIT){
+
+                String result = data.getStringExtra(Constants.RESULT);
+                JSONObject res = null;
+                try {
+                    res = new JSONObject(result);
+                    this.callbackContext.success(res);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+            }else {
+
+            }
+
         } else if (resultCode == Activity.RESULT_CANCELED && data != null) {
             String error = data.getStringExtra("ERRORMESSAGE");
             if (error == null)
