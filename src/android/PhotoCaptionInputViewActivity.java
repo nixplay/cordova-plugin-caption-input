@@ -4,14 +4,11 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 
-import com.creedon.androidphotobrowser.R;
 import com.creedon.androidphotobrowser.common.data.models.CustomImage;
 import com.creedon.androidphotobrowser.common.views.ImageOverlayView;
 import com.facebook.drawee.backends.pipeline.Fresco;
+import com.facebook.imagepipeline.common.ResizeOptions;
 import com.stfalcon.frescoimageviewer.ImageViewer;
 
 import org.json.JSONArray;
@@ -46,11 +43,32 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity {
     private ImageViewer.OnDismissListener dismissListener = new ImageViewer.OnDismissListener() {
         @Override
         public void onDismiss() {
-
+            finish();
         }
     };
     private ImageViewer imageViewer;
     protected OverlayView overlayView;
+    private ImageOverlayView.ImageOverlayVieListener imageOverlayViewListener = new ImageOverlayView.ImageOverlayVieListener() {
+        @Override
+        public void onDownloadButtonPressed(JSONObject data) {
+
+        }
+
+        @Override
+        public void onTrashButtonPressed(JSONObject data) {
+
+        }
+
+        @Override
+        public void onCaptionchnaged(JSONObject data, String caption) {
+
+        }
+
+        @Override
+        public void onCloseButtonClicked() {
+            finish();
+        }
+    };
 
 
     @Override
@@ -62,18 +80,13 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity {
 
         fakeR = new FakeR(this.getApplicationContext());
         setContentView(fakeR.getId("layout", "activity_photoscaptioninput"));
-        setupToolBar();
+//        setupToolBar();
         if (getIntent().getExtras() != null) {
             Bundle bundle = getIntent().getExtras();
             String optionsJsonString = bundle.getString("options");
             try {
                 JSONObject jsonObject = new JSONObject(optionsJsonString);
-                /*
-                0 = {LinkedHashMap$LinkedHashMapEntry@7423} "ts" -> "1496729193475"
-1 = {LinkedHashMap$LinkedHashMapEntry@7424} "images" -> "["file:\/\/\/storage\/emulated\/0\/Pictures\/IMG_20170511_093834.jpg"]"
-2 = {LinkedHashMap$LinkedHashMapEntry@7425} "preSelectedAssets" -> "["\/storage\/emulated\/0\/Pictures\/IMG_20170511_093834.jpg"]"
-3 = {LinkedHashMap$LinkedHashMapEntry@7426} "friends" -> "null"
-                 */
+
                 String tc = jsonObject.getString("ts");
                 JSONArray images = jsonObject.getJSONArray("images");
                 JSONArray preSelectedAssets = jsonObject.getJSONArray("preSelectedAssets");
@@ -95,14 +108,10 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity {
                 }
                 currentPosition = 0;
                 overlayView = new OverlayView(this);
-                imageViewer = new ImageViewer.Builder(this, stringArray)
-//                        .setFormatter(getImageFormatter())
+                overlayView.setListener(this.imageOverlayViewListener);
 
-                        .setOverlayView(overlayView)
-                        .setStartPosition(currentPosition)
-                        .setImageChangeListener(getImageChangeListener())
-                        .setOnDismissListener(getDismissListener())
-                        .show();
+
+                showPicker(stringArray);
 
                 //show image view
                 //add toobar item
@@ -119,45 +128,64 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity {
         }
     }
 
-    protected void setupToolBar() {
-
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_up_white_24dp);
+    private void showPicker(ArrayList<String> stringArray) {
+        imageViewer = new ImageViewer.Builder(this, stringArray)
+                .setCustomImageRequestBuilder(ImageViewer
+                        .createImageRequestBuilder()
+                        .setResizeOptions(
+                                ResizeOptions
+                                        .forDimensions(1820, 1820)
+                        )
+                )
+                .setOverlayView(overlayView)
+                .setStartPosition(currentPosition)
+                .setImageChangeListener(getImageChangeListener())
+                .setOnDismissListener(getDismissListener())
+                .show();
 
     }
+
+//    protected void setupToolBar() {
+//
+//        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+//        getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_up_white_24dp);
+//
+//    }
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
 
     }
-    @Override
-    public boolean onCreatePanelMenu(int featureId, Menu menu) {
-        MenuInflater inflater = getMenuInflater();
+//    @Override
+//    public boolean onCreatePanelMenu(int featureId, Menu menu) {
+//        MenuInflater inflater = getMenuInflater();
+//
+//        inflater.inflate(fakeR.getId("menu", "menu_photoscaptioninput"), menu);
+//
+//        return true;
+//    }
 
-        inflater.inflate(fakeR.getId("menu", "menu_photoscaptioninput"), menu);
-
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle item selection
-        int id = item.getItemId();
-        if (id == android.R.id.home) {
-            setResult(Activity.RESULT_CANCELED);
-            finish();
-            return true;
-        }else if(id == fakeR.getId("id","btnTrash")){
-
-        }
-        return onOptionsItemSelected(item);
-    }
+//    @Override
+//    public boolean onOptionsItemSelected(MenuItem item) {
+//        // Handle item selection
+//        int id = item.getItemId();
+//        if (id == android.R.id.home) {
+//            setResult(Activity.RESULT_CANCELED);
+//            finish();
+//            return true;
+//        }
+////        else if(id == fakeR.getId("id","btnTrash")){
+////
+////        }
+//        return onOptionsItemSelected(item);
+//    }
 
     @Override
     public void onBackPressed() {
         super.onBackPressed();
         setResult(Activity.RESULT_CANCELED);
+        imageViewer.onDismiss();
         finish();
     }
 

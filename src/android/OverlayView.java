@@ -1,10 +1,12 @@
 package com.creedon.cordova.plugin.captioninput;
 
 import android.content.Context;
+import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
 import android.view.View;
 
 import com.creedon.androidphotobrowser.common.views.ImageOverlayView;
+import com.rengwuxian.materialedittext.MaterialEditText;
 
 /**
  * _   _ _______   ________ _       _____   __
@@ -18,22 +20,33 @@ import com.creedon.androidphotobrowser.common.views.ImageOverlayView;
  */
 
 class OverlayView extends ImageOverlayView {
-    
+    FakeR f;
+    private RecyclerView recyclerView;
+
     public OverlayView(Context context) {
         super(context);
+
     }
 
     public OverlayView(Context context, AttributeSet attrs) {
         super(context, attrs);
+
     }
 
     public OverlayView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+
     }
 
     @Override
-    protected void init() {
-        View view = inflate(getContext(), com.creedon.androidphotobrowser.R.layout.view_image_overlay, this);
+    protected View init() {
+        f = new FakeR(getContext());
+        View view = inflate(getContext(), f.getId("layout", "layout_imageoverlay"), this);
+        etDescription = (MaterialEditText) view.findViewById(f.getId("id", "etDescription"));
+        recyclerView = (RecyclerView) view.findViewById(f.getId("id", "recycleview"));
+        etDescription.setVisibility(VISIBLE);
+        return view;
+
     }
 
 }

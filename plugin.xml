@@ -38,8 +38,7 @@
 		<config-file target="AndroidManifest.xml" parent="/manifest/application">
 	    	<activity
 	      	android:name="package com.creedon.cordova.plugin.captioninput.PhotoCaptionInputViewActivity"
-	      	android:screenOrientation="portrait"
-	      	android:theme="@style/AppTheme">
+	      	android:screenOrientation="portrait">
 	    	</activity>
 		</config-file>
 		<config-file parent="/*" target="res/xml/config.xml">
