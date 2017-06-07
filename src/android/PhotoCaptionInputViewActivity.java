@@ -3,11 +3,20 @@ package com.creedon.cordova.plugin.captioninput;
 import android.app.Activity;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentStatePagerAdapter;
+import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
 
-import com.creedon.androidphotobrowser.common.data.models.CustomImage;
+import com.creedon.Nixplay.R;
 import com.facebook.drawee.backends.pipeline.Fresco;
-import com.facebook.imagepipeline.common.ResizeOptions;
 import com.stfalcon.frescoimageviewer.ImageViewer;
 
 import org.json.JSONArray;
@@ -28,26 +37,28 @@ import java.util.List;
  * Created by jameskong on 6/6/2017.
  */
 
-public class PhotoCaptionInputViewActivity extends AppCompatActivity implements OverlayView.OverlayVieListener{
+public class PhotoCaptionInputViewActivity extends AppCompatActivity implements OverlayView.OverlayVieListener, RecyclerItemClickListener.OnItemClickListener {
 
     private FakeR fakeR;
     private ArrayList<String> captions;
     private int currentPosition;
-    private ImageViewer.OnImageChangeListener imageChangeListener = new ImageViewer.OnImageChangeListener() {
-        @Override
-        public void onImageChange(int position) {
-            currentPosition = position;
-            overlayView.setDescription(captions.get(position));
-        }
-    };
+//    private ImageViewer.OnImageChangeListener imageChangeListener = new ImageViewer.OnImageChangeListener() {
+//        @Override
+//        public void onImageChange(int position) {
+//            currentPosition = position;
+//            overlayView.setDescription(captions.get(position));
+//        }
+//    };
     private ImageViewer.OnDismissListener dismissListener = new ImageViewer.OnDismissListener() {
         @Override
         public void onDismiss() {
             finish();
         }
     };
-    private ImageViewer imageViewer;
-    protected OverlayView overlayView;
+    private ViewPager mPager;
+    private ScreenSlidePagerAdapter mPagerAdapter;
+//    private ImageViewer imageViewer;
+//    protected OverlayView overlayView;
 
     @Override
     public void onDownloadButtonPressed(JSONObject data) {
@@ -85,6 +96,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
         fakeR = new FakeR(this.getApplicationContext());
         setContentView(fakeR.getId("layout", "activity_photoscaptioninput"));
+        setupToolBar();
         if (getIntent().getExtras() != null) {
             Bundle bundle = getIntent().getExtras();
             String optionsJsonString = bundle.getString("options");
@@ -113,10 +125,21 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 currentPosition = 0;
 
                 poster = stringArray;
-                overlayView = new OverlayView(this);
+//                showPicker(poster);
+
+                mPager = (ViewPager) findViewById(R.id.pager);
+                mPagerAdapter = new ScreenSlidePagerAdapter(getSupportFragmentManager(),poster);
+                mPager.setAdapter(mPagerAdapter);
 
 
-                showPicker(poster);
+
+                RecyclerView recyclerView = (RecyclerView) findViewById(fakeR.getId("id", "recycleview"));
+                LinearLayoutManager linearLayoutManager2 = new LinearLayoutManager(this,LinearLayoutManager.HORIZONTAL,false);
+                RecyclerViewAdapter recyclerViewAdapter2 = new RecyclerViewAdapter(this, stringArray);
+                recyclerView.setHasFixedSize(true);
+                recyclerView.setLayoutManager(linearLayoutManager2);
+                recyclerView.setAdapter(recyclerViewAdapter2);
+                recyclerView.addOnItemTouchListener(new RecyclerItemClickListener(this, recyclerView, this));
 
                 //show image view
 
@@ -132,23 +155,10 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             finish();
         }
     }
+    protected void setupToolBar() {
 
-    private void showPicker(ArrayList<String> stringArray) {
-
-        imageViewer = new ImageViewer.Builder(this, stringArray)
-                .setCustomImageRequestBuilder(ImageViewer
-                        .createImageRequestBuilder()
-                        .setResizeOptions(
-                                ResizeOptions
-                                        //TODO can be more dynamic
-                                        .forDimensions(1820, 1820)
-                        )
-                )
-                .setOverlayView(overlayView)
-                .setStartPosition(currentPosition)
-                .setImageChangeListener(getImageChangeListener())
-                .setOnDismissListener(getDismissListener())
-                .show();
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_up_white_24dp);
 
     }
 
@@ -157,29 +167,100 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         super.onSaveInstanceState(outState);
 
     }
+    @Override
+    public boolean onCreatePanelMenu(int featureId, Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+
+        inflater.inflate(fakeR.getId("menu", "menu_photoscaptioninput"), menu);
+
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        int id = item.getItemId();
+        if (id == android.R.id.home) {
+            setResult(Activity.RESULT_CANCELED);
+            finish();
+            return true;
+        }else if(id == fakeR.getId("id","btnTrash")){
+
+        }
+        return onOptionsItemSelected(item);
+    }
 
     @Override
     public void onBackPressed() {
         super.onBackPressed();
         setResult(Activity.RESULT_CANCELED);
-        imageViewer.onDismiss();
         finish();
     }
 
-    public ImageViewer.OnImageChangeListener getImageChangeListener() {
-        return imageChangeListener;
+//    private void showPicker(ArrayList<String> stringArray) {
+//        overlayView = new OverlayView(this);
+//        imageViewer = new ImageViewer.Builder(this, stringArray)
+//                .setCustomImageRequestBuilder(ImageViewer
+//                        .createImageRequestBuilder()
+//                        .setResizeOptions(
+//                                ResizeOptions
+//                                        //TODO can be more dynamic
+//                                        .forDimensions(1820, 1820)
+//                        )
+//                )
+//                .setOverlayView(overlayView)
+//                .setStartPosition(currentPosition)
+//                .setImageChangeListener(getImageChangeListener())
+//                .setOnDismissListener(getDismissListener())
+//                .show();
+//
+//    }
+
+
+
+    @Override
+    public void onItemClick(View view, int position) {
+
     }
 
-    public ImageViewer.OnDismissListener getDismissListener() {
-        return dismissListener;
+    @Override
+    public void onItemLongClick(View view, int position) {
+
     }
 
-    public ImageViewer.Formatter getImageFormatter() {
-        return new ImageViewer.Formatter<CustomImage>() {
-            @Override
-            public String format(CustomImage customImage) {
-                return customImage.getUrl();
-            }
-        };
+    private class ScreenSlidePagerAdapter extends FragmentStatePagerAdapter {
+        private final ArrayList<String> itemList;
+
+        public ScreenSlidePagerAdapter(FragmentManager fm, ArrayList<String>itemList) {
+            super(fm);
+            this.itemList = itemList;
+        }
+
+        @Override
+        public Fragment getItem(int position) {
+            return ScreenSlidePageFragment.newInstance(itemList.get(position));
+        }
+
+        @Override
+        public int getCount() {
+            return getItemlist().size();
+        }
     }
+
+//    public ImageViewer.OnImageChangeListener getImageChangeListener() {
+//        return imageChangeListener;
+//    }
+//
+//    public ImageViewer.OnDismissListener getDismissListener() {
+//        return dismissListener;
+//    }
+//
+//    public ImageViewer.Formatter getImageFormatter() {
+//        return new ImageViewer.Formatter<CustomImage>() {
+//            @Override
+//            public String format(CustomImage customImage) {
+//                return customImage.getUrl();
+//            }
+//        };
+//    }
 }

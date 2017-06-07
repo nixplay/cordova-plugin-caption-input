@@ -1,11 +1,18 @@
 package com.creedon.cordova.plugin.captioninput;
 
 import android.content.Context;
+import android.net.Uri;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+
+import com.facebook.drawee.backends.pipeline.Fresco;
+import com.facebook.drawee.interfaces.DraweeController;
+import com.facebook.imagepipeline.common.ResizeOptions;
+import com.facebook.imagepipeline.request.ImageRequest;
+import com.facebook.imagepipeline.request.ImageRequestBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -61,9 +68,19 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolder
 
     @Override
     public void onBindViewHolder(RecyclerViewHolders holder, int position) {
-        holder.simpleDraweeView.setImageURI(itemList.get(position));
 
-//        holder.simpleDraweeView.setImageResource(R.drawable.bin);
+        int width = 100;
+        int height = 100;
+        ImageRequest request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(itemList.get(position)))
+                .setResizeOptions(new ResizeOptions(width, height))
+                .build();
+        DraweeController controller = Fresco.newDraweeControllerBuilder()
+                .setOldController(holder.simpleDraweeView.getController())
+                .setImageRequest(request)
+                .build();
+        holder.simpleDraweeView.setController(controller);
+
+
     }
 
     @Override

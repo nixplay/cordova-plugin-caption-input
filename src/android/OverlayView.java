@@ -1,6 +1,7 @@
 package com.creedon.cordova.plugin.captioninput;
 
 import android.content.Context;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
 import android.view.View;
@@ -49,6 +50,10 @@ class OverlayView extends ImageOverlayView implements RecyclerItemClickListener.
         etDescription = (MaterialEditText) view.findViewById(f.getId("id", "etDescription"));
         RecyclerView recyclerView = (RecyclerView) view.findViewById(f.getId("id", "recycleview"));
         recyclerViewAdapter = new RecyclerViewAdapter(getContext(), ((OverlayVieListener)listener).getItemlist());
+        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getContext(),LinearLayoutManager.HORIZONTAL,false);
+
+        recyclerView.setHasFixedSize(true);
+        recyclerView.setLayoutManager(linearLayoutManager);
         recyclerView.setAdapter(recyclerViewAdapter);
         recyclerView.addOnItemTouchListener(new RecyclerItemClickListener(getContext(), recyclerView, this));
         etDescription.setVisibility(VISIBLE);

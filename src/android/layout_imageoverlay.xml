@@ -11,38 +11,42 @@
         android:layout_height="wrap_content"
         android:layout_alignParentEnd="true"
         android:layout_alignParentRight="true"
-        android:layout_marginTop="10dp"
-        android:orientation="horizontal">
+
+        android:background="@color/colorDescriptionBackground"
+        android:orientation="horizontal"
+        android:paddingBottom="10dp">
 
         <ImageButton
             android:id="@+id/btnClose"
             android:layout_width="30dp"
             android:layout_height="30dp"
-            android:layout_gravity="left"
+            android:layout_gravity="center"
             android:layout_marginLeft="5dp"
             android:layout_marginRight="5dp"
+            android:layout_marginTop="5dp"
             android:background="@drawable/ic_close_white_24dp"
             android:scaleType="fitCenter"/>
 
         <TextView
             android:id="@+id/textView2"
-            style="@style/AppTheme.ActionBar.TitleTextStyle"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
+            android:layout_marginTop="10dp"
             android:layout_weight="1"
             android:gravity="center_vertical"
-            android:text="TextView"/>
+            android:text="TextView"
+            android:textColor="@color/colorPrimary"/>
 
         <ImageButton
             android:id="@+id/btnTrash"
-
-            android:layout_width="30dp"
-            android:layout_height="30dp"
+            android:layout_width="32dp"
+            android:layout_height="38dp"
             android:layout_gravity="center"
             android:layout_marginLeft="5dp"
             android:layout_marginRight="5dp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/bin"/>
+            android:layout_marginTop="5dp"
+            android:background="@drawable/bin"
+            android:scaleType="fitCenter"/>
 
     </LinearLayout>
 
@@ -52,7 +56,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:background="@color/colorDescriptionBackground"
         android:orientation="vertical"
         android:visibility="visible">
 
@@ -78,22 +81,21 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
 
+            android:background="@color/colorDescriptionBackground"
             android:hint="@string/add_a_caption"
             android:padding="@dimen/activity_margin"
             app:met_baseColor="@android:color/white"
-            app:met_floatingLabel="highlight"
 
+            app:met_floatingLabel="highlight"
             app:met_maxCharacters="160"
-            app:met_primaryColor="@color/colorDescriptionHints"
-            />
+            app:met_primaryColor="@color/colorDescriptionHints"/>
 
         <android.support.v7.widget.RecyclerView
             android:id="@+id/recycleview"
             android:layout_width="match_parent"
             android:layout_height="100dp"
             android:layout_gravity="bottom"
-            android:orientation="horizontal"
-            app:layoutManager="android.support.v7.widget.LinearLayoutManager">
+            android:orientation="horizontal">
 
         </android.support.v7.widget.RecyclerView>
 

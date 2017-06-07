@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.creedon.cordova.plugin.captioninput.SquareCardView
+<android.support.v7.widget.CardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:fresco="http://schemas.android.com/tools"
+    xmlns:card_view="http://schemas.android.com/apk/res-auto"
     android:id="@+id/card_view"
     android:layout_width="100dp"
     android:layout_height="100dp"
-    android:orientation="vertical">
+    card_view:cardUseCompatPadding="true">
 
     <com.facebook.drawee.view.SimpleDraweeView
         android:id="@+id/image"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
         android:padding="5dp"
         fresco:actualImageScaleType="focusCrop"
         fresco:backgroundImage="@color/blue"
@@ -20,4 +21,6 @@
         fresco:progressBarAutoRotateInterval="1000"
 
         fresco:progressBarImageScaleType="centerInside"/>
-</com.creedon.cordova.plugin.captioninput.SquareCardView>
+
+        fresco:placeholderImage="@drawable/common_google_signin_btn_icon_dark_normal"/>
+</android.support.v7.widget.CardView>
