@@ -59,11 +59,13 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     private MaterialEditText mEditText;
     private RecyclerView recyclerView;
     private LinearLayoutManager linearLayoutManager;
+    private RecyclerViewAdapter recyclerViewAdapter;
 
 
     public List<String> getItemlist() {
         return imageList;
     }
+
     private ArrayList<String> imageList;
 
 
@@ -90,7 +92,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     if (jsonObject.get("friends") != null) {
                         JSONArray friends = jsonObject.getJSONArray("friends");
                     }
-                }catch(Exception e){
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
 
@@ -142,12 +144,15 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 });
                 mPager = (ViewPager) findViewById(fakeR.getId("id", "pager"));
                 mPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
-                    public void onPageScrollStateChanged(int state) {}
-                    public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {}
+                    public void onPageScrollStateChanged(int state) {
+                    }
+
+                    public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+                    }
 
                     public void onPageSelected(int position) {
                         // Check if this is the page you want.
-                        if(currentPosition!= mPager.getCurrentItem()) {
+                        if (currentPosition != mPager.getCurrentItem()) {
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
@@ -166,12 +171,12 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
                 recyclerView = (RecyclerView) findViewById(fakeR.getId("id", "recycleview"));
                 linearLayoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
-                RecyclerViewAdapter recyclerViewAdapter = new RecyclerViewAdapter(this, stringArray);
+                recyclerViewAdapter = new RecyclerViewAdapter(this, stringArray);
                 recyclerView.setHasFixedSize(true);
                 recyclerView.setLayoutManager(linearLayoutManager);
                 recyclerView.setAdapter(recyclerViewAdapter);
                 recyclerView.addOnItemTouchListener(new RecyclerItemClickListener(this, recyclerView, this));
-                setActionBarTitle(imageList,currentPosition);
+                setActionBarTitle(imageList, currentPosition);
                 //show image view
 
             } catch (Exception e) {
@@ -186,6 +191,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             finish();
         }
     }
+
     protected void setupToolBar() {
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
@@ -198,6 +204,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         super.onSaveInstanceState(outState);
 
     }
+
     @Override
     public boolean onCreatePanelMenu(int featureId, Menu menu) {
         MenuInflater inflater = getMenuInflater();
@@ -215,18 +222,26 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             setResult(Activity.RESULT_CANCELED);
             finish();
             return true;
-        }else if(id == fakeR.getId("id","btnTrash")){
+        } else if (id == fakeR.getId("id", "btnTrash")) {
             //delete current page image
-            if(imageList.size()>0) {
+            if (imageList.size() > 0) {
                 imageList.remove(currentPosition);
                 captions.remove(currentPosition);
-                if(imageList.size()==0) {
+                currentPosition = Math.max(0, Math.min(currentPosition, imageList.size() - 1));
+                if (imageList.size() == 0) {
+
                     finishActivity(RESULT_CANCELED);
+                    finish();
                     return false;
+                } else {
+                    ArrayList<String> clonedPoster = (ArrayList<String>) imageList.clone();
+                    ArrayList<String> clonedPoster2 = (ArrayList<String>) imageList.clone();
+                    mPagerAdapter.swap(clonedPoster);
+                    recyclerViewAdapter.swap(clonedPoster2);
+                    linearLayoutManager.scrollToPositionWithOffset(currentPosition, -1);
+                    setActionBarTitle(imageList, currentPosition);
                 }
-                ArrayList<String> clonedPoster = (ArrayList<String>) imageList.clone();
-                mPagerAdapter.swap(clonedPoster);
-            }else{
+            } else {
                 finishActivity(RESULT_CANCELED);
                 return false;
             }
@@ -247,40 +262,47 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     public boolean dispatchTouchEvent(MotionEvent event) {
         if (event.getAction() == MotionEvent.ACTION_DOWN) {
             View v = getCurrentFocus();
-            if ( v instanceof EditText) {
+            if (v instanceof EditText) {
                 Rect outRect = new Rect();
                 v.getGlobalVisibleRect(outRect);
-                if (!outRect.contains((int)event.getRawX(), (int)event.getRawY())) {
+                if (!outRect.contains((int) event.getRawX(), (int) event.getRawY())) {
                     v.clearFocus();
                     InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
                     imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
                 }
             }
         }
-        return super.dispatchTouchEvent( event );
+        return super.dispatchTouchEvent(event);
     }
 
     @Override
     public void onItemClick(View view, int position) {
         currentPosition = position;
         mPager.setCurrentItem(position);
+        setActionBarTitle(imageList, currentPosition);
+        mEditText.setText(captions.get(currentPosition));
+
     }
 
     @Override
     public void onItemLongClick(View view, int position) {
         currentPosition = position;
         mPager.setCurrentItem(position);
+        setActionBarTitle(imageList, currentPosition);
+        mEditText.setText(captions.get(currentPosition));
     }
 
-    public void setActionBarTitle(ArrayList<String> actionBarTitle , int index) {
 
-        getSupportActionBar().setTitle( (index) + "/" + actionBarTitle.size());
+
+    public void setActionBarTitle(ArrayList<String> actionBarTitle, int index) {
+
+        getSupportActionBar().setTitle((index + 1) + "/" + actionBarTitle.size());
     }
 
     private void finishWithResult() throws JSONException {
         Bundle conData = new Bundle();
         JSONArray jsonArray = new JSONArray();
-        for(int i = 0 , count = imageList.size(); i <count; i++ ) {
+        for (int i = 0, count = imageList.size(); i < count; i++) {
             JSONObject object = new JSONObject();
             object.put(KEY_IMAGE, imageList.get(i));
             object.put(KEY_CAPTION, captions.get(i));
@@ -297,7 +319,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     private class ScreenSlidePagerAdapter extends FragmentStatePagerAdapter {
         private ArrayList<String> itemList;
 
-        public ScreenSlidePagerAdapter(FragmentManager fm, ArrayList<String>itemList) {
+        public ScreenSlidePagerAdapter(FragmentManager fm, ArrayList<String> itemList) {
             super(fm);
             this.itemList = itemList;
         }
@@ -321,7 +343,8 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 }
             });
         }
-//        https://stackoverflow.com/questions/13695649/refresh-images-on-fragmentstatepageradapter-on-resuming-activity
+
+        //        https://stackoverflow.com/questions/13695649/refresh-images-on-fragmentstatepageradapter-on-resuming-activity
         @Override
         public int getItemPosition(Object object) {
             return POSITION_NONE;
