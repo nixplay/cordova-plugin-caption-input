@@ -33,9 +33,7 @@ public class PhotoCaptionInputViewCordova extends CordovaPlugin {
 
     private void showCaptionInput(JSONObject options, CallbackContext callbackContext) {
         if (options != null && options.length() > 0) {
-
-            android.app.FragmentManager fm = this.cordova.getActivity().getFragmentManager();
-            ActivityManager.MemoryInfo mi = new ActivityManager.MemoryInfo();
+    ActivityManager.MemoryInfo mi = new ActivityManager.MemoryInfo();
             ActivityManager activityManager = (ActivityManager) this.cordova.getActivity().getApplicationContext().getSystemService(Context.ACTIVITY_SERVICE);
             activityManager.getMemoryInfo(mi);
             long totalMegs = mi.totalMem / 1048576L;
@@ -64,7 +62,10 @@ public class PhotoCaptionInputViewCordova extends CordovaPlugin {
                 }
 
             }else {
-
+                JSONObject res = new JSONObject();
+                if(this.callbackContext != null ) {
+                    this.callbackContext.error(res);
+                }
             }
 
         } else if (resultCode == Activity.RESULT_CANCELED && data != null) {

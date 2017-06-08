@@ -15,24 +15,36 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 
 import com.facebook.drawee.backends.pipeline.Fresco;
+import com.kbeanie.multipicker.api.ImagePicker;
+import com.kbeanie.multipicker.api.Picker;
+import com.kbeanie.multipicker.api.callbacks.ImagePickerCallback;
+import com.kbeanie.multipicker.api.entity.ChosenImage;
+import com.photoselector.ui.PhotoSelectorActivity;
 import com.rengwuxian.materialedittext.MaterialEditText;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.creedon.cordova.plugin.captioninput.Constants.KEY_CAPTION;
+import static com.creedon.cordova.plugin.captioninput.Constants.KEY_IMAGE;
+import static com.creedon.cordova.plugin.captioninput.Constants.KEY_INVALIDIMAGES;
+import static com.creedon.cordova.plugin.captioninput.Constants.KEY_PRESELECT;
 
 /**
  * _   _ _______   ________ _       _____   __
@@ -47,8 +59,11 @@ import java.util.List;
 
 public class PhotoCaptionInputViewActivity extends AppCompatActivity implements RecyclerItemClickListener.OnItemClickListener {
 
-    private static final String KEY_IMAGE = "image";
-    private static final String KEY_CAPTION = "caption";
+
+    private static final int REQUEST_CODE_PHOTO_INPUT = 0x31;
+    private static final String TAG = PhotoCaptionInputViewActivity.class.getSimpleName();
+
+
     private FakeR fakeR;
     private ArrayList<String> captions;
     private int currentPosition;
@@ -60,6 +75,10 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     private RecyclerView recyclerView;
     private LinearLayoutManager linearLayoutManager;
     private RecyclerViewAdapter recyclerViewAdapter;
+    private int width;
+    private int height;
+    private int quality;
+    private ImagePicker imagePicker;
 
 
     public List<String> getItemlist() {
@@ -86,15 +105,18 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 JSONObject jsonObject = new JSONObject(optionsJsonString);
 
                 String tc = jsonObject.getString("ts");
+//                this.width = jsonObject.getInt("width");
+//                this.height = jsonObject.getInt("height");
+//                this.quality = jsonObject.getInt("quality");
                 JSONArray imagesJsonArray = jsonObject.getJSONArray("images");
                 JSONArray preSelectedAssets = jsonObject.getJSONArray("preSelectedAssets");
-                try {
-                    if (jsonObject.get("friends") != null) {
-                        JSONArray friends = jsonObject.getJSONArray("friends");
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+//                try {
+//                    if (jsonObject.get("friends") != null) {
+//                        JSONArray friends = jsonObject.getJSONArray("friends");
+//                    }
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                }
 
                 ArrayList<String> stringArray = new ArrayList<String>();
                 captions = new ArrayList<String>();
@@ -129,8 +151,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                         captions.set(currentPosition, editable.toString());
                     }
                 });
-                Button submitButton = (Button) findViewById(fakeR.getId("id", "btnSubmit"));
-                submitButton.setOnClickListener(new View.OnClickListener() {
+                ( (ImageButton) findViewById(fakeR.getId("id", "btnSubmit"))).setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
 
@@ -177,6 +198,63 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 recyclerView.setAdapter(recyclerViewAdapter);
                 recyclerView.addOnItemTouchListener(new RecyclerItemClickListener(this, recyclerView, this));
                 setActionBarTitle(imageList, currentPosition);
+
+                ((ImageButton) findViewById(fakeR.getId("id", "btnAdd"))).setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        Intent intent = new Intent(PhotoCaptionInputViewActivity.this, PhotoSelectorActivity.class);
+//
+//                        int maxImages = 100;
+//                        intent.putExtra("MAX_IMAGES", maxImages);
+//                        int desiredWidth = PhotoCaptionInputViewActivity.this.width;
+//                        intent.putExtra("WIDTH", desiredWidth);
+//                        int desiredHeight = PhotoCaptionInputViewActivity.this.height;
+//                        intent.putExtra("HEIGHT", desiredHeight);
+//                        int quality = 100;
+//                        intent.putExtra("QUALITY", quality);
+//                        intent.putExtra("PRE_SELECTED_ASSETS", imageList);
+//                        intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+//                        startActivityForResult(intent,REQUEST_CODE_PHOTO_INPUT);
+//                        startActivity(intent);
+//                            if(cordova.hasPermission(permissions[0])) {
+//                                this.cordova.startActivityForResult(this, intent, 0);
+//                            } else if (this.cordova != null) {
+//                                getReadPermission(SAVE_TO_ALBUM_SEC);
+//                            }
+//                        TODO James Kong 2017-06-09 IDEAL image picker with replace with existing
+                        imagePicker = new ImagePicker(PhotoCaptionInputViewActivity.this);
+                        imagePicker.setImagePickerCallback(new ImagePickerCallback() {
+                            @Override
+                            public void onImagesChosen(List<ChosenImage> images) {
+                                //dismiss dialog
+                                // Display images
+                                for (ChosenImage image : images) {
+                                    File file = new File(image.getOriginalPath());
+
+                                    imageList.add("file://"+file.getAbsolutePath());
+                                    captions.add("");
+                                    Log.d(TAG, image.toString());
+                                }
+
+                                setActionBarTitle(imageList, currentPosition);
+                                refreshList();
+
+                            }
+
+                            @Override
+                            public void onError(String message) {
+                                // Do error handling
+                                Log.d(TAG, message);
+                            }
+                        });
+
+                        imagePicker.allowMultiple(); // Default is false
+                        imagePicker.shouldGenerateMetadata(false); // Default is true
+                        imagePicker.shouldGenerateThumbnails(false); // Default is true
+                        imagePicker.pickImage();
+
+                    }
+                });
                 //show image view
 
             } catch (Exception e) {
@@ -292,8 +370,27 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         mEditText.setText(captions.get(currentPosition));
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if(resultCode == RESULT_OK) {
+            if(requestCode == Picker.PICK_IMAGE_DEVICE) {
+                //show dialog
+                imagePicker.submit(data);
+            }
+        }
 
-
+//        if (resultCode == Activity.RESULT_OK && data != null && requestCode == REQUEST_CODE_PHOTO_INPUT) {
+//            ArrayList<String> fileNames = data.getStringArrayListExtra("MULTIPLEFILENAMES");
+//            ArrayList<String> preSelectedAssets = data.getStringArrayListExtra("SELECTED_ASSETS");
+//            ArrayList<String> invalidImages = data.getStringArrayListExtra("INVALID_IMAGES");
+//            for(int i = fileNames.size() - imageList.size() , count = fileNames.size(); i< count; i++){
+//                captions.add("");
+//            }
+//            imageList.clear();
+//            imageList.addAll(fileNames);
+//            refreshList();
+//        }
+    }
     public void setActionBarTitle(ArrayList<String> actionBarTitle, int index) {
 
         getSupportActionBar().setTitle((index + 1) + "/" + actionBarTitle.size());
@@ -301,21 +398,26 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
     private void finishWithResult() throws JSONException {
         Bundle conData = new Bundle();
-        JSONArray jsonArray = new JSONArray();
-        for (int i = 0, count = imageList.size(); i < count; i++) {
-            JSONObject object = new JSONObject();
-            object.put(KEY_IMAGE, imageList.get(i));
-            object.put(KEY_CAPTION, captions.get(i));
-            jsonArray.put(object);
-        }
-
-        conData.putString("result", jsonArray.toString());
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put(KEY_IMAGE , imageList);
+        jsonObject.put(KEY_CAPTION , captions);
+        jsonObject.put(KEY_PRESELECT,new JSONArray());
+        jsonObject.put(KEY_INVALIDIMAGES,new JSONArray());
+        conData.putString(Constants.RESULT, jsonObject.toString());
         Intent intent = new Intent();
         intent.putExtras(conData);
         setResult(RESULT_OK, intent);
         finishActivity(Constants.REQUEST_SUBMIT);
     }
+    void refreshList(){
+        ArrayList<String> clonedPoster = (ArrayList<String>) imageList.clone();
+        mPagerAdapter.swap(clonedPoster);
+        ArrayList<String> clonedPoster2 = (ArrayList<String>) imageList.clone();
+        recyclerViewAdapter.swap(clonedPoster);
+        mPagerAdapter.swap(clonedPoster2);
+        setActionBarTitle(imageList, currentPosition);
 
+    }
     private class ScreenSlidePagerAdapter extends FragmentStatePagerAdapter {
         private ArrayList<String> itemList;
 
