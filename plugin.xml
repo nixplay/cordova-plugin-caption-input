@@ -55,7 +55,15 @@
 		<source-file src="src/android/RecyclerViewHolders.java" target-dir="src/com/creedon/cordova/plugin/captioninput"/>
 		<source-file src="src/android/ScreenSlidePageFragment.java" target-dir="src/com/creedon/cordova/plugin/captioninput"/>
 		<source-file src="src/android/SquareCardView.java" target-dir="src/com/creedon/cordova/plugin/captioninput"/>
-
+		<source-file src="src/android/zoomable/AbstractAnimatedZoomableController.java" target-dir="src/com/creedon/cordova/plugin/captioninput/zoomable"/>
+		<source-file src="src/android/zoomable/AnimatedZoomableController.java" target-dir="src/com/creedon/cordova/plugin/captioninput/zoomable"/>
+		<source-file src="src/android/zoomable/DefaultZoomableController.java" target-dir="src/com/creedon/cordova/plugin/captioninput/zoomable"/>
+		<source-file src="src/android/zoomable/DoubleTapGestureListener.java" target-dir="src/com/creedon/cordova/plugin/captioninput/zoomable"/>
+		<source-file src="src/android/zoomable/GestureListenerWrapper.java" target-dir="src/com/creedon/cordova/plugin/captioninput/zoomable"/>
+		<source-file src="src/android/zoomable/MultiPointerGestureDetector.java" target-dir="src/com/creedon/cordova/plugin/captioninput/zoomable"/>
+		<source-file src="src/android/zoomable/TransformGestureDetector.java" target-dir="src/com/creedon/cordova/plugin/captioninput/zoomable"/>
+		<source-file src="src/android/zoomable/ZoomableController.java" target-dir="src/com/creedon/cordova/plugin/captioninput/zoomable"/>
+		<source-file src="src/android/zoomable/ZoomableDraweeView.java" target-dir="src/com/creedon/cordova/plugin/captioninput/zoomable"/>
 		<source-file src="src/android/activity_photoscaptioninput.xml" target-dir="res/layout" />
 		<source-file src="src/android/layout_imageoverlay.xml" target-dir="res/layout" />
 		<source-file src="src/android/layout_photocaption_card_view.xml" target-dir="res/layout" />

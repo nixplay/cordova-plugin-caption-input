@@ -13,7 +13,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
 
-        android:layout_weight="0.2"
+        android:layout_weight="0.1"
         android:background="@color/colorDescriptionBackground">
 
         <android.support.v4.view.ViewPager
@@ -79,27 +79,32 @@
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_gravity="bottom"
-        android:layout_weight="0.8"
+        android:layout_weight="0.9"
+        android:background="#FF000000"
         >
 
         <android.support.v7.widget.RecyclerView
             android:id="@+id/recycleview"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-
-            android:orientation="horizontal"
+            android:layout_alignParentBottom="@+id/imageButton2"
+            android:layout_alignParentTop="true"
             android:layout_toLeftOf="@+id/imageButton2"
             android:layout_toStartOf="@+id/imageButton2"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentBottom="@+id/imageButton2"/>
+            android:background="#FF000000"
+            android:orientation="horizontal"/>
 
         <ImageButton
-            android:layout_width="100dp"
-            android:layout_height="100dp"
+            android:id="@+id/imageButton2"
+            android:layout_width="50dp"
 
+            android:layout_height="50dp"
             android:layout_alignParentRight="true"
-            android:background="@drawable/add"
-            android:id="@+id/imageButton2"/>
+            android:layout_centerHorizontal="false"
+            android:layout_centerVertical="true"
+            android:background="#00000000"
+            android:scaleType="centerCrop"
+            android:src="@drawable/add"/>
     </RelativeLayout>
 
 

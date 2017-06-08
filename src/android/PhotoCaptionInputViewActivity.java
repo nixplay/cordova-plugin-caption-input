@@ -84,7 +84,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 JSONObject jsonObject = new JSONObject(optionsJsonString);
 
                 String tc = jsonObject.getString("ts");
-                JSONArray images = jsonObject.getJSONArray("images");
+                JSONArray imagesJsonArray = jsonObject.getJSONArray("images");
                 JSONArray preSelectedAssets = jsonObject.getJSONArray("preSelectedAssets");
                 try {
                     if (jsonObject.get("friends") != null) {
@@ -97,9 +97,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 ArrayList<String> stringArray = new ArrayList<String>();
                 captions = new ArrayList<String>();
 
-                for (int i = 0, count = images.length(); i < count; i++) {
+                for (int i = 0, count = imagesJsonArray.length(); i < count; i++) {
                     try {
-                        String jsonObj = images.getString(i);
+                        String jsonObj = imagesJsonArray.getString(i);
                         stringArray.add(jsonObj);
                         captions.add(i, "");
                     } catch (JSONException e) {
@@ -141,6 +141,25 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     }
                 });
                 mPager = (ViewPager) findViewById(fakeR.getId("id", "pager"));
+                mPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+                    public void onPageScrollStateChanged(int state) {}
+                    public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {}
+
+                    public void onPageSelected(int position) {
+                        // Check if this is the page you want.
+                        if(currentPosition!= mPager.getCurrentItem()) {
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    currentPosition = mPager.getCurrentItem();
+                                    setActionBarTitle(imageList, currentPosition);
+                                    mEditText.setText(captions.get(currentPosition));
+                                    linearLayoutManager.scrollToPositionWithOffset(currentPosition, -1);
+                                }
+                            });
+                        }
+                    }
+                });
                 mPagerAdapter = new ScreenSlidePagerAdapter(getSupportFragmentManager(), stringArray);
                 mPager.setAdapter(mPagerAdapter);
 
@@ -205,9 +224,14 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     finishActivity(RESULT_CANCELED);
                     return false;
                 }
+                ArrayList<String> clonedPoster = (ArrayList<String>) imageList.clone();
+                mPagerAdapter.swap(clonedPoster);
+            }else{
+                finishActivity(RESULT_CANCELED);
+                return false;
             }
-            ArrayList<String> clonedPoster = (ArrayList<String>) imageList.clone();
-            mPagerAdapter.swap(clonedPoster);
+
+            return true;
         }
         return onOptionsItemSelected(item);
     }
@@ -250,7 +274,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
     public void setActionBarTitle(ArrayList<String> actionBarTitle , int index) {
 
-        getSupportActionBar().setTitle( (index+1) + "/" + actionBarTitle.size());
+        getSupportActionBar().setTitle( (index) + "/" + actionBarTitle.size());
     }
 
     private void finishWithResult() throws JSONException {
@@ -280,10 +304,6 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
         @Override
         public Fragment getItem(int position) {
-            currentPosition = position;
-            setActionBarTitle(itemList, position);
-            mEditText.setText(captions.get(position));
-            linearLayoutManager.scrollToPositionWithOffset(position, 0);
             return ScreenSlidePageFragment.newInstance(itemList.get(position));
         }
 
@@ -295,7 +315,16 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         public void swap(ArrayList<String> poster) {
             itemList = poster;
 
-            notifyDataSetChanged();
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    notifyDataSetChanged();
+                }
+            });
+        }
+//        https://stackoverflow.com/questions/13695649/refresh-images-on-fragmentstatepageradapter-on-resuming-activity
+        @Override
+        public int getItemPosition(Object object) {
+            return POSITION_NONE;
         }
     }
 
