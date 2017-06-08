@@ -9,9 +9,10 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.creedon.cordova.plugin.captioninput.zoomable.DoubleTapGestureListener;
+import com.creedon.cordova.plugin.captioninput.zoomable.ZoomableDraweeView;
 import com.facebook.drawee.backends.pipeline.Fresco;
 import com.facebook.drawee.interfaces.DraweeController;
-import com.facebook.drawee.view.SimpleDraweeView;
 import com.facebook.imagepipeline.common.ResizeOptions;
 import com.facebook.imagepipeline.request.ImageRequest;
 import com.facebook.imagepipeline.request.ImageRequestBuilder;
@@ -66,9 +67,13 @@ public class ScreenSlidePageFragment extends Fragment {
                              Bundle savedInstanceState) {
         ViewGroup rootView = (ViewGroup) inflater.inflate(
                 fakeR.getId("layout", "fragment_screen_slide_page"), container, false);
-        SimpleDraweeView zoomableDraweeView = (SimpleDraweeView) rootView.findViewById(fakeR.getId("id", "draweeView"));
-//        ZoomableDraweeView zoomableDraweeView = (ZoomableDraweeView) rootView.findViewById(fakeR.getId("id", "draweeView"));
+//        SimpleDraweeView zoomableDraweeView = (SimpleDraweeView) rootView.findViewById(fakeR.getId("id", "draweeView"));
+        ZoomableDraweeView zoomableDraweeView = (ZoomableDraweeView) rootView.findViewById(fakeR.getId("id", "draweeView"));
 
+        zoomableDraweeView.setAllowTouchInterceptionWhileZoomed(true);
+        // needed for double tap to zoom
+        zoomableDraweeView.setIsLongpressEnabled(false);
+        zoomableDraweeView.setTapListener(new DoubleTapGestureListener(zoomableDraweeView));
         int width = 1820;
         int height = 1820;
         ImageRequest request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(url))
@@ -77,11 +82,9 @@ public class ScreenSlidePageFragment extends Fragment {
         DraweeController controller = Fresco.newDraweeControllerBuilder()
                 .setOldController(zoomableDraweeView.getController())
                 .setImageRequest(request)
-
-
                 .build();
         zoomableDraweeView.setController(controller);
-        zoomableDraweeView.setEnabled(true);
+
 
         return rootView;
     }

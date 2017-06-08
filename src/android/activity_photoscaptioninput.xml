@@ -75,27 +75,32 @@
     </FrameLayout>
 
 
-    <LinearLayout
-        android:layout_width="match_parent"
+    <RelativeLayout
+        android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_gravity="bottom"
         android:layout_weight="0.8"
-        android:orientation="horizontal"
-        android:weightSum="1">
+        >
 
         <android.support.v7.widget.RecyclerView
             android:id="@+id/recycleview"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_weight="0.8"
-            android:orientation="horizontal"/>
+
+            android:orientation="horizontal"
+            android:layout_toLeftOf="@+id/imageButton2"
+            android:layout_toStartOf="@+id/imageButton2"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentBottom="@+id/imageButton2"/>
 
         <ImageButton
             android:layout_width="100dp"
             android:layout_height="100dp"
 
-            android:background="@drawable/add"/>
-    </LinearLayout>
+            android:layout_alignParentRight="true"
+            android:background="@drawable/add"
+            android:id="@+id/imageButton2"/>
+    </RelativeLayout>
 
 
 </LinearLayout>

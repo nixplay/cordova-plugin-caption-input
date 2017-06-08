@@ -83,11 +83,15 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             try {
                 JSONObject jsonObject = new JSONObject(optionsJsonString);
 
-//                String tc = jsonObject.getString("ts");
+                String tc = jsonObject.getString("ts");
                 JSONArray images = jsonObject.getJSONArray("images");
-//                JSONArray preSelectedAssets = jsonObject.getJSONArray("preSelectedAssets");
-                if (!jsonObject.get("friends").equals(null)) {
-                    JSONArray friends = jsonObject.getJSONArray("friends");
+                JSONArray preSelectedAssets = jsonObject.getJSONArray("preSelectedAssets");
+                try {
+                    if (jsonObject.get("friends") != null) {
+                        JSONArray friends = jsonObject.getJSONArray("friends");
+                    }
+                }catch(Exception e){
+                    e.printStackTrace();
                 }
 
                 ArrayList<String> stringArray = new ArrayList<String>();
@@ -249,6 +253,23 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         getSupportActionBar().setTitle( (index+1) + "/" + actionBarTitle.size());
     }
 
+    private void finishWithResult() throws JSONException {
+        Bundle conData = new Bundle();
+        JSONArray jsonArray = new JSONArray();
+        for(int i = 0 , count = imageList.size(); i <count; i++ ) {
+            JSONObject object = new JSONObject();
+            object.put(KEY_IMAGE, imageList.get(i));
+            object.put(KEY_CAPTION, captions.get(i));
+            jsonArray.put(object);
+        }
+
+        conData.putString("result", jsonArray.toString());
+        Intent intent = new Intent();
+        intent.putExtras(conData);
+        setResult(RESULT_OK, intent);
+        finishActivity(Constants.REQUEST_SUBMIT);
+    }
+
     private class ScreenSlidePagerAdapter extends FragmentStatePagerAdapter {
         private ArrayList<String> itemList;
 
@@ -278,21 +299,5 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         }
     }
 
-    private void finishWithResult() throws JSONException {
-        Bundle conData = new Bundle();
-        JSONArray jsonArray = new JSONArray();
-        for(int i = 0 , count = imageList.size(); i <count; i++ ) {
-            JSONObject object = new JSONObject();
-            object.put(KEY_IMAGE, imageList.get(i));
-            object.put(KEY_CAPTION, captions.get(i));
-            jsonArray.put(object);
-        }
-
-        conData.putString("result", jsonArray.toString());
-        Intent intent = new Intent();
-        intent.putExtras(conData);
-        setResult(RESULT_OK, intent);
-        finishActivity(Constants.REQUEST_SUBMIT);
-    }
 
 }

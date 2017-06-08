@@ -6,7 +6,8 @@
     android:id="@+id/card_view"
     android:layout_width="100dp"
     android:layout_height="100dp"
-    card_view:cardUseCompatPadding="true">
+    card_view:cardUseCompatPadding="true"
+    android:background="#FF000000">
 
     <com.facebook.drawee.view.SimpleDraweeView
         android:id="@+id/image"
