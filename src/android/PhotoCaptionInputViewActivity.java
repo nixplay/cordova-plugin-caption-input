@@ -26,6 +26,7 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 
 import com.facebook.drawee.backends.pipeline.Fresco;
+import com.kaopiz.kprogresshud.KProgressHUD;
 import com.kbeanie.multipicker.api.ImagePicker;
 import com.kbeanie.multipicker.api.Picker;
 import com.kbeanie.multipicker.api.callbacks.ImagePickerCallback;
@@ -79,6 +80,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     private int height;
     private int quality;
     private ImagePicker imagePicker;
+    private KProgressHUD kProgressHUD;
 
 
     public List<String> getItemlist() {
@@ -227,6 +229,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                             @Override
                             public void onImagesChosen(List<ChosenImage> images) {
                                 //dismiss dialog
+                                if(kProgressHUD != null){
+                                    kProgressHUD.dismiss();
+                                }
                                 // Display images
                                 for (ChosenImage image : images) {
                                     File file = new File(image.getOriginalPath());
@@ -374,7 +379,15 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if(resultCode == RESULT_OK) {
             if(requestCode == Picker.PICK_IMAGE_DEVICE) {
-                //show dialog
+                kProgressHUD = KProgressHUD.create(PhotoCaptionInputViewActivity.this)
+                        .setStyle(KProgressHUD.Style.SPIN_INDETERMINATE)
+                        .setDetailsLabel("Downloading data")
+                        .setCancellable(false)
+                        .setAnimationSpeed(2)
+                        .setDimAmount(0.5f)
+                        .show();
+
+                imagePicker.submit(data);
                 imagePicker.submit(data);
             }
         }

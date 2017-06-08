@@ -34,6 +34,7 @@
 		<framework src="com.android.support:recyclerview-v7:24.0.0"/>
 		<framework src="com.android.support:cardview-v7:24.0.0"/>
 		<framework src="com.kbeanie:multipicker:1.1.31@aar"/>
+		<framework src="com.kaopiz:kprogresshud:1.0.5"/>
 		<config-file target="AndroidManifest.xml" parent="/manifest/application">
 			<activity
 				android:name="package com.creedon.cordova.plugin.captioninput.PhotoCaptionInputViewActivity"
