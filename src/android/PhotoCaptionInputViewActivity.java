@@ -223,7 +223,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                                     Log.d(TAG, image.toString());
                                 }
 
-                                setActionBarTitle(imageList, currentPosition);
+
                                 refreshList();
 
                             }
@@ -369,7 +369,6 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                         .setDimAmount(0.5f)
                         .show();
 
-                imagePicker.submit(data);
                 imagePicker.submit(data);
             }
         }
