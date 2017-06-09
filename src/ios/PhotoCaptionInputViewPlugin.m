@@ -1,16 +1,16 @@
 //
-//  PhotoCaptionInputViewCordova.m
+//  PhotoCaptionInputViewPlugin.m
 //  Helper
 //
 //  Created by James Kong on 21/04/2017.
 //
 //
 
-#import "PhotoCaptionInputViewCordova.h"
+#import "PhotoCaptionInputViewPlugin.h"
 #import <Cordova/CDVViewController.h>
 #import "MBProgressHUD.h"
 #import "MWPhotoExt.h"
-@implementation PhotoCaptionInputViewCordova
+@implementation PhotoCaptionInputViewPlugin
 
 @synthesize callbackId;
 @synthesize callbackIds = _callbackIds;
@@ -111,7 +111,7 @@
 
 -(void) dismissPhotoCaptionInputView:(PhotoCaptionInputViewController*)controller{
     CDVPluginResult* pluginResult = nil;
-    NSString *message = [NSString stringWithFormat:@"No Result in PhotoCaptionInputViewCordova (%@) ", NSLocalizedString(@"User canceled", nil)];
+    NSString *message = [NSString stringWithFormat:@"No Result in PhotoCaptionInputViewPlugin (%@) ", NSLocalizedString(@"User canceled", nil)];
     NSLog(@"%@", message);
 
     pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_NO_RESULT messageAsString:message];

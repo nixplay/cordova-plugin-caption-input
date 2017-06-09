@@ -16,7 +16,7 @@ import static com.creedon.cordova.plugin.captioninput.Constants.REQUEST_SUBMIT;
 /**
  * This class echoes a string called from JavaScript.
  */
-public class PhotoCaptionInputViewCordova extends CordovaPlugin {
+public class PhotoCaptionInputViewPlugin extends CordovaPlugin {
 
     private CallbackContext callbackContext;
 

@@ -1,5 +1,5 @@
 //
-//  PhotoCaptionInputViewCordova.h
+//  PhotoCaptionInputViewPlugin.h
 //  Helper
 //
 //  Created by James Kong on 21/04/2017.
@@ -10,7 +10,7 @@
 #import <Cordova/CDVPlugin.h>
 #import "PhotoCaptionInputViewController.h"
 
-@interface PhotoCaptionInputViewCordova : CDVPlugin <PhotoCaptionInputViewDelegate> {
+@interface PhotoCaptionInputViewPlugin : CDVPlugin <PhotoCaptionInputViewDelegate> {
 
     NSMutableDictionary* callbackIds;
     NSArray* photos;

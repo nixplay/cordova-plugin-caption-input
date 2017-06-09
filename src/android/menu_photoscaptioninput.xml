@@ -4,7 +4,7 @@
     <item android:icon="@drawable/bin"
           android:id="@+id/btnTrash"
           app:showAsAction="always"
-        android:title="@string/delete">
+        android:title="@string/DELETE">
 
     </item>
 </menu>

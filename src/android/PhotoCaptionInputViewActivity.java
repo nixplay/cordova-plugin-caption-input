@@ -31,7 +31,7 @@ import com.kbeanie.multipicker.api.ImagePicker;
 import com.kbeanie.multipicker.api.Picker;
 import com.kbeanie.multipicker.api.callbacks.ImagePickerCallback;
 import com.kbeanie.multipicker.api.entity.ChosenImage;
-import com.photoselector.ui.PhotoSelectorActivity;
+
 import com.rengwuxian.materialedittext.MaterialEditText;
 
 import org.json.JSONArray;
@@ -204,25 +204,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 ((ImageButton) findViewById(fakeR.getId("id", "btnAdd"))).setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
-                        Intent intent = new Intent(PhotoCaptionInputViewActivity.this, PhotoSelectorActivity.class);
-//
-//                        int maxImages = 100;
-//                        intent.putExtra("MAX_IMAGES", maxImages);
-//                        int desiredWidth = PhotoCaptionInputViewActivity.this.width;
-//                        intent.putExtra("WIDTH", desiredWidth);
-//                        int desiredHeight = PhotoCaptionInputViewActivity.this.height;
-//                        intent.putExtra("HEIGHT", desiredHeight);
-//                        int quality = 100;
-//                        intent.putExtra("QUALITY", quality);
-//                        intent.putExtra("PRE_SELECTED_ASSETS", imageList);
-//                        intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
-//                        startActivityForResult(intent,REQUEST_CODE_PHOTO_INPUT);
-//                        startActivity(intent);
-//                            if(cordova.hasPermission(permissions[0])) {
-//                                this.cordova.startActivityForResult(this, intent, 0);
-//                            } else if (this.cordova != null) {
-//                                getReadPermission(SAVE_TO_ALBUM_SEC);
-//                            }
+
 //                        TODO James Kong 2017-06-09 IDEAL image picker with replace with existing
                         imagePicker = new ImagePicker(PhotoCaptionInputViewActivity.this);
                         imagePicker.setImagePickerCallback(new ImagePickerCallback() {
