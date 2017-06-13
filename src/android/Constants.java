@@ -14,8 +14,8 @@ package com.creedon.cordova.plugin.captioninput;
 public class Constants {
     public static final int REQUEST_SUBMIT = 0x21;
     public static final String RESULT = "result";
-    public static final String KEY_PRESELECT = "preSelectedAssets";
-    public static final String KEY_IMAGE = "image";
-    public static final String KEY_CAPTION = "caption";
+    public static final String KEY_PRESELECTS = "preSelectedAssets";
+    public static final String KEY_IMAGES = "images";
+    public static final String KEY_CAPTIONS = "captions";
     public static final String KEY_INVALIDIMAGES = "invalidImages";
 }

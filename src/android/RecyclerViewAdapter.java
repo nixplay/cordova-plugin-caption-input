@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.facebook.drawee.backends.pipeline.Fresco;
+import com.facebook.drawee.generic.RoundingParams;
 import com.facebook.drawee.interfaces.DraweeController;
 import com.facebook.imagepipeline.common.ResizeOptions;
 import com.facebook.imagepipeline.request.ImageRequest;
@@ -78,6 +79,14 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolder
                 .setOldController(holder.simpleDraweeView.getController())
                 .setImageRequest(request)
                 .build();
+        if(listener != null) {
+            if(listener.isPhotoSelected(position)) {
+                RoundingParams roundingParams = RoundingParams.fromCornersRadius(0);
+                roundingParams.setBorder(0xFF0000FF, 3.0f);
+                roundingParams.setRoundAsCircle(false);
+                holder.simpleDraweeView.getHierarchy().setRoundingParams(roundingParams);
+            }
+        }
         holder.simpleDraweeView.setController(controller);
 
 

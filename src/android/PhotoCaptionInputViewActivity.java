@@ -4,12 +4,15 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Rect;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Vibrator;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -23,7 +26,6 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
-import android.widget.ImageButton;
 
 import com.facebook.drawee.backends.pipeline.Fresco;
 import com.kaopiz.kprogresshud.KProgressHUD;
@@ -31,7 +33,6 @@ import com.kbeanie.multipicker.api.ImagePicker;
 import com.kbeanie.multipicker.api.Picker;
 import com.kbeanie.multipicker.api.callbacks.ImagePickerCallback;
 import com.kbeanie.multipicker.api.entity.ChosenImage;
-
 import com.rengwuxian.materialedittext.MaterialEditText;
 
 import org.json.JSONArray;
@@ -42,10 +43,10 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.creedon.cordova.plugin.captioninput.Constants.KEY_CAPTION;
-import static com.creedon.cordova.plugin.captioninput.Constants.KEY_IMAGE;
+import static com.creedon.cordova.plugin.captioninput.Constants.KEY_CAPTIONS;
+import static com.creedon.cordova.plugin.captioninput.Constants.KEY_IMAGES;
 import static com.creedon.cordova.plugin.captioninput.Constants.KEY_INVALIDIMAGES;
-import static com.creedon.cordova.plugin.captioninput.Constants.KEY_PRESELECT;
+import static com.creedon.cordova.plugin.captioninput.Constants.KEY_PRESELECTS;
 
 /**
  * _   _ _______   ________ _       _____   __
@@ -58,10 +59,9 @@ import static com.creedon.cordova.plugin.captioninput.Constants.KEY_PRESELECT;
  * Created by jameskong on 6/6/2017.
  */
 
-public class PhotoCaptionInputViewActivity extends AppCompatActivity implements RecyclerItemClickListener.OnItemClickListener {
+public class PhotoCaptionInputViewActivity extends AppCompatActivity implements RecyclerItemClickListener.OnItemClickListener, RecyclerViewAdapter.RecyclerViewAdapterListener {
 
 
-    private static final int REQUEST_CODE_PHOTO_INPUT = 0x31;
     private static final String TAG = PhotoCaptionInputViewActivity.class.getSimpleName();
 
 
@@ -73,19 +73,16 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     private ViewPager mPager;
     private ScreenSlidePagerAdapter mPagerAdapter;
     private MaterialEditText mEditText;
-    private RecyclerView recyclerView;
     private LinearLayoutManager linearLayoutManager;
     private RecyclerViewAdapter recyclerViewAdapter;
-    private int width;
-    private int height;
-    private int quality;
+
     private ImagePicker imagePicker;
     private KProgressHUD kProgressHUD;
 
 
-    public List<String> getItemlist() {
-        return imageList;
-    }
+//    public List<String> getItemlist() {
+//        return imageList;
+//    }
 
     private ArrayList<String> imageList;
 
@@ -106,12 +103,12 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             try {
                 JSONObject jsonObject = new JSONObject(optionsJsonString);
 
-                String tc = jsonObject.getString("ts");
+//                String tc = jsonObject.getString("ts");
 //                this.width = jsonObject.getInt("width");
 //                this.height = jsonObject.getInt("height");
 //                this.quality = jsonObject.getInt("quality");
                 JSONArray imagesJsonArray = jsonObject.getJSONArray("images");
-                JSONArray preSelectedAssets = jsonObject.getJSONArray("preSelectedAssets");
+//                JSONArray preSelectedAssets = jsonObject.getJSONArray("preSelectedAssets");
 //                try {
 //                    if (jsonObject.get("friends") != null) {
 //                        JSONArray friends = jsonObject.getJSONArray("friends");
@@ -153,7 +150,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                         captions.set(currentPosition, editable.toString());
                     }
                 });
-                ( (ImageButton) findViewById(fakeR.getId("id", "btnSubmit"))).setOnClickListener(new View.OnClickListener() {
+                (findViewById(fakeR.getId("id", "btnSubmit"))).setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
 
@@ -192,7 +189,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 mPager.setAdapter(mPagerAdapter);
 
 
-                recyclerView = (RecyclerView) findViewById(fakeR.getId("id", "recycleview"));
+                RecyclerView recyclerView = (RecyclerView) findViewById(fakeR.getId("id", "recycleview"));
                 linearLayoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
                 recyclerViewAdapter = new RecyclerViewAdapter(this, stringArray);
                 recyclerView.setHasFixedSize(true);
@@ -201,7 +198,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 recyclerView.addOnItemTouchListener(new RecyclerItemClickListener(this, recyclerView, this));
                 setActionBarTitle(imageList, currentPosition);
 
-                ((ImageButton) findViewById(fakeR.getId("id", "btnAdd"))).setOnClickListener(new View.OnClickListener() {
+                (findViewById(fakeR.getId("id", "btnAdd"))).setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
 
@@ -211,16 +208,17 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                             @Override
                             public void onImagesChosen(List<ChosenImage> images) {
                                 //dismiss dialog
-                                if(kProgressHUD != null){
+                                if (kProgressHUD != null) {
                                     kProgressHUD.dismiss();
                                 }
                                 // Display images
-                                for (ChosenImage image : images) {
-                                    File file = new File(image.getOriginalPath());
+                                for (ChosenImage file : images) {
 
-                                    imageList.add("file://"+file.getAbsolutePath());
+                                    imageList.add(Uri.fromFile(new File(file.getOriginalPath())).toString());
+//                                    imageList.add(image.getQueryUri());
+
                                     captions.add("");
-                                    Log.d(TAG, image.toString());
+
                                 }
 
 
@@ -258,9 +256,15 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     }
 
     protected void setupToolBar() {
-
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setHomeAsUpIndicator(fakeR.getId("drawable", "ic_up_white_24dp"));
+        try {
+            ActionBar actionBar = getSupportActionBar();
+            if(actionBar!=null) {
+                actionBar.setDisplayHomeAsUpEnabled(true);
+                actionBar.setHomeAsUpIndicator(fakeR.getId("drawable", "ic_up_white_24dp"));
+            }
+        } catch (NullPointerException e) {
+            e.printStackTrace();
+        }
 
     }
 
@@ -299,8 +303,8 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     finish();
                     return false;
                 } else {
-                    ArrayList<String> clonedPoster = (ArrayList<String>) imageList.clone();
-                    ArrayList<String> clonedPoster2 = (ArrayList<String>) imageList.clone();
+                    ArrayList<String> clonedPoster = new ArrayList<String>(imageList);
+                    ArrayList<String> clonedPoster2 = new ArrayList<String>(imageList);
                     mPagerAdapter.swap(clonedPoster);
                     recyclerViewAdapter.swap(clonedPoster2);
                     linearLayoutManager.scrollToPositionWithOffset(currentPosition, -1);
@@ -355,12 +359,15 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         mPager.setCurrentItem(position);
         setActionBarTitle(imageList, currentPosition);
         mEditText.setText(captions.get(currentPosition));
+        Vibrator v = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
+        // Vibrate for 500 milliseconds
+        v.vibrate(500);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if(resultCode == RESULT_OK) {
-            if(requestCode == Picker.PICK_IMAGE_DEVICE) {
+        if (resultCode == RESULT_OK) {
+            if (requestCode == Picker.PICK_IMAGE_DEVICE) {
                 kProgressHUD = KProgressHUD.create(PhotoCaptionInputViewActivity.this)
                         .setStyle(KProgressHUD.Style.SPIN_INDETERMINATE)
                         .setDetailsLabel("Downloading data")
@@ -385,37 +392,66 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 //            refreshList();
 //        }
     }
-    public void setActionBarTitle(ArrayList<String> actionBarTitle, int index) {
 
-        getSupportActionBar().setTitle((index + 1) + "/" + actionBarTitle.size());
+    public void setActionBarTitle(ArrayList<String> actionBarTitle, int index) {
+        try {
+            ActionBar actionBar = getSupportActionBar();
+            if(actionBar!=null) {
+                actionBar.setTitle((index + 1) + "/" + actionBarTitle.size());
+            }
+        } catch (NullPointerException e) {
+            e.printStackTrace();
+        }
     }
 
     private void finishWithResult() throws JSONException {
         Bundle conData = new Bundle();
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put(KEY_IMAGE , imageList);
-        jsonObject.put(KEY_CAPTION , captions);
-        jsonObject.put(KEY_PRESELECT,new JSONArray());
-        jsonObject.put(KEY_INVALIDIMAGES,new JSONArray());
+
+//        for(int i = 0 ; i < imageList.size() ; i++){
+//            String currentX = imageList.get(i);
+//            currentX.replace(" ","%20");
+//            imageList.set(i,currentX);
+//            // Do something with the value
+//        }
+        JSONArray array = new JSONArray(imageList);
+
+        jsonObject.put(KEY_IMAGES, array);
+        jsonObject.put(KEY_CAPTIONS, new JSONArray(captions));
+        jsonObject.put(KEY_PRESELECTS, new JSONArray());
+        jsonObject.put(KEY_INVALIDIMAGES, new JSONArray());
         conData.putString(Constants.RESULT, jsonObject.toString());
         Intent intent = new Intent();
         intent.putExtras(conData);
         setResult(RESULT_OK, intent);
         finishActivity(Constants.REQUEST_SUBMIT);
+        finish();
     }
-    void refreshList(){
-        ArrayList<String> clonedPoster = (ArrayList<String>) imageList.clone();
+
+    void refreshList() {
+        ArrayList<String> clonedPoster = new ArrayList<String>(imageList);
         mPagerAdapter.swap(clonedPoster);
-        ArrayList<String> clonedPoster2 = (ArrayList<String>) imageList.clone();
+        ArrayList<String> clonedPoster2 = new ArrayList<String>(imageList);
         recyclerViewAdapter.swap(clonedPoster);
         mPagerAdapter.swap(clonedPoster2);
         setActionBarTitle(imageList, currentPosition);
 
     }
+
+    @Override
+    public boolean isPhotoSelected(int position) {
+        return currentPosition == position;
+    }
+
+    @Override
+    public boolean isPhotoSelectionMode() {
+        return false;
+    }
+
     private class ScreenSlidePagerAdapter extends FragmentStatePagerAdapter {
         private ArrayList<String> itemList;
 
-        public ScreenSlidePagerAdapter(FragmentManager fm, ArrayList<String> itemList) {
+        ScreenSlidePagerAdapter(FragmentManager fm, ArrayList<String> itemList) {
             super(fm);
             this.itemList = itemList;
         }

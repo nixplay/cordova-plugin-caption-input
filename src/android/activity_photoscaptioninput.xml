@@ -43,7 +43,8 @@
 
                 app:met_floatingLabel="highlight"
                 app:met_maxCharacters="160"
-                app:met_primaryColor="@color/colorDescriptionHints"/>
+                app:met_primaryColor="@color/colorDescriptionHints"
+                android:imeOptions="actionDone"/>
         </FrameLayout>
 
         <ImageButton
