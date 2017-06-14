@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<plugin id="cordova-plugin-caption-input" version="1.0.31" xmlns="http://cordova.apache.org/ns/plugins/1.0">
+<plugin id="cordova-plugin-caption-input" version="1.0.32" xmlns="http://cordova.apache.org/ns/plugins/1.0">
 	<!-- pre add gradle dependencies -->
 	<name>PhotoCaptionInputViewPlugin</name>
 	<author>James Kong</author>
@@ -56,7 +56,6 @@
 		<source-file src="src/android/RecyclerViewHolders.java" target-dir="src/com/creedon/cordova/plugin/captioninput"/>
 		<source-file src="src/android/ScreenSlidePageFragment.java" target-dir="src/com/creedon/cordova/plugin/captioninput"/>
 		<source-file src="src/android/SquareCardView.java" target-dir="src/com/creedon/cordova/plugin/captioninput"/>
-		<source-file src="src/android/Constants.java" target-dir="src/com/creedon/cordova/plugin/captioninput"/>
 		<source-file src="src/android/zoomable/AbstractAnimatedZoomableController.java" target-dir="src/com/creedon/cordova/plugin/captioninput/zoomable"/>
 		<source-file src="src/android/zoomable/AnimatedZoomableController.java" target-dir="src/com/creedon/cordova/plugin/captioninput/zoomable"/>
 		<source-file src="src/android/zoomable/DefaultZoomableController.java" target-dir="src/com/creedon/cordova/plugin/captioninput/zoomable"/>
