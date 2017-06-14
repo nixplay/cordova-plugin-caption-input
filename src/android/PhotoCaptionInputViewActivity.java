@@ -3,6 +3,7 @@ package com.creedon.cordova.plugin.captioninput;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
@@ -27,7 +28,16 @@ import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 
+import com.facebook.common.executors.CallerThreadExecutor;
+import com.facebook.common.references.CloseableReference;
+import com.facebook.datasource.DataSource;
 import com.facebook.drawee.backends.pipeline.Fresco;
+import com.facebook.imagepipeline.common.ResizeOptions;
+import com.facebook.imagepipeline.core.ImagePipeline;
+import com.facebook.imagepipeline.datasource.BaseBitmapDataSubscriber;
+import com.facebook.imagepipeline.image.CloseableImage;
+import com.facebook.imagepipeline.request.ImageRequest;
+import com.facebook.imagepipeline.request.ImageRequestBuilder;
 import com.kaopiz.kprogresshud.KProgressHUD;
 import com.kbeanie.multipicker.api.ImagePicker;
 import com.kbeanie.multipicker.api.Picker;
@@ -40,8 +50,17 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+
+import it.sephiroth.android.library.exif2.ExifInterface;
 
 import static com.creedon.cordova.plugin.captioninput.Constants.KEY_CAPTIONS;
 import static com.creedon.cordova.plugin.captioninput.Constants.KEY_IMAGES;
@@ -61,30 +80,19 @@ import static com.creedon.cordova.plugin.captioninput.Constants.KEY_PRESELECTS;
 
 public class PhotoCaptionInputViewActivity extends AppCompatActivity implements RecyclerItemClickListener.OnItemClickListener, RecyclerViewAdapter.RecyclerViewAdapterListener {
 
-
     private static final String TAG = PhotoCaptionInputViewActivity.class.getSimpleName();
-
-
     private FakeR fakeR;
     private ArrayList<String> captions;
     private int currentPosition;
-
-
     private ViewPager mPager;
     private ScreenSlidePagerAdapter mPagerAdapter;
     private MaterialEditText mEditText;
     private LinearLayoutManager linearLayoutManager;
     private RecyclerViewAdapter recyclerViewAdapter;
-
     private ImagePicker imagePicker;
     private KProgressHUD kProgressHUD;
-
-
-//    public List<String> getItemlist() {
-//        return imageList;
-//    }
-
     private ArrayList<String> imageList;
+    private int width, height;
 
 
     @Override
@@ -104,8 +112,8 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 JSONObject jsonObject = new JSONObject(optionsJsonString);
 
 //                String tc = jsonObject.getString("ts");
-//                this.width = jsonObject.getInt("width");
-//                this.height = jsonObject.getInt("height");
+                this.width = jsonObject.has("width") ? jsonObject.getInt("width") : 0;
+                this.height = jsonObject.has("height") ? jsonObject.getInt("height") : 0;
 //                this.quality = jsonObject.getInt("quality");
                 JSONArray imagesJsonArray = jsonObject.getJSONArray("images");
 //                JSONArray preSelectedAssets = jsonObject.getJSONArray("preSelectedAssets");
@@ -207,23 +215,14 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                         imagePicker.setImagePickerCallback(new ImagePickerCallback() {
                             @Override
                             public void onImagesChosen(List<ChosenImage> images) {
-                                //dismiss dialog
                                 if (kProgressHUD != null) {
                                     kProgressHUD.dismiss();
                                 }
-                                // Display images
                                 for (ChosenImage file : images) {
-
                                     imageList.add(Uri.fromFile(new File(file.getOriginalPath())).toString());
-//                                    imageList.add(image.getQueryUri());
-
                                     captions.add("");
-
                                 }
-
-
                                 refreshList();
-
                             }
 
                             @Override
@@ -258,7 +257,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     protected void setupToolBar() {
         try {
             ActionBar actionBar = getSupportActionBar();
-            if(actionBar!=null) {
+            if (actionBar != null) {
                 actionBar.setDisplayHomeAsUpEnabled(true);
                 actionBar.setHomeAsUpIndicator(fakeR.getId("drawable", "ic_up_white_24dp"));
             }
@@ -350,6 +349,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         mPager.setCurrentItem(position);
         setActionBarTitle(imageList, currentPosition);
         mEditText.setText(captions.get(currentPosition));
+        recyclerViewAdapter.notifyDataSetChanged();
 
     }
 
@@ -362,6 +362,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         Vibrator v = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
         // Vibrate for 500 milliseconds
         v.vibrate(500);
+        recyclerViewAdapter.notifyDataSetChanged();
     }
 
     @Override
@@ -380,23 +381,12 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             }
         }
 
-//        if (resultCode == Activity.RESULT_OK && data != null && requestCode == REQUEST_CODE_PHOTO_INPUT) {
-//            ArrayList<String> fileNames = data.getStringArrayListExtra("MULTIPLEFILENAMES");
-//            ArrayList<String> preSelectedAssets = data.getStringArrayListExtra("SELECTED_ASSETS");
-//            ArrayList<String> invalidImages = data.getStringArrayListExtra("INVALID_IMAGES");
-//            for(int i = fileNames.size() - imageList.size() , count = fileNames.size(); i< count; i++){
-//                captions.add("");
-//            }
-//            imageList.clear();
-//            imageList.addAll(fileNames);
-//            refreshList();
-//        }
     }
 
     public void setActionBarTitle(ArrayList<String> actionBarTitle, int index) {
         try {
             ActionBar actionBar = getSupportActionBar();
-            if(actionBar!=null) {
+            if (actionBar != null) {
                 actionBar.setTitle((index + 1) + "/" + actionBarTitle.size());
             }
         } catch (NullPointerException e) {
@@ -405,27 +395,192 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     }
 
     private void finishWithResult() throws JSONException {
-        Bundle conData = new Bundle();
-        JSONObject jsonObject = new JSONObject();
+        ArrayList<String> outList = new ArrayList<String>();
+        resizeImage(imageList, outList, new ResizeCallback() {
 
-//        for(int i = 0 ; i < imageList.size() ; i++){
-//            String currentX = imageList.get(i);
-//            currentX.replace(" ","%20");
-//            imageList.set(i,currentX);
-//            // Do something with the value
-//        }
-        JSONArray array = new JSONArray(imageList);
+            @Override
+            public void onResizeSuccess(ArrayList<String> outList) {
+                Bundle conData = new Bundle();
+                try {
+                    JSONObject jsonObject = new JSONObject();
 
-        jsonObject.put(KEY_IMAGES, array);
-        jsonObject.put(KEY_CAPTIONS, new JSONArray(captions));
-        jsonObject.put(KEY_PRESELECTS, new JSONArray());
-        jsonObject.put(KEY_INVALIDIMAGES, new JSONArray());
-        conData.putString(Constants.RESULT, jsonObject.toString());
-        Intent intent = new Intent();
-        intent.putExtras(conData);
-        setResult(RESULT_OK, intent);
-        finishActivity(Constants.REQUEST_SUBMIT);
-        finish();
+                    JSONArray array = new JSONArray(outList);
+
+                    jsonObject.put(KEY_IMAGES, array);
+                    jsonObject.put(KEY_CAPTIONS, new JSONArray(captions));
+                    jsonObject.put(KEY_PRESELECTS, new JSONArray());
+                    jsonObject.put(KEY_INVALIDIMAGES, new JSONArray());
+                    conData.putString(Constants.RESULT, jsonObject.toString());
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                Intent intent = new Intent();
+                intent.putExtras(conData);
+                setResult(RESULT_OK, intent);
+                finishActivity(Constants.REQUEST_SUBMIT);
+                finish();
+            }
+
+            @Override
+            public void onResizeFailed(String s) {
+                Log.e(TAG, s);
+            }
+        });
+
+    }
+
+    private void resizeImage(final ArrayList<String> imageList, final ArrayList<String> outList, final ResizeCallback resizeCallback) {
+
+        if (imageList.size() == 0) {
+            resizeCallback.onResizeSuccess(outList);
+        } else {
+            if (this.width == 0 || this.height == 0) {
+                try {
+                    URI uri = new URI(imageList.get(0));
+
+                    final File imageFile = new File(uri);
+                    ImageRequest request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(imageList.get(0)))
+                            .setResizeOptions(new ResizeOptions(1820, 1820))
+                            .build();
+                    ImagePipeline imagePipeline = Fresco.getImagePipeline();
+                    final DataSource<CloseableReference<CloseableImage>> dataSource = imagePipeline.fetchDecodedImage(request, this);
+
+                    CallerThreadExecutor executor = CallerThreadExecutor.getInstance();
+                    dataSource.subscribe(
+                            new BaseBitmapDataSubscriber() {
+                                @Override
+                                protected void onFailureImpl(DataSource<CloseableReference<CloseableImage>> dataSource) {
+                                    resizeCallback.onResizeFailed("Failed to resize at onFailureImpl " + imageFile.getAbsolutePath());
+                                }
+
+                                @Override
+                                protected void onNewResultImpl(Bitmap bmp) {
+                                    ExifInterface exif = new ExifInterface();
+                                    try {
+                                        exif.readExif(imageFile.getAbsolutePath(), ExifInterface.Options.OPTION_ALL);
+                                    } catch (Exception e) {
+                                        Log.e(TAG, "exif.readExif( " + imageFile.getAbsolutePath() + " , ExifInterface.Options.OPTION_ALL )");
+                                        resizeCallback.onResizeFailed("exif.readExif( " + imageFile.getAbsolutePath() + " , ExifInterface.Options.OPTION_ALL )");
+                                    }
+                                    try {
+                                        String outFilePath = storeImageWithExif(imageFile.getName(), bmp, exif);
+                                        outList.add(Uri.fromFile(new File(outFilePath)).toString());
+                                        imageList.remove(0);
+                                        resizeImage(imageList, outList, resizeCallback);
+                                    } catch (JSONException e) {
+                                        e.printStackTrace();
+                                        resizeCallback.onResizeFailed("JSONException " + e.getMessage());
+                                    } catch (IOException e) {
+                                        e.printStackTrace();
+                                        resizeCallback.onResizeFailed("IOException " + e.getMessage());
+                                    } catch (URISyntaxException e) {
+                                        e.printStackTrace();
+                                        resizeCallback.onResizeFailed("URISyntaxException " + e.getMessage());
+                                    }
+
+                                }
+                            }
+                            , executor);
+
+                } catch (URISyntaxException e) {
+                    e.printStackTrace();
+                    resizeCallback.onResizeFailed("URISyntaxException " + e.getMessage());
+                }
+            } else {
+
+                try {
+                    URI uri = new URI(imageList.get(0));
+                    final File inFile = new File(uri);
+                    String outFilePath = storeImage(inFile.getParentFile().getAbsolutePath(), inFile.getName());
+                    outList.add(Uri.fromFile(new File(outFilePath)).toString());
+                    imageList.remove(0);
+                    resizeImage(imageList, outList, resizeCallback);
+                } catch (URISyntaxException e) {
+                    e.printStackTrace();
+                    resizeCallback.onResizeFailed("URISyntaxException storeImage " + e.getMessage());
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    resizeCallback.onResizeFailed("JSONException storeImage " + e.getMessage());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    resizeCallback.onResizeFailed("IOException storeImage " + e.getMessage());
+                }
+
+
+            }
+
+        }
+    }
+
+    protected String storeImage(String inFilePath, String inFileName) throws JSONException, IOException, URISyntaxException {
+
+
+        String outFilePath = System.getProperty("java.io.tmpdir") + "/";
+        copyFile(inFilePath, inFileName, outFilePath);
+        return outFilePath + inFileName;
+
+    }
+
+    protected String storeImageWithExif(String inFileName, Bitmap bmp, ExifInterface exif) throws JSONException, IOException, URISyntaxException {
+
+        String filename = inFileName;
+        String filePath = System.getProperty("java.io.tmpdir") + "/" + filename;
+        File file = new File(filePath);
+        exif.writeExif(bmp, filePath, 90);
+        return filePath;
+
+    }
+
+    //James Kong 2017-01-27
+    protected String storeImageWithExif(String inFilePath, String infileName) throws JSONException, IOException, URISyntaxException {
+        String outFilePath = System.getProperty("java.io.tmpdir") + "/";
+        ExifInterface exif = new ExifInterface();
+        try {
+            exif.readExif(inFilePath + infileName, ExifInterface.Options.OPTION_ALL);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        copyFile(inFilePath, infileName, outFilePath);
+        exif.writeExif(outFilePath + infileName);
+        return outFilePath;
+
+    }
+
+    private void copyFile(String inputPath, String inputFile, String outputPath) {
+
+        FileInputStream in = null;
+        OutputStream out = null;
+        try {
+
+            //create output directory if it doesn't exist
+            File dir = new File(outputPath);
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
+
+
+            in = new FileInputStream(inputPath + inputFile);
+            out = new FileOutputStream(outputPath + inputFile);
+
+            byte[] buffer = new byte[1024];
+            int read;
+            while ((read = in.read(buffer)) != -1) {
+                out.write(buffer, 0, read);
+            }
+            in.close();
+            in = null;
+
+            // write the output file (You have now copied the file)
+            out.flush();
+            out.close();
+            out = null;
+
+        } catch (FileNotFoundException fnfe1) {
+            Log.e("tag", fnfe1.getMessage());
+        } catch (Exception e) {
+            Log.e("tag", e.getMessage());
+        }
+
     }
 
     void refreshList() {
@@ -458,6 +613,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
         @Override
         public Fragment getItem(int position) {
+            recyclerViewAdapter.notifyDataSetChanged();
             return ScreenSlidePageFragment.newInstance(itemList.get(position));
         }
 
@@ -484,4 +640,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     }
 
 
+    private interface ResizeCallback {
+        void onResizeSuccess(ArrayList<String> outList);
+
+        void onResizeFailed(String s);
+    }
 }
