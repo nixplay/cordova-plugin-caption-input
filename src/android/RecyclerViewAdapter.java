@@ -82,14 +82,21 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolder
         if(listener != null) {
             if(listener.isPhotoSelected(position)) {
                 RoundingParams roundingParams = RoundingParams.fromCornersRadius(0);
-                roundingParams.setBorder(0xFF0000FF, 3.0f);
+                roundingParams.setBorder(0xFF62b1e6, 3.0f);
                 roundingParams.setRoundAsCircle(false);
                 holder.simpleDraweeView.getHierarchy().setRoundingParams(roundingParams);
+            }else{
+                holder.simpleDraweeView.getHierarchy().setRoundingParams(null);
             }
         }
         holder.simpleDraweeView.setController(controller);
 
 
+    }
+
+    @Override
+    public long getItemId(int position) {
+        return super.getItemId(position);
     }
 
     @Override
