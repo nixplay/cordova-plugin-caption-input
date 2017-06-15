@@ -526,7 +526,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             if (requestCode == Picker.PICK_IMAGE_DEVICE) {
                 kProgressHUD = KProgressHUD.create(PhotoCaptionInputViewActivity.this)
                         .setStyle(KProgressHUD.Style.SPIN_INDETERMINATE)
-                        .setDetailsLabel("Downloading data")
+                        .setDetailsLabel(getString(fakeR.getId("string","DOWNLOADING")))
                         .setCancellable(false)
                         .setAnimationSpeed(2)
                         .setDimAmount(0.5f)
