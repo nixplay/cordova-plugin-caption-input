@@ -2,9 +2,12 @@ package com.creedon.cordova.plugin.captioninput;
 
 
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v4.graphics.drawable.DrawableCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,6 +15,8 @@ import android.view.ViewGroup;
 import com.creedon.cordova.plugin.captioninput.zoomable.DoubleTapGestureListener;
 import com.creedon.cordova.plugin.captioninput.zoomable.ZoomableDraweeView;
 import com.facebook.drawee.backends.pipeline.Fresco;
+import com.facebook.drawee.drawable.ProgressBarDrawable;
+import com.facebook.drawee.drawable.ScalingUtils;
 import com.facebook.drawee.interfaces.DraweeController;
 import com.facebook.imagepipeline.common.ResizeOptions;
 import com.facebook.imagepipeline.request.ImageRequest;
@@ -25,6 +30,7 @@ public class ScreenSlidePageFragment extends Fragment {
     private static final String ARG_URL = "ARG_URL";
     private String url;
     private FakeR fakeR;
+    private Context context;
 
     public interface ScreenSlidePageFragmentListener{
 
@@ -40,6 +46,7 @@ public class ScreenSlidePageFragment extends Fragment {
         if(context instanceof ScreenSlidePageFragmentListener){
             listener = (ScreenSlidePageFragmentListener) context;
         }
+        this.context = context;
     }
 
 
@@ -69,6 +76,18 @@ public class ScreenSlidePageFragment extends Fragment {
                 fakeR.getId("layout", "fragment_screen_slide_page"), container, false);
 //        SimpleDraweeView zoomableDraweeView = (SimpleDraweeView) rootView.findViewById(fakeR.getId("id", "draweeView"));
         ZoomableDraweeView zoomableDraweeView = (ZoomableDraweeView) rootView.findViewById(fakeR.getId("id", "draweeView"));
+
+        final ProgressBarDrawable progressBarDrawable = new ProgressBarDrawable();
+        progressBarDrawable.setColor(this.context.getResources().getColor(fakeR.getId("color","colorAccent")));
+        progressBarDrawable.setBackgroundColor(this.context.getResources().getColor(fakeR.getId("color","colorPrimaryDark")));
+        progressBarDrawable
+                .setRadius(5);
+        final Drawable failureDrawable = this.context.getResources().getDrawable(fakeR.getId("drawable","missing"));
+        DrawableCompat.setTint(failureDrawable, Color.RED);
+        final Drawable placeholderDrawable = this.context.getResources().getDrawable(fakeR.getId("drawable","loading"));
+        zoomableDraweeView.getHierarchy().setPlaceholderImage(placeholderDrawable, ScalingUtils.ScaleType.CENTER_INSIDE);
+        zoomableDraweeView.getHierarchy().setFailureImage(failureDrawable, ScalingUtils.ScaleType.CENTER_INSIDE);
+        zoomableDraweeView.getHierarchy().setProgressBarImage(progressBarDrawable, ScalingUtils.ScaleType.CENTER_INSIDE);
 
         zoomableDraweeView.setAllowTouchInterceptionWhileZoomed(true);
         // needed for double tap to zoom

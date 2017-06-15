@@ -110,6 +110,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         if (!Fresco.hasBeenInitialized()) {
             Fresco.initialize(this);
+
         }
         super.onCreate(savedInstanceState);
 
@@ -526,7 +527,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             if (requestCode == Picker.PICK_IMAGE_DEVICE) {
                 kProgressHUD = KProgressHUD.create(PhotoCaptionInputViewActivity.this)
                         .setStyle(KProgressHUD.Style.SPIN_INDETERMINATE)
-                        .setDetailsLabel(getString(fakeR.getId("string","DOWNLOADING")))
+                        .setDetailsLabel(getString(fakeR.getId("string", "DOWNLOADING")))
                         .setCancellable(false)
                         .setAnimationSpeed(2)
                         .setDimAmount(0.5f)
@@ -578,7 +579,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         }
         kProgressHUD = KProgressHUD.create(PhotoCaptionInputViewActivity.this)
                 .setStyle(KProgressHUD.Style.SPIN_INDETERMINATE)
-                .setDetailsLabel(getString(fakeR.getId("string","LOADING")))
+                .setDetailsLabel(getString(fakeR.getId("string", "LOADING")))
                 .setCancellable(false)
                 .setAnimationSpeed(2)
                 .setDimAmount(0.5f)
@@ -626,7 +627,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         if (imageList.size() == 0) {
             resizeCallback.onResizeSuccess(outList);
         } else {
-            if (this.width != 0 && this.height != 0 ) {
+            if (this.width != 0 && this.height != 0) {
                 try {
                     URI uri = new URI(imageList.get(0));
 
@@ -735,7 +736,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
 
         String outFilePath = System.getProperty("java.io.tmpdir") + "/";
-        copyFile(inFilePath+File.separator, inFileName, outFilePath);
+        copyFile(inFilePath + File.separator, inFileName, outFilePath);
         return outFilePath + inFileName;
 
     }
@@ -758,7 +759,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         } catch (Exception e) {
             e.printStackTrace();
         }
-        copyFile(inFilePath+File.separator, infileName, outFilePath);
+        copyFile(inFilePath + File.separator, infileName, outFilePath);
         exif.writeExif(outFilePath + infileName);
         return outFilePath;
 

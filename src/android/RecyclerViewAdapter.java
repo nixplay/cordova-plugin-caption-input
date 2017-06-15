@@ -1,7 +1,10 @@
 package com.creedon.cordova.plugin.captioninput;
 
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.support.v4.graphics.drawable.DrawableCompat;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -9,6 +12,8 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.facebook.drawee.backends.pipeline.Fresco;
+import com.facebook.drawee.drawable.ProgressBarDrawable;
+import com.facebook.drawee.drawable.ScalingUtils;
 import com.facebook.drawee.generic.RoundingParams;
 import com.facebook.drawee.interfaces.DraweeController;
 import com.facebook.imagepipeline.common.ResizeOptions;
@@ -79,6 +84,17 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolder
                 .setOldController(holder.simpleDraweeView.getController())
                 .setImageRequest(request)
                 .build();
+        final ProgressBarDrawable progressBarDrawable = new ProgressBarDrawable();
+        progressBarDrawable.setColor(context.getResources().getColor(f.getId("color","colorAccent")));
+        progressBarDrawable.setBackgroundColor(context.getResources().getColor(f.getId("color","colorPrimaryDark")));
+        progressBarDrawable
+                .setRadius(5);
+        final Drawable failureDrawable = context.getResources().getDrawable(f.getId("drawable","missing"));
+        DrawableCompat.setTint(failureDrawable, Color.RED);
+        final Drawable placeholderDrawable = context.getResources().getDrawable(f.getId("drawable","loading"));
+        holder.simpleDraweeView.getHierarchy().setPlaceholderImage(placeholderDrawable, ScalingUtils.ScaleType.CENTER_INSIDE);
+        holder.simpleDraweeView.getHierarchy().setFailureImage(failureDrawable, ScalingUtils.ScaleType.CENTER_INSIDE);
+        holder.simpleDraweeView.getHierarchy().setProgressBarImage(progressBarDrawable, ScalingUtils.ScaleType.CENTER_INSIDE);
         if(listener != null) {
             if(listener.isPhotoSelected(position)) {
                 RoundingParams roundingParams = RoundingParams.fromCornersRadius(0);
