@@ -1,14 +1,22 @@
 package com.creedon.cordova.plugin.captioninput;
 
 import android.app.Activity;
+import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Rect;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Vibrator;
+import android.provider.DocumentsContract;
+import android.provider.MediaStore;
 import android.support.annotation.Nullable;
+import android.support.annotation.RequiresApi;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
@@ -28,7 +36,16 @@ import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 
+import com.facebook.common.executors.CallerThreadExecutor;
+import com.facebook.common.references.CloseableReference;
+import com.facebook.datasource.DataSource;
 import com.facebook.drawee.backends.pipeline.Fresco;
+import com.facebook.imagepipeline.common.ResizeOptions;
+import com.facebook.imagepipeline.core.ImagePipeline;
+import com.facebook.imagepipeline.datasource.BaseBitmapDataSubscriber;
+import com.facebook.imagepipeline.image.CloseableImage;
+import com.facebook.imagepipeline.request.ImageRequest;
+import com.facebook.imagepipeline.request.ImageRequestBuilder;
 import com.kaopiz.kprogresshud.KProgressHUD;
 import com.kbeanie.multipicker.api.CacheLocation;
 import com.kbeanie.multipicker.api.ImagePicker;
@@ -47,11 +64,13 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
 import it.sephiroth.android.library.exif2.ExifInterface;
+import it.sephiroth.android.library.exif2.ExifTag;
 
 import static com.creedon.cordova.plugin.captioninput.Constants.KEY_CAPTIONS;
 import static com.creedon.cordova.plugin.captioninput.Constants.KEY_IMAGES;
@@ -86,6 +105,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     private int width, height;
 
 
+    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         if (!Fresco.hasBeenInitialized()) {
@@ -122,7 +142,15 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 for (int i = 0, count = imagesJsonArray.length(); i < count; i++) {
                     try {
                         String jsonObj = imagesJsonArray.getString(i);
-                        stringArray.add(jsonObj);
+                        if (jsonObj.contains("content://com.android.providers.media.documents")) {
+                            //get real path
+                            //https://stackoverflow.com/questions/20067508/get-real-path-from-uri-android-kitkat-new-storage-access-framework
+
+                            stringArray.add(Uri.fromFile(new File(getPath(PhotoCaptionInputViewActivity.this, Uri.parse(jsonObj)))).toString());
+//                            stringArray.add(Uri.fromFile(new File().toString());
+                        } else {
+                            stringArray.add(jsonObj);
+                        }
                         captions.add(i, "");
                     } catch (JSONException e) {
                         e.printStackTrace();
@@ -210,7 +238,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                                     kProgressHUD.dismiss();
                                 }
                                 for (ChosenImage file : images) {
-                                    imageList.add(Uri.fromFile(new File(file.getOriginalPath())).toString());
+                                    String uriString = file.getQueryUri();
+                                    imageList.add(Uri.fromFile(new File(getPath(PhotoCaptionInputViewActivity.this, Uri.parse(uriString)))).toString());
+//                                    imageList.add(Uri.fromFile(new File(file.getOriginalPath())).toString());
                                     captions.add("");
                                 }
                                 refreshList();
@@ -247,6 +277,136 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             setResult(Activity.RESULT_CANCELED);
             finish();
         }
+    }
+
+    /**
+     * Get a file path from a Uri. This will get the the path for Storage Access
+     * Framework Documents, as well as the _data field for the MediaStore and
+     * other file-based ContentProviders.
+     *
+     * @param context The context.
+     * @param uri     The Uri to query.
+     * @author paulburke
+     */
+    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+    public static String getPath(final Context context, final Uri uri) {
+
+        final boolean isKitKat = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
+
+        // DocumentProvider
+        if (isKitKat && DocumentsContract.isDocumentUri(context, uri)) {
+            // ExternalStorageProvider
+            if (isExternalStorageDocument(uri)) {
+                final String docId = DocumentsContract.getDocumentId(uri);
+                final String[] split = docId.split(":");
+                final String type = split[0];
+
+                if ("primary".equalsIgnoreCase(type)) {
+                    return Environment.getExternalStorageDirectory() + "/" + split[1];
+                }
+
+                // TODO handle non-primary volumes
+            }
+            // DownloadsProvider
+            else if (isDownloadsDocument(uri)) {
+
+                final String id = DocumentsContract.getDocumentId(uri);
+                final Uri contentUri = ContentUris.withAppendedId(
+                        Uri.parse("content://downloads/public_downloads"), Long.valueOf(id));
+
+                return getDataColumn(context, contentUri, null, null);
+            }
+            // MediaProvider
+            else if (isMediaDocument(uri)) {
+                final String docId = DocumentsContract.getDocumentId(uri);
+                final String[] split = docId.split(":");
+                final String type = split[0];
+
+                Uri contentUri = null;
+                if ("image".equals(type)) {
+                    contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+                } else if ("video".equals(type)) {
+                    contentUri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
+                } else if ("audio".equals(type)) {
+                    contentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+                }
+
+                final String selection = "_id=?";
+                final String[] selectionArgs = new String[]{
+                        split[1]
+                };
+
+                return getDataColumn(context, contentUri, selection, selectionArgs);
+            }
+        }
+        // MediaStore (and general)
+        else if ("content".equalsIgnoreCase(uri.getScheme())) {
+            return getDataColumn(context, uri, null, null);
+        }
+        // File
+        else if ("file".equalsIgnoreCase(uri.getScheme())) {
+            return uri.getPath();
+        }
+
+        return null;
+    }
+
+    /**
+     * Get the value of the data column for this Uri. This is useful for
+     * MediaStore Uris, and other file-based ContentProviders.
+     *
+     * @param context       The context.
+     * @param uri           The Uri to query.
+     * @param selection     (Optional) Filter used in the query.
+     * @param selectionArgs (Optional) Selection arguments used in the query.
+     * @return The value of the _data column, which is typically a file path.
+     */
+    public static String getDataColumn(Context context, Uri uri, String selection,
+                                       String[] selectionArgs) {
+
+        Cursor cursor = null;
+        final String column = "_data";
+        final String[] projection = {
+                column
+        };
+
+        try {
+            cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs,
+                    null);
+            if (cursor != null && cursor.moveToFirst()) {
+                final int column_index = cursor.getColumnIndexOrThrow(column);
+                return cursor.getString(column_index);
+            }
+        } finally {
+            if (cursor != null)
+                cursor.close();
+        }
+        return null;
+    }
+
+
+    /**
+     * @param uri The Uri to check.
+     * @return Whether the Uri authority is ExternalStorageProvider.
+     */
+    public static boolean isExternalStorageDocument(Uri uri) {
+        return "com.android.externalstorage.documents".equals(uri.getAuthority());
+    }
+
+    /**
+     * @param uri The Uri to check.
+     * @return Whether the Uri authority is DownloadsProvider.
+     */
+    public static boolean isDownloadsDocument(Uri uri) {
+        return "com.android.providers.downloads.documents".equals(uri.getAuthority());
+    }
+
+    /**
+     * @param uri The Uri to check.
+     * @return Whether the Uri authority is MediaProvider.
+     */
+    public static boolean isMediaDocument(Uri uri) {
+        return "com.android.providers.media.documents".equals(uri.getAuthority());
     }
 
     protected void setupToolBar() {
@@ -390,72 +550,83 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     }
 
     private void finishWithResult() throws JSONException {
-        Bundle conData = new Bundle();
-        try {
-            JSONObject jsonObject = new JSONObject();
-
-            JSONArray array = new JSONArray(imageList);
-
-            jsonObject.put(KEY_IMAGES, array);
-            jsonObject.put(KEY_CAPTIONS, new JSONArray(captions));
-            jsonObject.put(KEY_PRESELECTS, new JSONArray());
-            jsonObject.put(KEY_INVALIDIMAGES, new JSONArray());
-            conData.putString(Constants.RESULT, jsonObject.toString());
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        Intent intent = new Intent();
-        intent.putExtras(conData);
-        setResult(RESULT_OK, intent);
-        finishActivity(Constants.REQUEST_SUBMIT);
-        finish();
+//        Bundle conData = new Bundle();
+//        try {
+//            JSONObject jsonObject = new JSONObject();
+//
+//            JSONArray array = new JSONArray(imageList);
+//
+//            jsonObject.put(KEY_IMAGES, array);
+//            jsonObject.put(KEY_CAPTIONS, new JSONArray(captions));
+//            jsonObject.put(KEY_PRESELECTS, new JSONArray());
+//            jsonObject.put(KEY_INVALIDIMAGES, new JSONArray());
+//            conData.putString(Constants.RESULT, jsonObject.toString());
+//        } catch (JSONException e) {
+//            e.printStackTrace();
+//        }
+//        Intent intent = new Intent();
+//        intent.putExtras(conData);
+//        setResult(RESULT_OK, intent);
+//        finishActivity(Constants.REQUEST_SUBMIT);
+//        finish();
 
         //for testing james 20170615
-//        ArrayList<String> outList = new ArrayList<String>();
-//        resizeImage(imageList, outList, new ResizeCallback() {
-//
-//            @Override
-//            public void onResizeSuccess(ArrayList<String> outList) {
-//                Bundle conData = new Bundle();
-//                try {
-//                    JSONObject jsonObject = new JSONObject();
-//
-//                    JSONArray array = new JSONArray(outList);
-//
-//                    jsonObject.put(KEY_IMAGES, array);
-//                    jsonObject.put(KEY_CAPTIONS, new JSONArray(captions));
-//                    jsonObject.put(KEY_PRESELECTS, new JSONArray());
-//                    jsonObject.put(KEY_INVALIDIMAGES, new JSONArray());
-//                    conData.putString(Constants.RESULT, jsonObject.toString());
-//                } catch (JSONException e) {
-//                    e.printStackTrace();
-//                }
-//                Intent intent = new Intent();
-//                intent.putExtras(conData);
-//                setResult(RESULT_OK, intent);
-//                finishActivity(Constants.REQUEST_SUBMIT);
-//                finish();
-//            }
-//
-//            @Override
-//            public void onResizeFailed(String s) {
-//                Log.e(TAG, s);
-//                AlertDialog builder = new AlertDialog
-//                        .Builder(PhotoCaptionInputViewActivity.this)
-//                        .setTitle("Error")
-//                        .setMessage(s)
-//                        .show();
-//            }
-//        });
+        if (kProgressHUD != null) {
+            if (kProgressHUD.isShowing()) {
+                kProgressHUD.dismiss();
+            }
+        }
+        kProgressHUD = KProgressHUD.create(PhotoCaptionInputViewActivity.this)
+                .setStyle(KProgressHUD.Style.SPIN_INDETERMINATE)
+                .setDetailsLabel(getString(fakeR.getId("string","LOADING")))
+                .setCancellable(false)
+                .setAnimationSpeed(2)
+                .setDimAmount(0.5f)
+                .show();
+
+        ArrayList<String> outList = new ArrayList<String>();
+        resizeImage(imageList, outList, new ResizeCallback() {
+
+            @Override
+            public void onResizeSuccess(ArrayList<String> outList) {
+                kProgressHUD.dismiss();
+                Bundle conData = new Bundle();
+                try {
+                    JSONObject jsonObject = new JSONObject();
+
+                    JSONArray array = new JSONArray(outList);
+
+                    jsonObject.put(KEY_IMAGES, array);
+                    jsonObject.put(KEY_CAPTIONS, new JSONArray(captions));
+                    jsonObject.put(KEY_PRESELECTS, new JSONArray());
+                    jsonObject.put(KEY_INVALIDIMAGES, new JSONArray());
+                    conData.putString(Constants.RESULT, jsonObject.toString());
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                Intent intent = new Intent();
+                intent.putExtras(conData);
+                setResult(RESULT_OK, intent);
+                finishActivity(Constants.REQUEST_SUBMIT);
+                finish();
+            }
+
+            @Override
+            public void onResizeFailed(String s) {
+                kProgressHUD.dismiss();
+                Log.e(TAG, s);
+
+            }
+        });
 
     }
 
-    /*private void resizeImage(final ArrayList<String> imageList, final ArrayList<String> outList, final ResizeCallback resizeCallback) {
+    private void resizeImage(final ArrayList<String> imageList, final ArrayList<String> outList, final ResizeCallback resizeCallback) {
 
         if (imageList.size() == 0) {
             resizeCallback.onResizeSuccess(outList);
         } else {
-            if (this.width != 0 && this.height != 0) {
+            if (this.width != 0 && this.height != 0 ) {
                 try {
                     URI uri = new URI(imageList.get(0));
 
@@ -558,13 +729,13 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             }
 
         }
-    }*/
+    }
 
     protected String storeImage(String inFilePath, String inFileName) throws JSONException, IOException, URISyntaxException {
 
 
         String outFilePath = System.getProperty("java.io.tmpdir") + "/";
-        copyFile(inFilePath, inFileName, outFilePath);
+        copyFile(inFilePath+File.separator, inFileName, outFilePath);
         return outFilePath + inFileName;
 
     }
@@ -587,7 +758,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         } catch (Exception e) {
             e.printStackTrace();
         }
-        copyFile(inFilePath, infileName, outFilePath);
+        copyFile(inFilePath+File.separator, infileName, outFilePath);
         exif.writeExif(outFilePath + infileName);
         return outFilePath;
 
