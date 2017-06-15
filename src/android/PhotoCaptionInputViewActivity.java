@@ -28,17 +28,9 @@ import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 
-import com.facebook.common.executors.CallerThreadExecutor;
-import com.facebook.common.references.CloseableReference;
-import com.facebook.datasource.DataSource;
 import com.facebook.drawee.backends.pipeline.Fresco;
-import com.facebook.imagepipeline.common.ResizeOptions;
-import com.facebook.imagepipeline.core.ImagePipeline;
-import com.facebook.imagepipeline.datasource.BaseBitmapDataSubscriber;
-import com.facebook.imagepipeline.image.CloseableImage;
-import com.facebook.imagepipeline.request.ImageRequest;
-import com.facebook.imagepipeline.request.ImageRequestBuilder;
 import com.kaopiz.kprogresshud.KProgressHUD;
+import com.kbeanie.multipicker.api.CacheLocation;
 import com.kbeanie.multipicker.api.ImagePicker;
 import com.kbeanie.multipicker.api.Picker;
 import com.kbeanie.multipicker.api.callbacks.ImagePickerCallback;
@@ -55,7 +47,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
@@ -232,8 +223,12 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                             }
                         });
 
+                        if (PhotoCaptionInputViewActivity.this.width > 0 && PhotoCaptionInputViewActivity.this.height > 0) {
+                            imagePicker.ensureMaxSize(PhotoCaptionInputViewActivity.this.width, PhotoCaptionInputViewActivity.this.height);
+                        }
                         imagePicker.allowMultiple(); // Default is false
-                        imagePicker.shouldGenerateMetadata(false); // Default is true
+                        imagePicker.shouldGenerateMetadata(true);
+                        imagePicker.setCacheLocation(CacheLocation.INTERNAL_APP_DIR);
                         imagePicker.shouldGenerateThumbnails(false); // Default is true
                         imagePicker.pickImage();
 
@@ -395,52 +390,92 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     }
 
     private void finishWithResult() throws JSONException {
-        ArrayList<String> outList = new ArrayList<String>();
-        resizeImage(imageList, outList, new ResizeCallback() {
+        Bundle conData = new Bundle();
+        try {
+            JSONObject jsonObject = new JSONObject();
 
-            @Override
-            public void onResizeSuccess(ArrayList<String> outList) {
-                Bundle conData = new Bundle();
-                try {
-                    JSONObject jsonObject = new JSONObject();
+            JSONArray array = new JSONArray(imageList);
 
-                    JSONArray array = new JSONArray(outList);
+            jsonObject.put(KEY_IMAGES, array);
+            jsonObject.put(KEY_CAPTIONS, new JSONArray(captions));
+            jsonObject.put(KEY_PRESELECTS, new JSONArray());
+            jsonObject.put(KEY_INVALIDIMAGES, new JSONArray());
+            conData.putString(Constants.RESULT, jsonObject.toString());
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        Intent intent = new Intent();
+        intent.putExtras(conData);
+        setResult(RESULT_OK, intent);
+        finishActivity(Constants.REQUEST_SUBMIT);
+        finish();
 
-                    jsonObject.put(KEY_IMAGES, array);
-                    jsonObject.put(KEY_CAPTIONS, new JSONArray(captions));
-                    jsonObject.put(KEY_PRESELECTS, new JSONArray());
-                    jsonObject.put(KEY_INVALIDIMAGES, new JSONArray());
-                    conData.putString(Constants.RESULT, jsonObject.toString());
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-                Intent intent = new Intent();
-                intent.putExtras(conData);
-                setResult(RESULT_OK, intent);
-                finishActivity(Constants.REQUEST_SUBMIT);
-                finish();
-            }
-
-            @Override
-            public void onResizeFailed(String s) {
-                Log.e(TAG, s);
-            }
-        });
+        //for testing james 20170615
+//        ArrayList<String> outList = new ArrayList<String>();
+//        resizeImage(imageList, outList, new ResizeCallback() {
+//
+//            @Override
+//            public void onResizeSuccess(ArrayList<String> outList) {
+//                Bundle conData = new Bundle();
+//                try {
+//                    JSONObject jsonObject = new JSONObject();
+//
+//                    JSONArray array = new JSONArray(outList);
+//
+//                    jsonObject.put(KEY_IMAGES, array);
+//                    jsonObject.put(KEY_CAPTIONS, new JSONArray(captions));
+//                    jsonObject.put(KEY_PRESELECTS, new JSONArray());
+//                    jsonObject.put(KEY_INVALIDIMAGES, new JSONArray());
+//                    conData.putString(Constants.RESULT, jsonObject.toString());
+//                } catch (JSONException e) {
+//                    e.printStackTrace();
+//                }
+//                Intent intent = new Intent();
+//                intent.putExtras(conData);
+//                setResult(RESULT_OK, intent);
+//                finishActivity(Constants.REQUEST_SUBMIT);
+//                finish();
+//            }
+//
+//            @Override
+//            public void onResizeFailed(String s) {
+//                Log.e(TAG, s);
+//                AlertDialog builder = new AlertDialog
+//                        .Builder(PhotoCaptionInputViewActivity.this)
+//                        .setTitle("Error")
+//                        .setMessage(s)
+//                        .show();
+//            }
+//        });
 
     }
 
-    private void resizeImage(final ArrayList<String> imageList, final ArrayList<String> outList, final ResizeCallback resizeCallback) {
+    /*private void resizeImage(final ArrayList<String> imageList, final ArrayList<String> outList, final ResizeCallback resizeCallback) {
 
         if (imageList.size() == 0) {
             resizeCallback.onResizeSuccess(outList);
         } else {
-            if (this.width == 0 || this.height == 0) {
+            if (this.width != 0 && this.height != 0) {
                 try {
                     URI uri = new URI(imageList.get(0));
 
                     final File imageFile = new File(uri);
+                    final BitmapFactory.Options options = new BitmapFactory.Options();
+                    options.inJustDecodeBounds = true;
+                    BitmapFactory.decodeFile(imageFile.getAbsolutePath(), options);
+                    float scale = 1.0f;
+                    if (options.outWidth > options.outHeight) {
+                        scale = (width * 1.0f) / (options.outWidth * 1.0f);
+                    } else {
+                        scale = (height * 1.0f) / (options.outHeight * 1.0f);
+                    }
+                    if (scale > 1 || scale <= 0) {
+                        scale = 1;
+                    }
+                    float reqWidth = options.outWidth * scale;
+                    float reqHeight = options.outHeight * scale;
                     ImageRequest request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(imageList.get(0)))
-                            .setResizeOptions(new ResizeOptions(1820, 1820))
+                            .setResizeOptions(new ResizeOptions((int) reqWidth, (int) reqHeight))
                             .build();
                     ImagePipeline imagePipeline = Fresco.getImagePipeline();
                     final DataSource<CloseableReference<CloseableImage>> dataSource = imagePipeline.fetchDecodedImage(request, this);
@@ -456,11 +491,24 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                                 @Override
                                 protected void onNewResultImpl(Bitmap bmp) {
                                     ExifInterface exif = new ExifInterface();
+
                                     try {
                                         exif.readExif(imageFile.getAbsolutePath(), ExifInterface.Options.OPTION_ALL);
+                                        ExifTag orientationTag = exif.getTag(ExifInterface.TAG_ORIENTATION);
+                                        long orientation = orientationTag.getValueAsLong(0);
+
+                                        Log.d(TAG, "orientationTag " + orientationTag.toString());
+
+                                        Log.d(TAG, "orientation " + orientation);
                                     } catch (Exception e) {
                                         Log.e(TAG, "exif.readExif( " + imageFile.getAbsolutePath() + " , ExifInterface.Options.OPTION_ALL )");
                                         resizeCallback.onResizeFailed("exif.readExif( " + imageFile.getAbsolutePath() + " , ExifInterface.Options.OPTION_ALL )");
+                                    }
+                                    try {
+                                        exif.setTagValue(ExifInterface.TAG_ORIENTATION, 1);
+
+                                    } catch (Exception e) {
+                                        Log.e(TAG, "exif.setTagValue(ExifInterface.TAG_ORIENTATION,1)");
                                     }
                                     try {
                                         String outFilePath = storeImageWithExif(imageFile.getName(), bmp, exif);
@@ -510,7 +558,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             }
 
         }
-    }
+    }*/
 
     protected String storeImage(String inFilePath, String inFileName) throws JSONException, IOException, URISyntaxException {
 
@@ -525,8 +573,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
         String filename = inFileName;
         String filePath = System.getProperty("java.io.tmpdir") + "/" + filename;
-        File file = new File(filePath);
-        exif.writeExif(bmp, filePath, 90);
+        exif.writeExif(bmp, filePath, 100);
         return filePath;
 
     }
