@@ -8,6 +8,7 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Rect;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -68,9 +69,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
-
-import it.sephiroth.android.library.exif2.ExifInterface;
-import it.sephiroth.android.library.exif2.ExifTag;
 
 import static com.creedon.cordova.plugin.captioninput.Constants.KEY_CAPTIONS;
 import static com.creedon.cordova.plugin.captioninput.Constants.KEY_IMAGES;
@@ -662,26 +660,33 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
                                 @Override
                                 protected void onNewResultImpl(Bitmap bmp) {
-                                    ExifInterface exif = new ExifInterface();
-
+                                    ExifInterface exif = null;
                                     try {
-                                        exif.readExif(imageFile.getAbsolutePath(), ExifInterface.Options.OPTION_ALL);
-                                        ExifTag orientationTag = exif.getTag(ExifInterface.TAG_ORIENTATION);
-                                        long orientation = orientationTag.getValueAsLong(0);
+                                        exif = new ExifInterface(imageFile.getAbsolutePath());
+                                        exif.setAttribute(ExifInterface.TAG_ORIENTATION, String.valueOf(ExifInterface.ORIENTATION_NORMAL));
 
-                                        Log.d(TAG, "orientationTag " + orientationTag.toString());
-
-                                        Log.d(TAG, "orientation " + orientation);
-                                    } catch (Exception e) {
-                                        Log.e(TAG, "exif.readExif( " + imageFile.getAbsolutePath() + " , ExifInterface.Options.OPTION_ALL )");
-                                        resizeCallback.onResizeFailed("exif.readExif( " + imageFile.getAbsolutePath() + " , ExifInterface.Options.OPTION_ALL )");
+                                    } catch (IOException e) {
+                                        e.printStackTrace();
                                     }
-                                    try {
-                                        exif.setTagValue(ExifInterface.TAG_ORIENTATION, 1);
 
-                                    } catch (Exception e) {
-                                        Log.e(TAG, "exif.setTagValue(ExifInterface.TAG_ORIENTATION,1)");
-                                    }
+//                                    try {
+//                                        exif.readExif(imageFile.getAbsolutePath(), ExifInterface.Options.OPTION_ALL);
+//                                        ExifTag orientationTag = exif.getTag(ExifInterface.TAG_ORIENTATION);
+//                                        long orientation = orientationTag.getValueAsLong(0);
+//
+//                                        Log.d(TAG, "orientationTag " + orientationTag.toString());
+//
+//                                        Log.d(TAG, "orientation " + orientation);
+//                                    } catch (Exception e) {
+//                                        Log.e(TAG, "exif.readExif( " + imageFile.getAbsolutePath() + " , ExifInterface.Options.OPTION_ALL )");
+//                                        resizeCallback.onResizeFailed("exif.readExif( " + imageFile.getAbsolutePath() + " , ExifInterface.Options.OPTION_ALL )");
+//                                    }
+//                                    try {
+//                                        exif.setTagValue(ExifInterface.TAG_ORIENTATION, 1);
+//
+//                                    } catch (Exception e) {
+//                                        Log.e(TAG, "exif.setTagValue(ExifInterface.TAG_ORIENTATION,1)");
+//                                    }
                                     try {
                                         String outFilePath = storeImageWithExif(imageFile.getName(), bmp, exif);
                                         outList.add(Uri.fromFile(new File(outFilePath)).toString());
@@ -737,6 +742,8 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
         String outFilePath = System.getProperty("java.io.tmpdir") + "/";
         copyFile(inFilePath + File.separator, inFileName, outFilePath);
+
+        copyExif(inFilePath + File.separator+inFileName, outFilePath+inFileName);
         return outFilePath + inFileName;
 
     }
@@ -745,25 +752,42 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
         String filename = inFileName;
         String filePath = System.getProperty("java.io.tmpdir") + "/" + filename;
-        exif.writeExif(bmp, filePath, 100);
+//        exif.writeExif(bmp, filePath, 100);
+        FileOutputStream out = null;
+        try {
+            out = new FileOutputStream(filename);
+            bmp.compress(Bitmap.CompressFormat.JPEG, 100, out); // bmp is your Bitmap instance
+            // PNG is a lossless format, the compression factor (100) is ignored
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (out != null) {
+                    out.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        copyExif(exif,filePath);
         return filePath;
 
     }
 
     //James Kong 2017-01-27
-    protected String storeImageWithExif(String inFilePath, String infileName) throws JSONException, IOException, URISyntaxException {
-        String outFilePath = System.getProperty("java.io.tmpdir") + "/";
-        ExifInterface exif = new ExifInterface();
-        try {
-            exif.readExif(inFilePath + infileName, ExifInterface.Options.OPTION_ALL);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        copyFile(inFilePath + File.separator, infileName, outFilePath);
-        exif.writeExif(outFilePath + infileName);
-        return outFilePath;
-
-    }
+//    protected String storeImageWithExif(String inFilePath, String infileName) throws JSONException, IOException, URISyntaxException {
+//        String outFilePath = System.getProperty("java.io.tmpdir") + "/";
+//        ExifInterface exif = new ExifInterface();
+//        try {
+//            exif.readExif(inFilePath + infileName, ExifInterface.Options.OPTION_ALL);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//        copyFile(inFilePath + File.separator, infileName, outFilePath);
+//        exif.writeExif(outFilePath + infileName);
+//        return outFilePath;
+//
+//    }
 
     private void copyFile(String inputPath, String inputFile, String outputPath) {
 
@@ -800,6 +824,91 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             Log.e("tag", e.getMessage());
         }
 
+    }
+
+    public static void copyExif(String oldPath, String newPath) throws IOException
+    {
+        ExifInterface oldExif = new ExifInterface(oldPath);
+
+        String[] attributes = new String[]
+                {
+                        ExifInterface.TAG_APERTURE,
+                        ExifInterface.TAG_DATETIME,
+                        ExifInterface.TAG_DATETIME_DIGITIZED,
+                        ExifInterface.TAG_EXPOSURE_TIME,
+                        ExifInterface.TAG_FLASH,
+                        ExifInterface.TAG_FOCAL_LENGTH,
+                        ExifInterface.TAG_GPS_ALTITUDE,
+                        ExifInterface.TAG_GPS_ALTITUDE_REF,
+                        ExifInterface.TAG_GPS_DATESTAMP,
+                        ExifInterface.TAG_GPS_LATITUDE,
+                        ExifInterface.TAG_GPS_LATITUDE_REF,
+                        ExifInterface.TAG_GPS_LONGITUDE,
+                        ExifInterface.TAG_GPS_LONGITUDE_REF,
+                        ExifInterface.TAG_GPS_PROCESSING_METHOD,
+                        ExifInterface.TAG_GPS_TIMESTAMP,
+                        ExifInterface.TAG_IMAGE_LENGTH,
+                        ExifInterface.TAG_IMAGE_WIDTH,
+                        ExifInterface.TAG_ISO,
+                        ExifInterface.TAG_MAKE,
+                        ExifInterface.TAG_MODEL,
+                        ExifInterface.TAG_ORIENTATION,
+                        ExifInterface.TAG_SUBSEC_TIME,
+                        ExifInterface.TAG_SUBSEC_TIME_DIG,
+                        ExifInterface.TAG_SUBSEC_TIME_ORIG,
+                        ExifInterface.TAG_WHITE_BALANCE
+                };
+
+        ExifInterface newExif = new ExifInterface(newPath);
+        for (int i = 0; i < attributes.length; i++)
+        {
+            String value = oldExif.getAttribute(attributes[i]);
+            if (value != null)
+                newExif.setAttribute(attributes[i], value);
+        }
+        newExif.saveAttributes();
+    }
+
+    public static void copyExif( ExifInterface oldExif, String newPath) throws IOException
+    {
+
+        String[] attributes = new String[]
+                {
+                        ExifInterface.TAG_APERTURE,
+                        ExifInterface.TAG_DATETIME,
+                        ExifInterface.TAG_DATETIME_DIGITIZED,
+                        ExifInterface.TAG_EXPOSURE_TIME,
+                        ExifInterface.TAG_FLASH,
+                        ExifInterface.TAG_FOCAL_LENGTH,
+                        ExifInterface.TAG_GPS_ALTITUDE,
+                        ExifInterface.TAG_GPS_ALTITUDE_REF,
+                        ExifInterface.TAG_GPS_DATESTAMP,
+                        ExifInterface.TAG_GPS_LATITUDE,
+                        ExifInterface.TAG_GPS_LATITUDE_REF,
+                        ExifInterface.TAG_GPS_LONGITUDE,
+                        ExifInterface.TAG_GPS_LONGITUDE_REF,
+                        ExifInterface.TAG_GPS_PROCESSING_METHOD,
+                        ExifInterface.TAG_GPS_TIMESTAMP,
+                        ExifInterface.TAG_IMAGE_LENGTH,
+                        ExifInterface.TAG_IMAGE_WIDTH,
+                        ExifInterface.TAG_ISO,
+                        ExifInterface.TAG_MAKE,
+                        ExifInterface.TAG_MODEL,
+                        ExifInterface.TAG_ORIENTATION,
+                        ExifInterface.TAG_SUBSEC_TIME,
+                        ExifInterface.TAG_SUBSEC_TIME_DIG,
+                        ExifInterface.TAG_SUBSEC_TIME_ORIG,
+                        ExifInterface.TAG_WHITE_BALANCE
+                };
+
+        ExifInterface newExif = new ExifInterface(newPath);
+        for (int i = 0; i < attributes.length; i++)
+        {
+            String value = oldExif.getAttribute(attributes[i]);
+            if (value != null)
+                newExif.setAttribute(attributes[i], value);
+        }
+        newExif.saveAttributes();
     }
 
     void refreshList() {
