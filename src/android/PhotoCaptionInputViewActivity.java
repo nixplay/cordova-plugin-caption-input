@@ -141,7 +141,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 for (int i = 0, count = imagesJsonArray.length(); i < count; i++) {
                     try {
                         String jsonObj = imagesJsonArray.getString(i);
-                        if (jsonObj.contains("content://com.android.providers.media.documents")) {
+                        if (jsonObj.contains("content://")) {
                             //get real path
                             //https://stackoverflow.com/questions/20067508/get-real-path-from-uri-android-kitkat-new-storage-access-framework
 
