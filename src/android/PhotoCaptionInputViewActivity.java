@@ -755,7 +755,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 //        exif.writeExif(bmp, filePath, 100);
         FileOutputStream out = null;
         try {
-            out = new FileOutputStream(filename);
+            out = new FileOutputStream(filePath);
             bmp.compress(Bitmap.CompressFormat.JPEG, 100, out); // bmp is your Bitmap instance
             // PNG is a lossless format, the compression factor (100) is ignored
         } catch (Exception e) {
