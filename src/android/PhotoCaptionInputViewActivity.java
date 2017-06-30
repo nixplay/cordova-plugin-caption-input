@@ -35,6 +35,7 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.Button;
 import android.widget.EditText;
 
 import com.facebook.common.executors.CallerThreadExecutor;
@@ -70,6 +71,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static android.view.View.GONE;
 import static com.creedon.cordova.plugin.captioninput.Constants.KEY_CAPTIONS;
 import static com.creedon.cordova.plugin.captioninput.Constants.KEY_IMAGES;
 import static com.creedon.cordova.plugin.captioninput.Constants.KEY_INVALIDIMAGES;
@@ -89,6 +91,8 @@ import static com.creedon.cordova.plugin.captioninput.Constants.KEY_PRESELECTS;
 public class PhotoCaptionInputViewActivity extends AppCompatActivity implements RecyclerItemClickListener.OnItemClickListener, RecyclerViewAdapter.RecyclerViewAdapterListener {
 
     private static final String TAG = PhotoCaptionInputViewActivity.class.getSimpleName();
+    private static final String KEY_LABEL = "label";
+    private static final String KEY_TYPE = "type";
     private FakeR fakeR;
     private ArrayList<String> captions;
     private int currentPosition;
@@ -101,6 +105,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     private KProgressHUD kProgressHUD;
     private ArrayList<String> imageList;
     private int width, height;
+    private JSONArray buttonOptions;
 
 
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
@@ -124,6 +129,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 //                String tc = jsonObject.getString("ts");
                 this.width = jsonObject.has("width") ? jsonObject.getInt("width") : 0;
                 this.height = jsonObject.has("height") ? jsonObject.getInt("height") : 0;
+                this.buttonOptions = jsonObject.getJSONArray("buttons");
+
+
 //                this.quality = jsonObject.getInt("quality");
                 JSONArray imagesJsonArray = jsonObject.getJSONArray("images");
 //                JSONArray preSelectedAssets = jsonObject.getJSONArray("preSelectedAssets");
@@ -176,18 +184,98 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                         captions.set(currentPosition, editable.toString());
                     }
                 });
-                (findViewById(fakeR.getId("id", "btnSubmit"))).setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-
-                        try {
-                            finishWithResult();
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                            finishActivity(-1);
+//                LinearLayout toolBarLinearLayout = (LinearLayout) findViewById(fakeR.getId("id", "toolBarLinearLayout"));
+                buttonOptions.remove(1);
+                for (int i = 0; i < this.buttonOptions.length(); i++) {
+                    JSONObject obj = (JSONObject) this.buttonOptions.get(i);
+                    String label = obj.getString(KEY_LABEL);
+                    final String type = obj.getString(KEY_TYPE);
+                    if (i == 0) {
+                        if (this.buttonOptions.length() == 1) {
+                            findViewById(fakeR.getId("id", "button1")).setVisibility(GONE);
+                            Button button = (Button) findViewById(fakeR.getId("id", "button2"));
+                            button.setText(label);
+                            button.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    try {
+                                        finishWithResult(type);
+                                    } catch (JSONException e) {
+                                        e.printStackTrace();
+                                        finishActivity(-1);
+                                    }
+                                }
+                            });
+                        } else {
+                            Button button1 = (Button) findViewById(fakeR.getId("id", "button1"));
+                            button1.setText(label);
+                            button1.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    try {
+                                        finishWithResult(type);
+                                    } catch (JSONException e) {
+                                        e.printStackTrace();
+                                        finishActivity(-1);
+                                    }
+                                }
+                            });
                         }
+                    } else if(i == 1){
+
+
+
+                            Button button2 = (Button) findViewById(fakeR.getId("id", "button2"));
+                            button2.setText(label);
+                            button2.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    try {
+                                        finishWithResult(type);
+                                    } catch (JSONException e) {
+                                        e.printStackTrace();
+                                        finishActivity(-1);
+                                    }
+                                }
+                            });
+
                     }
-                });
+//                    Button button = new Button(this);
+//
+//                    ViewGroup.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT , 1.0f);
+//
+//                    button.setLayoutParams(params);
+//                    button.setTextColor(0xFFFFFF);
+//                    button.setBackgroundColor(0x00000000);
+//                    String label = obj.getString(KEY_LABEL);
+//                    button.setText(label);
+//                    button.setTextSize(12);
+//                    Drawable image = getResources().getDrawable( fakeR.getId("drawable","sendfriend") );
+//                    int h = image.getIntrinsicHeight();
+//                    int w = image.getIntrinsicWidth();
+//                    image.setBounds( 0, 0, w, h );
+//                    button.setCompoundDrawables( null, image, null, null );
+//                    button.setBackground(image);
+//                    android:background="@android:color/transparent"
+//                    android:drawableTop="@drawable/sendfriend"
+//                    android:text="this is text"
+
+//                    android:textSize="8sp"
+//                    obj.getString(KEY_TYPE);
+//                    toolBarLinearLayout.addView(button);
+                }
+//                (findViewById(fakeR.getId("id", "btnSubmit"))).setOnClickListener(new View.OnClickListener() {
+//                    @Override
+//                    public void onClick(View view) {
+//
+//                        try {
+//                            finishWithResult();
+//                        } catch (JSONException e) {
+//                            e.printStackTrace();
+//                            finishActivity(-1);
+//                        }
+//                    }
+//                });
                 mPager = (ViewPager) findViewById(fakeR.getId("id", "pager"));
                 mPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
                     public void onPageScrollStateChanged(int state) {
@@ -548,7 +636,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         }
     }
 
-    private void finishWithResult() throws JSONException {
+    private void finishWithResult(final String type) throws JSONException {
 //        Bundle conData = new Bundle();
 //        try {
 //            JSONObject jsonObject = new JSONObject();
@@ -599,6 +687,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     jsonObject.put(KEY_CAPTIONS, new JSONArray(captions));
                     jsonObject.put(KEY_PRESELECTS, new JSONArray());
                     jsonObject.put(KEY_INVALIDIMAGES, new JSONArray());
+                    jsonObject.put(KEY_TYPE, type);
                     conData.putString(Constants.RESULT, jsonObject.toString());
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -743,7 +832,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         String outFilePath = System.getProperty("java.io.tmpdir") + "/";
         copyFile(inFilePath + File.separator, inFileName, outFilePath);
 
-        copyExif(inFilePath + File.separator+inFileName, outFilePath+inFileName);
+        copyExif(inFilePath + File.separator + inFileName, outFilePath + inFileName);
         return outFilePath + inFileName;
 
     }
@@ -769,7 +858,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 e.printStackTrace();
             }
         }
-        copyExif(exif,filePath);
+        copyExif(exif, filePath);
         return filePath;
 
     }
@@ -826,8 +915,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
     }
 
-    public static void copyExif(String oldPath, String newPath) throws IOException
-    {
+    public static void copyExif(String oldPath, String newPath) throws IOException {
         ExifInterface oldExif = new ExifInterface(oldPath);
 
         String[] attributes = new String[]
@@ -860,8 +948,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 };
 
         ExifInterface newExif = new ExifInterface(newPath);
-        for (int i = 0; i < attributes.length; i++)
-        {
+        for (int i = 0; i < attributes.length; i++) {
             String value = oldExif.getAttribute(attributes[i]);
             if (value != null)
                 newExif.setAttribute(attributes[i], value);
@@ -869,8 +956,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         newExif.saveAttributes();
     }
 
-    public static void copyExif( ExifInterface oldExif, String newPath) throws IOException
-    {
+    public static void copyExif(ExifInterface oldExif, String newPath) throws IOException {
 
         String[] attributes = new String[]
                 {
@@ -902,8 +988,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 };
 
         ExifInterface newExif = new ExifInterface(newPath);
-        for (int i = 0; i < attributes.length; i++)
-        {
+        for (int i = 0; i < attributes.length; i++) {
             String value = oldExif.getAttribute(attributes[i]);
             if (value != null)
                 newExif.setAttribute(attributes[i], value);
