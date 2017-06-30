@@ -9,17 +9,10 @@
 #import <Foundation/Foundation.h>
 #import <Cordova/CDVPlugin.h>
 #import "PhotoCaptionInputViewController.h"
-typedef enum {
-    PLAYLIST,
-    FRIENDS
-}PhotoDestination;
-
 @interface PhotoCaptionInputViewPlugin : CDVPlugin <PhotoCaptionInputViewDelegate> {
 
     NSMutableDictionary* callbackIds;
     NSArray* photos;
-    PhotoDestination photoDestination;
-
 }
 @property (copy)   NSString* callbackId;
 @property (nonatomic, retain) NSMutableDictionary* callbackIds;
@@ -27,11 +20,14 @@ typedef enum {
 @property (nonatomic, retain) NSArray *thumbnails;
 @property (nonatomic, retain) NSArray *friends;
 @property (nonatomic, retain) NSMutableDictionary *selected_photos;
+@property (nonatomic, retain) NSMutableArray *buttonOptions;
+@property (nonatomic, retain) NSString *distinationType;
 @property (nonatomic, assign) NSArray *preSelectedAssets;
 @property (nonatomic, assign) NSInteger width;
 @property (nonatomic, assign) NSInteger height;
 @property (nonatomic, assign) NSInteger quality;
 @property (nonatomic, assign) NSInteger outputType;
+
 @property (nonatomic,assign) PhotoCaptionInputViewController* photoCaptionInputViewController;
 - (void)showCaptionInput:(CDVInvokedUrlCommand*)command ;
 

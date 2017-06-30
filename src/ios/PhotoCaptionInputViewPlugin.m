@@ -15,7 +15,12 @@
 #define BUNDLE_UIIMAGE(imageNames) [UIImage imageNamed:[NSString stringWithFormat:@"%@.bundle/%@", NSStringFromClass([self class]), imageNames]]
 #define BIN_UIIMAGE BUNDLE_UIIMAGE(@"images/bin.png")
 #define SENDFRIEND_UIIMAGE BUNDLE_UIIMAGE(@"images/sendfriend.png")
+#define KEY_LABEL @"label"
+#define KEY_TYPE @"type"
 
+#define KEY_FRIEND @"friend"
+#define KEY_PLAYLIST @"playlist"
+#define KEY_ALBUM @"album"
 @implementation PhotoCaptionInputViewPlugin
 
 @synthesize callbackId;
@@ -23,6 +28,8 @@
 @synthesize photos = _photos;
 @synthesize thumbnails = _thumbnails;
 @synthesize photoCaptionInputViewController = _photoCaptionInputViewController;
+@synthesize buttonOptions = _buttonOptions;
+@synthesize distinationType = _distinationType;
 - (NSMutableDictionary*)callbackIds {
     if(_callbackIds == nil) {
         _callbackIds = [[NSMutableDictionary alloc] init];
@@ -45,18 +52,27 @@
     self.height = [[options objectForKey:@"height"] integerValue];
     self.quality = [[options objectForKey:@"quality"] integerValue];
     
-//    NSUInteger photoIndex = [[options objectForKey:@"index"] intValue];
+    //    NSUInteger photoIndex = [[options objectForKey:@"index"] intValue];
     self.preSelectedAssets = [options objectForKey:@"preSelectedAssets"];
     
     NSDictionary * data = [options objectForKey:@"data"];
     NSArray *argfriends = [options objectForKey:@"friends"];
-    photoDestination = PLAYLIST;
+    
+    
+    _distinationType = @"";
     if(![[argfriends class] isEqual:[NSNull class]]){
         self.friends = argfriends;
     }else{
         self.friends = [NSArray new];
         
     }
+    
+
+    NSArray *buttonOptions = [options objectForKey:@"buttons"];
+    if(![[buttonOptions class] isEqual:[NSNull class]]){
+        _buttonOptions = [NSMutableArray arrayWithArray:buttonOptions];
+    }
+    
     NSLog(@"data %@",data);
     UIScreen *screen = [UIScreen mainScreen];
     CGFloat scale = screen.scale;
@@ -71,46 +87,20 @@
         [thumbs addObject:[MWPhotoExt photoWithAsset:asset targetSize:thumbTargetSize] ];
     }];
     
-    //    for (NSString* url in [options objectForKey:@"images"])
-    //    {
-    //        [images addObject:[MWPhotoExt photoWithURL:[NSURL URLWithString: url]]];
-    //    }
-    //    for (NSString* url in [options objectForKey:@"thumbnails"])
-    //    {
-    //        [thumbs addObject:[MWPhotoExt photoWithURL:[NSURL URLWithString: url]]];
-    //    }
-    
     self.photos = images;
     self.thumbnails = thumbs;
     
     
     PhotoCaptionInputViewController *vc = [[PhotoCaptionInputViewController alloc] initWithPhotos:_photos thumbnails:_thumbnails preselectedAssets:self.preSelectedAssets delegate:self];
+    vc.alwaysShowControls = YES;
     _photoCaptionInputViewController = vc;
+    
     CustomViewController *nc = [[CustomViewController alloc]initWithRootViewController:vc];
-    //    [self.viewController presentViewController:nc animated:YES completion:^{
-    //
-    //    }];
     CATransition *transition = [[CATransition alloc] init];
     transition.duration = 0.35;
     transition.type = kCATransitionPush;
     transition.subtype = kCATransitionFromRight;
     [self.viewController.view.window.layer addAnimation:transition forKey:kCATransition];
-    
-    
-    //    float initHeight = self.viewController.view.frame.size.height * (11.0f/12.0f);
-    //    UIButton *button = [[UIButton alloc]initWithFrame:
-    //                        CGRectMake(30,
-    //                                   initHeight,
-    //                                   self.viewController.view.frame.size.width-60,
-    //                                   50)];
-    //    //    [button setImage:[UIImage imageNamed:[NSString stringWithFormat:@"%@.bundle/%@", NSStringFromClass([self class]), @"images/send.png"]] forState:UIControlStateNormal];
-    //    [button setBackgroundColor:LIGHT_BLUE_COLp…÷OR];
-    //    button.layer.cornerRadius = 10; // this value vary as per your desire
-    //    button.clipsToBounds = YES;
-    //    [button setTitle:@"send" forState:UIControlStateNormal];
-    //    button.autoresizingMask = UIViewAutoresizingFlexibleTopMargin ;
-    //    [button addTarget:self action:@selector(onSendPressed:) forControlEvents:UIControlEventTouchUpInside];
-    //    [nc.view addSubview:button];
     
     [self.viewController presentViewController:nc animated:NO completion:^{
     }];
@@ -119,11 +109,14 @@
 }
 
 -(void) onSendPressed:(id) sender{
-    photoDestination = PLAYLIST;
-    [_photoCaptionInputViewController getPhotosCaptions];
-}
--(void) onFreindPressed:(id) sender{
-    photoDestination = FRIENDS;
+    UIButton *button = (UIButton*)sender;
+    [_buttonOptions enumerateObjectsUsingBlock:^(NSDictionary *obj, NSUInteger idx, BOOL * _Nonnull stop) {
+
+        if([[obj valueForKey:KEY_LABEL] isEqualToString:button.titleLabel.text]){
+            
+            _distinationType = [obj valueForKey:KEY_TYPE];
+        }
+    }];
     [_photoCaptionInputViewController getPhotosCaptions];
 }
 
@@ -271,21 +264,16 @@
         } while (index < featchArray.count);
         
         if (result == nil) {
-            if(photoDestination == PLAYLIST){
-                result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: [NSDictionary dictionaryWithObjectsAndKeys: preSelectedAssets, @"preSelectedAssets", fileStrings, @"images", captions, @"captions", invalidImages, @"invalidImages", @"playlists", @"type", nil]];
-            }else{
-                result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: [NSDictionary dictionaryWithObjectsAndKeys: preSelectedAssets, @"preSelectedAssets", fileStrings, @"images", captions, @"captions", invalidImages, @"invalidImages", @"friends", @"type", nil]];
-            }
+            
+            result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: [NSDictionary dictionaryWithObjectsAndKeys: preSelectedAssets, @"preSelectedAssets", fileStrings, @"images", captions, @"captions", invalidImages, @"invalidImages", _distinationType, KEY_TYPE, nil]];
+            
         }
     });
     
     dispatch_group_notify(dispatchGroup, dispatch_get_main_queue(), ^{
         if (nil == result) {
-            if(photoDestination == PLAYLIST){
-                result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: [NSDictionary dictionaryWithObjectsAndKeys: preSelectedAssets, @"preSelectedAssets", fileStrings, @"images", captions, @"captions",  invalidImages, @"invalidImages", @"playlists", @"type", nil]];
-            }else{
-                result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: [NSDictionary dictionaryWithObjectsAndKeys: preSelectedAssets, @"preSelectedAssets", fileStrings, @"images", captions, @"captions",  invalidImages, @"invalidImages", @"friends", @"type", nil]];
-            }
+            result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: [NSDictionary dictionaryWithObjectsAndKeys: preSelectedAssets, @"preSelectedAssets", fileStrings, @"images", captions, @"captions",  invalidImages, @"invalidImages", _distinationType, KEY_TYPE, nil]];
+            
             
         }
         
@@ -305,28 +293,29 @@
     UIBarButtonItem *flexSpace = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:self action:nil];
     [items addObject:flexSpace];
     
-//    UIBarButtonItem *fixedSpace = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFixedSpace target:self action:nil];
-//    fixedSpace.width = 5;
-//    [items addObject:fixedSpace];
+    //    UIBarButtonItem *fixedSpace = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFixedSpace target:self action:nil];
+    //    fixedSpace.width = 5;
+    //    [items addObject:fixedSpace];
     float margin = 2;
     
     
     
     
     [toolBar setBackgroundImage:[UIImage new]
-                  forToolbarPosition:UIToolbarPositionAny
-                          barMetrics:UIBarMetricsDefault];
+             forToolbarPosition:UIToolbarPositionAny
+                     barMetrics:UIBarMetricsDefault];
     
-    [toolBar setBackgroundColor:[UIColor clearColor]];
-//    [items addObject:flexSpace];
+    [toolBar setBackgroundColor:[UIColor blackColor]];
     
-//    if([self.friends count] == 0){
-    BOOL hasFriend = YES;
-    if(!hasFriend){
-//        CGRect toolBarFrame = toolBar.frame;
-//        CGRect viewControllerFrame = self.viewController.view.frame;
-//        NSLog(@"toolBarFrame %@",NSStringFromCGRect(toolBarFrame));
-//        NSLog(@"viewControllerFrame %@",NSStringFromCGRect(viewControllerFrame));
+    for (UIView *subView in [toolBar subviews]) {
+        if ([subView isKindOfClass:[UIImageView class]]) {
+            // Hide the hairline border
+            subView.hidden = YES;
+        }
+    }
+    //    BOOL hasFriend = YES;
+    if([_buttonOptions count] ==1 ){
+        NSDictionary * dic = [_buttonOptions objectAtIndex:0];
         CGRect newFrame = CGRectMake(0,0,
                                      self.viewController.view.frame.size.width - 10,
                                      toolBar.frame.size.height - margin*2 );
@@ -334,107 +323,88 @@
         [btn setBackgroundColor:LIGHT_BLUE_COLOR];
         btn.layer.cornerRadius = 5; // this value vary as per your desire
         btn.clipsToBounds = YES;
-        [btn setTitle:NSLocalizedString(@"ADD_PHOTOS_TO_MY_PLAYLIST", nil) forState:UIControlStateNormal];
+        [btn setTitle:[dic valueForKey:KEY_LABEL] forState:UIControlStateNormal];
         [btn addTarget:self action:@selector(onSendPressed:) forControlEvents:UIControlEventTouchUpInside];
-//        btn.imageEdgeInsets = UIEdgeInsetsMake(10, 10, 10, 10);
-//        btn.autoresizingMask = UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleWidth;
-//        btn.contentEdgeInsets = UIEdgeInsetsMake(10, 10, 10, 10);
+        
         UIBarButtonItem *addPhotoButton = [[UIBarButtonItem alloc] initWithCustomView:btn];
-//
-//        UIBarButtonItem *addPhotoButton = [[UIBarButtonItem alloc] initWithTitle:NSLocalizedString(@"ADD_PHOTOS_TO_MY_PLAYLIST", nil) style:UIBarButtonItemStylePlain target:self action:@selector(onSendPressed:)];
         [items addObject:addPhotoButton];
     }else{
         
-        
-        UIButton *button =  [UIButton buttonWithType:UIButtonTypeCustom];
-        [button addTarget:self action:@selector(onFreindPressed:) forControlEvents:UIControlEventTouchUpInside];
-        [button setImage:SENDFRIEND_UIIMAGE forState:UIControlStateNormal];
-        
-        [button setFrame:CGRectMake(0,0,
-                                    (self.viewController.view.frame.size.width *.4),
-                                    toolBar.frame.size.height )];
-        
-        
-        NSMutableAttributedString *titleText = [[NSMutableAttributedString alloc] initWithString:NSLocalizedString(@"SEND_TO_FRIEND", nil)];
-        UIFont * font = [UIFont systemFontOfSize:14] ;
-        
-        // Set the font to bold from the beginning of the string to the ","
-        [titleText addAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
-                                  font , NSFontAttributeName ,
-                                  [UIColor whiteColor] , NSForegroundColorAttributeName,
-                                  nil]
-                           range:NSMakeRange(0, titleText.length)];
-        
-        
-        // Set the attributed string as the buttons' title text
-        [button setAttributedTitle:titleText forState:UIControlStateNormal];
-        
-        CGSize imageSize = button.imageView.frame.size;
-        CGSize titleSize = button.titleLabel.frame.size;
-        
-        CGFloat totalHeight = (imageSize.height + titleSize.height );
-        
-        button.imageEdgeInsets = UIEdgeInsetsMake(0,
-                                                0.0f,
-                                                0.0f,
-                                                - titleSize.width);
-        
-        button.titleEdgeInsets = UIEdgeInsetsMake(0.0f,
-                                                - imageSize.width,
-                                                - totalHeight,
-                                                0.0f);
-        
-        button.contentEdgeInsets = UIEdgeInsetsMake(0.0f,
-                                                  0.0f,
-                                                  titleSize.height,
-                                                  0.0f);
-        
-//        UILabel *label = [[UILabel alloc]initWithFrame:CGRectMake(3, 5, 50, 20)];
-//        
-//        [label setText:NSLocalizedString(@"SEND_TO_FRIEND", nil)];
-//        label.textAlignment = UITextAlignmentCenter;
-//        [label setTextColor:[UIColor whiteColor]];
-//        [label setBackgroundColor:[UIColor clearColor]];
-//        [button addSubview:label];
-        
-//        UIButton *btn2 = [[UIButton alloc] initWithFrame: newFrame];
-//        [btn2 setBackgroundColor:LIGHT_BLUE_COLOR];
-//        btn2.layer.cornerRadius = 5; // this value vary as per your desire
-//        btn2.clipsToBounds = YES;
-//        [btn2 setTitle:NSLocalizedString(@"SEND_TO_FRIEND", nil) forState:UIControlStateNormal];
-//        [btn2 addTarget:self action:@selector(onFreindPressed:) forControlEvents:UIControlEventTouchUpInside];
-        UIBarButtonItem *addFriendsButton = [[UIBarButtonItem alloc] initWithCustomView:button];
-        
-        
-//        UIImage *senFriend = SENDFRIEND_UIIMAGE;
-//        UIBarButtonItem *addFriendsButton = [[UIBarButtonItem alloc] initWithImage:senFriend style:UIBarButtonItemStylePlain target:self action:@selector(onFreindPressed:)];
-//        [addFriendsButton setTitle:NSLocalizedString(@"SEND_TO_FRIEND", nil)];
-//        [addFriendsButton titlePositionAdjustmentForBarMetrics:UIBarMetricsDefault];
-        [items addObject:addFriendsButton];
-        
-        UIBarButtonItem *fixedSpace = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFixedSpace target:self action:nil];
-        fixedSpace.width = 10;
-        [items addObject:fixedSpace];
-        
-        
-        CGRect newFrame = CGRectMake(margin,0,
-                                     (self.viewController.view.frame.size.width *.4) - 10,
-                                     toolBar.frame.size.height - margin*2 );
-        UIButton *btn = [[UIButton alloc] initWithFrame: newFrame];
-        [btn setBackgroundColor:LIGHT_BLUE_COLOR];
-        btn.layer.cornerRadius = 5; // this value vary as per your desire
-        btn.clipsToBounds = YES;
-        [btn setTitle:NSLocalizedString(@"ADD_TO_PLAYLIST", nil) forState:UIControlStateNormal];
-        [btn addTarget:self action:@selector(onSendPressed:) forControlEvents:UIControlEventTouchUpInside];
-        btn.autoresizingMask = UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleWidth;
-//        btn.imageEdgeInsets = UIEdgeInsetsMake(10, 10, 10, 10);
-        UIBarButtonItem *addPhotoButton = [[UIBarButtonItem alloc] initWithCustomView:btn];
-        [items addObject:addPhotoButton];
-        
+        [_buttonOptions enumerateObjectsUsingBlock:^(NSDictionary *obj, NSUInteger idx, BOOL * _Nonnull stop) {
+            NSString *labelText = [obj valueForKey:KEY_LABEL];
+            if (idx ==0 ) {
+                UIButton *button =  [UIButton buttonWithType:UIButtonTypeCustom];
+                [button addTarget:self action:@selector(onSendPressed:) forControlEvents:UIControlEventTouchUpInside];
+                [button setImage:SENDFRIEND_UIIMAGE forState:UIControlStateNormal];
+                
+                [button setFrame:CGRectMake(0,0,
+                                            (self.viewController.view.frame.size.width *.4),
+                                            toolBar.frame.size.height )];
+                
+                
+                NSMutableAttributedString *titleText = [[NSMutableAttributedString alloc] initWithString:labelText];
+                UIFont * font = [UIFont systemFontOfSize:14] ;
+                
+                // Set the font to bold from the beginning of the string to the ","
+                [titleText addAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
+                                          font , NSFontAttributeName ,
+                                          [UIColor whiteColor] , NSForegroundColorAttributeName,
+                                          nil]
+                                   range:NSMakeRange(0, titleText.length)];
+                
+                
+                // Set the attributed string as the buttons' title text
+                [button setAttributedTitle:titleText forState:UIControlStateNormal];
+                
+                CGSize imageSize = button.imageView.frame.size;
+                CGSize titleSize = button.titleLabel.frame.size;
+                
+                CGFloat totalHeight = (imageSize.height + titleSize.height );
+                
+                button.imageEdgeInsets = UIEdgeInsetsMake(0,
+                                                          0.0f,
+                                                          0.0f,
+                                                          - titleSize.width);
+                
+                button.titleEdgeInsets = UIEdgeInsetsMake(0.0f,
+                                                          - imageSize.width,
+                                                          - totalHeight,
+                                                          0.0f);
+                
+                button.contentEdgeInsets = UIEdgeInsetsMake(0.0f,
+                                                            0.0f,
+                                                            titleSize.height,
+                                                            0.0f);
+                UIBarButtonItem *addFriendsButton = [[UIBarButtonItem alloc] initWithCustomView:button];
+                [items addObject:addFriendsButton];
+                
+                
+            }else{
+            
+                CGRect newFrame = CGRectMake(margin,0,
+                                             (self.viewController.view.frame.size.width *.4) - 10,
+                                             toolBar.frame.size.height - margin*2 );
+                UIButton *btn = [[UIButton alloc] initWithFrame: newFrame];
+                [btn setBackgroundColor:LIGHT_BLUE_COLOR];
+                btn.layer.cornerRadius = 5; // this value vary as per your desire
+                btn.clipsToBounds = YES;
+                [btn setTitle:labelText forState:UIControlStateNormal];
+                [btn addTarget:self action:@selector(onSendPressed:) forControlEvents:UIControlEventTouchUpInside];
+                btn.autoresizingMask = UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleWidth;
+                UIBarButtonItem *addPhotoButton = [[UIBarButtonItem alloc] initWithCustomView:btn];
+                [items addObject:addPhotoButton];
+                
+            }
+            if(idx != [_buttonOptions count]-1){
+                UIBarButtonItem *fixedSpace = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFixedSpace target:self action:nil];
+                fixedSpace.width = 10;
+                [items addObject:fixedSpace];
+                
+            }
+        }];
         
         
     }
-//    [items addObject:fixedSpace];
     [items addObject:flexSpace];
     toolBar.barStyle = UIBarStyleDefault;
     
