@@ -292,10 +292,12 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
+
                                     currentPosition = mPager.getCurrentItem();
                                     setActionBarTitle(imageList, currentPosition);
                                     mEditText.setText(captions.get(currentPosition));
                                     linearLayoutManager.scrollToPositionWithOffset(currentPosition, -1);
+                                    recyclerViewAdapter.notifyDataSetChanged();
                                 }
                             });
                         }
@@ -303,7 +305,6 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 });
                 mPagerAdapter = new ScreenSlidePagerAdapter(getSupportFragmentManager(), stringArray);
                 mPager.setAdapter(mPagerAdapter);
-
 
                 RecyclerView recyclerView = (RecyclerView) findViewById(fakeR.getId("id", "recycleview"));
                 linearLayoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
@@ -1028,7 +1029,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
         @Override
         public Fragment getItem(int position) {
-            recyclerViewAdapter.notifyDataSetChanged();
+
             return ScreenSlidePageFragment.newInstance(itemList.get(position));
         }
 
