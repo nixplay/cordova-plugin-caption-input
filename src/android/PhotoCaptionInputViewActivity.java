@@ -185,7 +185,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     }
                 });
 //                LinearLayout toolBarLinearLayout = (LinearLayout) findViewById(fakeR.getId("id", "toolBarLinearLayout"));
-                buttonOptions.remove(1);
+                //for test only
+//                buttonOptions.remove(1);
+                //for test only
                 for (int i = 0; i < this.buttonOptions.length(); i++) {
                     JSONObject obj = (JSONObject) this.buttonOptions.get(i);
                     String label = obj.getString(KEY_LABEL);
