@@ -335,46 +335,49 @@
             if (idx ==0 ) {
                 UIButton *button =  [UIButton buttonWithType:UIButtonTypeCustom];
                 [button addTarget:self action:@selector(onSendPressed:) forControlEvents:UIControlEventTouchUpInside];
-                [button setImage:SENDFRIEND_UIIMAGE forState:UIControlStateNormal];
-                
-                [button setFrame:CGRectMake(0,0,
-                                            (self.viewController.view.frame.size.width *.4),
-                                            toolBar.frame.size.height )];
-                
-                
-                NSMutableAttributedString *titleText = [[NSMutableAttributedString alloc] initWithString:labelText];
-                UIFont * font = [UIFont systemFontOfSize:14] ;
-                
-                // Set the font to bold from the beginning of the string to the ","
-                [titleText addAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
-                                          font , NSFontAttributeName ,
-                                          [UIColor whiteColor] , NSForegroundColorAttributeName,
-                                          nil]
-                                   range:NSMakeRange(0, titleText.length)];
-                
-                
-                // Set the attributed string as the buttons' title text
-                [button setAttributedTitle:titleText forState:UIControlStateNormal];
-                
-                CGSize imageSize = button.imageView.frame.size;
-                CGSize titleSize = button.titleLabel.frame.size;
-                
-                CGFloat totalHeight = (imageSize.height + titleSize.height );
-                
-                button.imageEdgeInsets = UIEdgeInsetsMake(0,
-                                                          0.0f,
-                                                          0.0f,
-                                                          - titleSize.width);
-                
-                button.titleEdgeInsets = UIEdgeInsetsMake(0.0f,
-                                                          - imageSize.width,
-                                                          - totalHeight,
-                                                          0.0f);
-                
-                button.contentEdgeInsets = UIEdgeInsetsMake(0.0f,
-                                                            0.0f,
-                                                            titleSize.height,
-                                                            0.0f);
+//                [button setImage:SENDFRIEND_UIIMAGE forState:UIControlStateNormal];
+                CGRect newFrame = CGRectMake(margin,0,
+                                             (self.viewController.view.frame.size.width *.4) - 10,
+                                             toolBar.frame.size.height - margin*2 );
+                [button setFrame:newFrame];
+                [button setBackgroundColor:LIGHT_BLUE_COLOR];
+                button.layer.cornerRadius = 5; // this value vary as per your desire
+                button.clipsToBounds = YES;
+                [button setTitle:labelText forState:UIControlStateNormal];
+                button.autoresizingMask = UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleWidth;
+//                NSMutableAttributedString *titleText = [[NSMutableAttributedString alloc] initWithString:labelText];
+//                UIFont * font = [UIFont systemFontOfSize:14] ;
+//                
+//                // Set the font to bold from the beginning of the string to the ","
+//                [titleText addAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
+//                                          font , NSFontAttributeName ,
+//                                          [UIColor whiteColor] , NSForegroundColorAttributeName,
+//                                          nil]
+//                                   range:NSMakeRange(0, titleText.length)];
+//                
+//                
+//                // Set the attributed string as the buttons' title text
+//                [button setAttributedTitle:titleText forState:UIControlStateNormal];
+//                
+//                CGSize imageSize = button.imageView.frame.size;
+//                CGSize titleSize = button.titleLabel.frame.size;
+//                
+//                CGFloat totalHeight = (imageSize.height + titleSize.height );
+//                
+//                button.imageEdgeInsets = UIEdgeInsetsMake(0,
+//                                                          0.0f,
+//                                                          0.0f,
+//                                                          - titleSize.width);
+//                
+//                button.titleEdgeInsets = UIEdgeInsetsMake(0.0f,
+//                                                          - imageSize.width,
+//                                                          - totalHeight,
+//                                                          0.0f);
+//                
+//                button.contentEdgeInsets = UIEdgeInsetsMake(0.0f,
+//                                                            0.0f,
+//                                                            titleSize.height,
+//                                                            0.0f);
                 UIBarButtonItem *addFriendsButton = [[UIBarButtonItem alloc] initWithCustomView:button];
                 [items addObject:addFriendsButton];
                 
