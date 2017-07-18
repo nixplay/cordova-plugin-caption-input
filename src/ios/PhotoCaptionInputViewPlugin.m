@@ -21,6 +21,7 @@
 #define KEY_FRIEND @"friend"
 #define KEY_PLAYLIST @"playlist"
 #define KEY_ALBUM @"album"
+#define TEXT_SIZE 16
 @implementation PhotoCaptionInputViewPlugin
 
 @synthesize callbackId;
@@ -319,14 +320,14 @@
         CGRect newFrame = CGRectMake(0,0,
                                      self.viewController.view.frame.size.width - 10,
                                      toolBar.frame.size.height - margin*2 );
-        UIButton *btn = [[UIButton alloc] initWithFrame: newFrame];
-        [btn setBackgroundColor:LIGHT_BLUE_COLOR];
-        btn.layer.cornerRadius = 5; // this value vary as per your desire
-        btn.clipsToBounds = YES;
-        [btn setTitle:[dic valueForKey:KEY_LABEL] forState:UIControlStateNormal];
-        [btn addTarget:self action:@selector(onSendPressed:) forControlEvents:UIControlEventTouchUpInside];
+        UIButton *button = [[UIButton alloc] initWithFrame: newFrame];
+        [button setBackgroundColor:LIGHT_BLUE_COLOR];
+        button.layer.cornerRadius = 2; // this value vary as per your desire
+        button.clipsToBounds = YES;
+        [button setAttributedTitle:[self attributedString:[dic valueForKey:KEY_LABEL] WithSize:TEXT_SIZE color:[UIColor whiteColor]] forState:UIControlStateNormal];
+        [button addTarget:self action:@selector(onSendPressed:) forControlEvents:UIControlEventTouchUpInside];
         
-        UIBarButtonItem *addPhotoButton = [[UIBarButtonItem alloc] initWithCustomView:btn];
+        UIBarButtonItem *addPhotoButton = [[UIBarButtonItem alloc] initWithCustomView:button];
         [items addObject:addPhotoButton];
     }else{
         
@@ -341,9 +342,10 @@
                                              toolBar.frame.size.height - margin*2 );
                 [button setFrame:newFrame];
                 [button setBackgroundColor:LIGHT_BLUE_COLOR];
-                button.layer.cornerRadius = 5; // this value vary as per your desire
+                button.layer.cornerRadius = 2; // this value vary as per your desire
                 button.clipsToBounds = YES;
-                [button setTitle:labelText forState:UIControlStateNormal];
+//                [button setTitle:labelText forState:UIControlStateNormal];
+                [button setAttributedTitle:[self attributedString:labelText WithSize:TEXT_SIZE color:[UIColor whiteColor]] forState:UIControlStateNormal];
                 button.autoresizingMask = UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleWidth;
 //                NSMutableAttributedString *titleText = [[NSMutableAttributedString alloc] initWithString:labelText];
 //                UIFont * font = [UIFont systemFontOfSize:14] ;
@@ -387,14 +389,15 @@
                 CGRect newFrame = CGRectMake(margin,0,
                                              (self.viewController.view.frame.size.width *.4) - 10,
                                              toolBar.frame.size.height - margin*2 );
-                UIButton *btn = [[UIButton alloc] initWithFrame: newFrame];
-                [btn setBackgroundColor:LIGHT_BLUE_COLOR];
-                btn.layer.cornerRadius = 5; // this value vary as per your desire
-                btn.clipsToBounds = YES;
-                [btn setTitle:labelText forState:UIControlStateNormal];
-                [btn addTarget:self action:@selector(onSendPressed:) forControlEvents:UIControlEventTouchUpInside];
-                btn.autoresizingMask = UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleWidth;
-                UIBarButtonItem *addPhotoButton = [[UIBarButtonItem alloc] initWithCustomView:btn];
+                UIButton *button = [[UIButton alloc] initWithFrame: newFrame];
+                [button setBackgroundColor:LIGHT_BLUE_COLOR];
+                button.layer.cornerRadius = 2; // this value vary as per your desire
+                button.clipsToBounds = YES;
+//                [button setTitle:labelText forState:UIControlStateNormal];
+                [button setAttributedTitle:[self attributedString:labelText WithSize:TEXT_SIZE color:[UIColor whiteColor]] forState:UIControlStateNormal];
+                [button addTarget:self action:@selector(onSendPressed:) forControlEvents:UIControlEventTouchUpInside];
+                button.autoresizingMask = UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleWidth;
+                UIBarButtonItem *addPhotoButton = [[UIBarButtonItem alloc] initWithCustomView:button];
                 [items addObject:addPhotoButton];
                 
             }
@@ -457,6 +460,21 @@
     // pop the context to get back to the default
     UIGraphicsEndImageContext();
     return newImage;
+}
+
+-(NSAttributedString *) attributedString:(NSString*)string WithSize:(NSInteger)size color:(UIColor*)color{
+    NSMutableAttributedString *attributedString = [[NSMutableAttributedString alloc]init];
+    
+    NSDictionary *dictAttr0 = [self attributedDirectoryWithSize:size color:color];
+    NSAttributedString *attr0 = [[NSAttributedString alloc]initWithString:string attributes:dictAttr0];
+    [attributedString appendAttributedString:attr0];
+    return attributedString;
+}
+
+-(NSDictionary *) attributedDirectoryWithSize:(NSInteger)size color:(UIColor*)color{
+    NSDictionary *dictAttr0 = @{NSFontAttributeName:[UIFont systemFontOfSize:size],
+                                NSForegroundColorAttributeName:color};
+    return dictAttr0;
 }
 
 
