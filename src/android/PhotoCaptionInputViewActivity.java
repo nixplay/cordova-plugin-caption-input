@@ -153,6 +153,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 for (int i = 0, count = imagesJsonArray.length(); i < count; i++) {
                     try {
                         String jsonObj = imagesJsonArray.getString(i);
+
                         if (jsonObj.contains("content://")) {
                             //get real path
                             //https://stackoverflow.com/questions/20067508/get-real-path-from-uri-android-kitkat-new-storage-access-framework
@@ -357,9 +358,13 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                                     kProgressHUD.dismiss();
                                 }
                                 for (ChosenImage file : images) {
-//                                    String uriString = file.getQueryUri();
-//                                    imageList.add(Uri.fromFile(new File(getPath(PhotoCaptionInputViewActivity.this, Uri.parse(uriString)))).toString());
-                                    imageList.add(Uri.fromFile(new File(file.getOriginalPath())).toString());
+                                    if (file.getQueryUri().contains("com.google.android.apps.photos.contentprovider")) {
+                                        imageList.add(Uri.fromFile(new File(file.getOriginalPath())).toString());
+                                    }else {
+                                        String uriString = file.getQueryUri();
+                                        imageList.add(Uri.fromFile(new File(getPath(PhotoCaptionInputViewActivity.this, Uri.parse(uriString)))).toString());
+                                    }
+//                                    imageList.add(Uri.fromFile(new File(file.getOriginalPath())).toString());
                                     captions.add("");
                                 }
                                 refreshList();
