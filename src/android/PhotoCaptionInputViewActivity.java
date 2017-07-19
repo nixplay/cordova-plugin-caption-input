@@ -10,17 +10,20 @@ import android.graphics.BitmapFactory;
 import android.graphics.Rect;
 import android.media.ExifInterface;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Vibrator;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
+import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
@@ -110,6 +113,38 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     private ArrayList<String> imageList;
     private int width, height;
     private JSONArray buttonOptions;
+    ViewPager.OnPageChangeListener onPageChangeListener = new ViewPager.OnPageChangeListener() {
+        public void onPageScrollStateChanged(int state) {
+        }
+
+        public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+        }
+
+        public void onPageSelected(int position) {
+            // Check if this is the page you want.
+            if (currentPosition != mPager.getCurrentItem()) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+
+                        currentPosition = mPager.getCurrentItem();
+                        setActionBarTitle(imageList, currentPosition);
+                        mEditText.setText(captions.get(currentPosition));
+                        linearLayoutManager.scrollToPositionWithOffset(currentPosition, -1);
+                        if (recyclerViewAdapter != null) {
+                            recyclerViewAdapter.notifyDataSetChanged();
+                        }
+                    }
+                });
+            }
+        }
+    };
+    private ViewPager.OnAdapterChangeListener onAdapterChangeListener = new ViewPager.OnAdapterChangeListener() {
+        @Override
+        public void onAdapterChanged(@NonNull ViewPager viewPager, @Nullable PagerAdapter oldAdapter, @Nullable PagerAdapter newAdapter) {
+
+        }
+    };
 
 
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
@@ -158,7 +193,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                             //get real path
                             //https://stackoverflow.com/questions/20067508/get-real-path-from-uri-android-kitkat-new-storage-access-framework
                             String path = getPath(PhotoCaptionInputViewActivity.this, Uri.parse(jsonObj));
-                            if(path != null) {
+                            if (path != null) {
                                 stringArray.add(Uri.fromFile(new File(path)).toString());
                             }
 //                            stringArray.add(Uri.fromFile(new File().toString());
@@ -175,8 +210,8 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 imageList = stringArray;
 
                 mEditText = (MaterialEditText) findViewById(fakeR.getId("id", "etDescription"));
-                mEditText.setHint(fakeR.getId("string","ADD_CAPTION"));
-                mEditText.setFloatingLabelText(getString(fakeR.getId("string","ADD_CAPTION")));
+                mEditText.setHint(fakeR.getId("string", "ADD_CAPTION"));
+                mEditText.setFloatingLabelText(getString(fakeR.getId("string", "ADD_CAPTION")));
                 InputFilter[] filterArray = new InputFilter[1];
                 filterArray[0] = new InputFilter.LengthFilter(MAX_CHARACTOR);
                 mEditText.setFilters(filterArray);
@@ -188,14 +223,14 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
                     @Override
                     public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-                        mEditText.setFloatingLabelText(getString(fakeR.getId("string","ADD_CAPTION"))+"("+charSequence.length()+"/"+MAX_CHARACTOR+")");
+                        mEditText.setFloatingLabelText(getString(fakeR.getId("string", "ADD_CAPTION")) + "(" + charSequence.length() + "/" + MAX_CHARACTOR + ")");
                     }
 
                     @Override
                     public void afterTextChanged(Editable editable) {
-                        if(editable.length()>0) {
-                            if(editable.charAt(editable.length()-1) == '\n'){
-                                editable.delete(editable.length()-1,editable.length());
+                        if (editable.length() > 0) {
+                            if (editable.charAt(editable.length() - 1) == '\n') {
+                                editable.delete(editable.length() - 1, editable.length());
                                 mEditText.clearFocus();
                                 InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
                                 imm.hideSoftInputFromWindow(mEditText.getWindowToken(), 0);
@@ -209,7 +244,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 mEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
                     @Override
                     public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                        Log.d("onEditorAction", " TextView "+ v.toString() + " actionId " + actionId + " event " + event);
+                        Log.d("onEditorAction", " TextView " + v.toString() + " actionId " + actionId + " event " + event);
                         return false;
                     }
                 });
@@ -252,23 +287,22 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                                 }
                             });
                         }
-                    } else if(i == 1){
+                    } else if (i == 1) {
 
 
-
-                            Button button2 = (Button) findViewById(fakeR.getId("id", "button2"));
-                            button2.setText(label);
-                            button2.setOnClickListener(new View.OnClickListener() {
-                                @Override
-                                public void onClick(View v) {
-                                    try {
-                                        finishWithResult(type);
-                                    } catch (JSONException e) {
-                                        e.printStackTrace();
-                                        finishActivity(-1);
-                                    }
+                        Button button2 = (Button) findViewById(fakeR.getId("id", "button2"));
+                        button2.setText(label);
+                        button2.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                try {
+                                    finishWithResult(type);
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                    finishActivity(-1);
                                 }
-                            });
+                            }
+                        });
 
                     }
 //                    Button button = new Button(this);
@@ -308,30 +342,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 //                    }
 //                });
                 mPager = (ViewPager) findViewById(fakeR.getId("id", "pager"));
-                mPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
-                    public void onPageScrollStateChanged(int state) {
-                    }
-
-                    public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-                    }
-
-                    public void onPageSelected(int position) {
-                        // Check if this is the page you want.
-                        if (currentPosition != mPager.getCurrentItem()) {
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-
-                                    currentPosition = mPager.getCurrentItem();
-                                    setActionBarTitle(imageList, currentPosition);
-                                    mEditText.setText(captions.get(currentPosition));
-                                    linearLayoutManager.scrollToPositionWithOffset(currentPosition, -1);
-                                    recyclerViewAdapter.notifyDataSetChanged();
-                                }
-                            });
-                        }
-                    }
-                });
+                mPager.addOnPageChangeListener(onPageChangeListener);
                 mPagerAdapter = new ScreenSlidePagerAdapter(getSupportFragmentManager(), stringArray);
                 mPager.setAdapter(mPagerAdapter);
 
@@ -357,9 +368,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                                     kProgressHUD.dismiss();
                                 }
                                 for (ChosenImage file : images) {
-                                    if (file.getQueryUri().contains("com.google.android.apps.photos.contentprovider") || file.getQueryUri().contains("com.google.android.apps.docs.storage.legacy") ) {
+                                    if (file.getQueryUri().contains("com.google.android.apps.photos.contentprovider") || file.getQueryUri().contains("com.google.android.apps.docs.storage.legacy")) {
                                         imageList.add(Uri.fromFile(new File(file.getOriginalPath())).toString());
-                                    }else {
+                                    } else {
                                         String uriString = file.getQueryUri();
                                         imageList.add(Uri.fromFile(new File(getPath(PhotoCaptionInputViewActivity.this, Uri.parse(uriString)))).toString());
                                     }
@@ -627,7 +638,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         mPager.setCurrentItem(position);
         setActionBarTitle(imageList, currentPosition);
         mEditText.setText(captions.get(currentPosition));
-        if(recyclerViewAdapter.getItemCount()>0) {
+        if (recyclerViewAdapter.getItemCount() > 0 || recyclerViewAdapter != null){
             recyclerViewAdapter.notifyDataSetChanged();
         }
 
@@ -642,7 +653,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         Vibrator v = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
         // Vibrate for 500 milliseconds
         v.vibrate(500);
-        if(recyclerViewAdapter.getItemCount()>0) {
+        if (recyclerViewAdapter.getItemCount() > 0 || recyclerViewAdapter != null){
             recyclerViewAdapter.notifyDataSetChanged();
         }
     }
@@ -699,6 +710,10 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
         //for testing james 20170615
         recyclerViewAdapter = null;
+        if (mPager != null) {
+            mPager.removeOnPageChangeListener(onPageChangeListener);
+            mPager.removeOnAdapterChangeListener(onAdapterChangeListener);
+        }
         mPager = null;
         mPagerAdapter = null;
         if (kProgressHUD != null) {
@@ -706,15 +721,63 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 kProgressHUD.dismiss();
             }
         }
-        kProgressHUD = KProgressHUD.create(PhotoCaptionInputViewActivity.this)
-                .setStyle(KProgressHUD.Style.SPIN_INDETERMINATE)
-                .setDetailsLabel(getString(fakeR.getId("string", "LOADING")))
-                .setCancellable(false)
-                .setAnimationSpeed(2)
-                .setDimAmount(0.5f)
-                .show();
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                kProgressHUD = KProgressHUD.create(PhotoCaptionInputViewActivity.this)
+                        .setStyle(KProgressHUD.Style.SPIN_INDETERMINATE)
+                        .setDetailsLabel(getString(fakeR.getId("string", "LOADING")))
+                        .setCancellable(false)
+                        .setAnimationSpeed(2)
+                        .setDimAmount(0.5f)
+                        .show();
 
-        ArrayList<String> outList = new ArrayList<String>();
+            }
+        });
+        ImageResizer imageResizer = new ImageResizer(this, imageList);
+
+        ImageResizeTask task = new ImageResizeTask();
+
+        imageResizer.setCallback(new ResizeCallback() {
+
+            @Override
+            public void onResizeSuccess(ArrayList<String> outList) {
+                kProgressHUD.dismiss();
+                Bundle conData = new Bundle();
+                try {
+                    JSONObject jsonObject = new JSONObject();
+
+                    JSONArray array = new JSONArray(outList);
+
+                    jsonObject.put(KEY_IMAGES, array);
+                    jsonObject.put(KEY_CAPTIONS, new JSONArray(captions));
+                    jsonObject.put(KEY_PRESELECTS, new JSONArray());
+                    jsonObject.put(KEY_INVALIDIMAGES, new JSONArray());
+                    jsonObject.put(KEY_TYPE, type);
+                    conData.putString(Constants.RESULT, jsonObject.toString());
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                Intent intent = new Intent();
+                intent.putExtras(conData);
+                setResult(RESULT_OK, intent);
+                finishActivity(Constants.REQUEST_SUBMIT);
+                finish();
+            }
+
+            @Override
+            public void onResizeFailed(String s) {
+                kProgressHUD.dismiss();
+                Log.e(TAG, s);
+                Intent intent = new Intent();
+
+                setResult(RESULT_CANCELED, intent);
+                finish();
+
+            }
+        });
+        task.execute(imageResizer);
+        /*ArrayList<String> outList = new ArrayList<String>();
         resizeImage(imageList, outList, new ResizeCallback() {
 
             @Override
@@ -748,11 +811,11 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 Log.e(TAG, s);
 
             }
-        });
+        });*/
 
     }
 
-    private void resizeImage(final ArrayList<String> imageList, final ArrayList<String> outList, final ResizeCallback resizeCallback) {
+    /*private void resizeImage(final ArrayList<String> imageList, final ArrayList<String> outList, final ResizeCallback resizeCallback) {
 
         if (imageList.size() == 0) {
             resizeCallback.onResizeSuccess(outList);
@@ -861,13 +924,16 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 } catch (IOException e) {
                     e.printStackTrace();
                     resizeCallback.onResizeFailed("IOException storeImage " + e.getMessage());
+                } finally {
+                    imageList.remove(0);
+                    resizeImage(imageList, outList, resizeCallback);
                 }
 
 
             }
 
         }
-    }
+    }*/
 
     protected String storeImage(String inFilePath, String inFileName) throws JSONException, IOException, URISyntaxException {
 
@@ -1083,8 +1149,10 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
             runOnUiThread(new Runnable() {
                 public void run() {
-                    if(recyclerViewAdapter.getItemCount()>0) {
-                        notifyDataSetChanged();
+                    if (recyclerViewAdapter.getItemCount() > 0 || recyclerViewAdapter != null ){
+                        if(itemList.size() > 0 ) {
+                            notifyDataSetChanged();
+                        }
                     }
                 }
             });
@@ -1103,4 +1171,201 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
         void onResizeFailed(String s);
     }
+
+    private class ImageResizeTask extends AsyncTask<ImageResizer, Void, Void> {
+        protected Void doInBackground(ImageResizer... imageResizers) {
+            int count = imageResizers.length;
+            long totalSize = 0;
+            for (int i = 0; i < count; i++) {
+                imageResizers[i].run();
+            }
+            return null;
+        }
+
+        protected void onProgressUpdate(Void... voids) {
+
+        }
+
+        protected void onPostExecute(Void result) {
+
+        }
+    }
+    public class ImageResizer  {
+        private final Context context;
+        private final List<String> files;
+        private ResizeCallback callback;
+        private ArrayList<String> outList;
+        OnImageResized onImageResizedCallback = new OnImageResized(){
+
+            @Override
+            public void resizeProcessed(ArrayList<String> temp) {
+                processFile(temp, onImageResizedCallback);
+            }
+
+            @Override
+            public void ResizeCompleted(ArrayList<String> outList) {
+                if (callback != null) {
+                    onDone();
+                }
+            }
+        };
+        public ImageResizer(Context context, List<String> files) {
+            this.context = context;
+            this.files = files;
+            this.outList = new ArrayList<String>();
+        }
+
+
+        public void run() {
+            processFiles();
+
+        }
+
+        private void processFiles() {
+//            for (String file : files) {
+                try {
+
+//                    LogUtils.d(TAG, "processFile: Before: " + file);
+
+                    ArrayList<String> tempfiles = new ArrayList<String>(files);
+                    processFile(tempfiles , onImageResizedCallback);
+//                    LogUtils.d(TAG, "processFile: Final Path: " + file);
+                } catch (Exception e) {
+                    e.printStackTrace();
+
+                }
+//            }
+        }
+
+        private void processFile(final ArrayList<String> temp, final OnImageResized onImageResized) {
+            Log.d("processFile" , "temp "+ temp.size() );
+            if(temp.size()==0){
+                onImageResized.ResizeCompleted(outList);
+            }else {
+                if (width != 0 && height != 0) {
+                    try {
+                        URI uri = new URI(temp.get(0));
+
+                        final File imageFile = new File(uri);
+                        final BitmapFactory.Options options = new BitmapFactory.Options();
+                        options.inJustDecodeBounds = true;
+                        BitmapFactory.decodeFile(imageFile.getAbsolutePath(), options);
+                        float scale = 1.0f;
+                        if (options.outWidth > options.outHeight) {
+                            scale = (width * 1.0f) / (options.outWidth * 1.0f);
+                        } else {
+                            scale = (height * 1.0f) / (options.outHeight * 1.0f);
+                        }
+                        if (scale > 1 || scale <= 0) {
+                            scale = 1;
+                        }
+                        float reqWidth = options.outWidth * scale;
+                        float reqHeight = options.outHeight * scale;
+                        ImageRequest request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(imageList.get(0)))
+                                .setResizeOptions(new ResizeOptions((int) reqWidth, (int) reqHeight))
+                                .build();
+                        ImagePipeline imagePipeline = Fresco.getImagePipeline();
+                        final DataSource<CloseableReference<CloseableImage>> dataSource = imagePipeline.fetchDecodedImage(request, this);
+
+                        CallerThreadExecutor executor = CallerThreadExecutor.getInstance();
+                        dataSource.subscribe(
+                                new BaseBitmapDataSubscriber() {
+                                    @Override
+                                    protected void onFailureImpl(DataSource<CloseableReference<CloseableImage>> dataSource) {
+                                        callback.onResizeFailed("Failed to resize at onFailureImpl " + imageFile.getAbsolutePath());
+                                    }
+
+                                    @Override
+                                    protected void onNewResultImpl(Bitmap bmp) {
+                                        ExifInterface exif = null;
+                                        try {
+                                            exif = new ExifInterface(imageFile.getAbsolutePath());
+                                            exif.setAttribute(ExifInterface.TAG_ORIENTATION, String.valueOf(ExifInterface.ORIENTATION_NORMAL));
+
+                                        } catch (IOException e) {
+                                            e.printStackTrace();
+                                        }
+                                        try {
+                                            Log.d("processFile" , "storeImageWithExif "+ imageFile );
+                                            String outFilePath = storeImageWithExif(imageFile.getName(), bmp, exif);
+                                            outList.add(Uri.fromFile(new File(outFilePath)).toString());
+
+//                                        resizeImage(imageList, outList, resizeCallback);
+                                        } catch (JSONException e) {
+                                            e.printStackTrace();
+                                            callback.onResizeFailed("JSONException " + e.getMessage());
+                                        } catch (IOException e) {
+                                            e.printStackTrace();
+                                            callback.onResizeFailed("IOException " + e.getMessage());
+                                        } catch (URISyntaxException e) {
+                                            e.printStackTrace();
+                                            callback.onResizeFailed("URISyntaxException " + e.getMessage());
+                                        } finally {
+                                            temp.remove(0);
+                                            onImageResized.resizeProcessed(temp);
+                                        }
+
+                                    }
+                                }
+                                , executor);
+
+                    } catch (URISyntaxException e) {
+                        e.printStackTrace();
+                        callback.onResizeFailed("URISyntaxException " + e.getMessage());
+                    }
+                } else {
+
+                    try {
+                        URI uri = new URI(temp.get(0));
+                        final File inFile = new File(uri);
+                        Log.d("processFile" , "storeImage "+ uri );
+                        String outFilePath = storeImage(inFile.getParentFile().getAbsolutePath(), inFile.getName());
+                        outList.add(Uri.fromFile(new File(outFilePath)).toString());
+                    } catch (URISyntaxException e) {
+                        e.printStackTrace();
+                        callback.onResizeFailed("URISyntaxException storeImage " + e.getMessage());
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                        callback.onResizeFailed("JSONException storeImage " + e.getMessage());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        callback.onResizeFailed("IOException storeImage " + e.getMessage());
+                    } finally {
+                        temp.remove(0);
+                        onImageResized.resizeProcessed(temp);
+                    }
+
+
+                }
+            }
+        }
+
+        private void onDone() {
+            try {
+                if (callback != null) {
+                    ((Activity) context).runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            callback.onResizeSuccess( outList);
+                        }
+                    });
+                }
+            } catch (NullPointerException e) {
+                e.printStackTrace();
+            }
+        }
+
+
+        public void setCallback(ResizeCallback callback) {
+            this.callback = callback;
+        }
+
+
+    }
+    private interface OnImageResized {
+        void resizeProcessed(ArrayList<String> temp);
+
+        void ResizeCompleted(ArrayList<String> outList);
+    }
+
 }
