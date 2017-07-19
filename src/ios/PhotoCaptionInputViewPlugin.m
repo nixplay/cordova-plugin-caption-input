@@ -338,7 +338,7 @@
                 [button addTarget:self action:@selector(onSendPressed:) forControlEvents:UIControlEventTouchUpInside];
 //                [button setImage:SENDFRIEND_UIIMAGE forState:UIControlStateNormal];
                 CGRect newFrame = CGRectMake(margin,0,
-                                             (self.viewController.view.frame.size.width *.4) - 10,
+                                             (self.viewController.view.frame.size.width *.5) - margin,
                                              toolBar.frame.size.height - margin*2 );
                 [button setFrame:newFrame];
                 [button setBackgroundColor:LIGHT_BLUE_COLOR];
@@ -387,7 +387,7 @@
             }else{
             
                 CGRect newFrame = CGRectMake(margin,0,
-                                             (self.viewController.view.frame.size.width *.4) - 10,
+                                             (self.viewController.view.frame.size.width *.5) - margin,
                                              toolBar.frame.size.height - margin*2 );
                 UIButton *button = [[UIButton alloc] initWithFrame: newFrame];
                 [button setBackgroundColor:LIGHT_BLUE_COLOR];
