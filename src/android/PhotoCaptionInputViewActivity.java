@@ -179,7 +179,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 InputFilter[] filterArray = new InputFilter[1];
                 filterArray[0] = new InputFilter.LengthFilter(MAX_CHARACTOR);
                 mEditText.setFilters(filterArray);
-                mEditText.setMaxCharacters(MAX_CHARACTOR);
+//                mEditText.setMaxCharacters(MAX_CHARACTOR);
                 mEditText.addTextChangedListener(new TextWatcher() {
                     @Override
                     public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
