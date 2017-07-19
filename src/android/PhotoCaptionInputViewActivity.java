@@ -156,8 +156,10 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                         if (jsonObj.contains("content://")) {
                             //get real path
                             //https://stackoverflow.com/questions/20067508/get-real-path-from-uri-android-kitkat-new-storage-access-framework
-
-                            stringArray.add(Uri.fromFile(new File(getPath(PhotoCaptionInputViewActivity.this, Uri.parse(jsonObj)))).toString());
+                            String path = getPath(PhotoCaptionInputViewActivity.this, Uri.parse(jsonObj));
+                            if(path != null) {
+                                stringArray.add(Uri.fromFile(new File(path)).toString());
+                            }
 //                            stringArray.add(Uri.fromFile(new File().toString());
                         } else {
                             stringArray.add(jsonObj);
@@ -355,9 +357,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                                     kProgressHUD.dismiss();
                                 }
                                 for (ChosenImage file : images) {
-                                    String uriString = file.getQueryUri();
-                                    imageList.add(Uri.fromFile(new File(getPath(PhotoCaptionInputViewActivity.this, Uri.parse(uriString)))).toString());
-//                                    imageList.add(Uri.fromFile(new File(file.getOriginalPath())).toString());
+//                                    String uriString = file.getQueryUri();
+//                                    imageList.add(Uri.fromFile(new File(getPath(PhotoCaptionInputViewActivity.this, Uri.parse(uriString)))).toString());
+                                    imageList.add(Uri.fromFile(new File(file.getOriginalPath())).toString());
                                     captions.add("");
                                 }
                                 refreshList();
@@ -621,7 +623,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         mPager.setCurrentItem(position);
         setActionBarTitle(imageList, currentPosition);
         mEditText.setText(captions.get(currentPosition));
-        recyclerViewAdapter.notifyDataSetChanged();
+        if(recyclerViewAdapter.getItemCount()>0) {
+            recyclerViewAdapter.notifyDataSetChanged();
+        }
 
     }
 
@@ -634,7 +638,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         Vibrator v = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
         // Vibrate for 500 milliseconds
         v.vibrate(500);
-        recyclerViewAdapter.notifyDataSetChanged();
+        if(recyclerViewAdapter.getItemCount()>0) {
+            recyclerViewAdapter.notifyDataSetChanged();
+        }
     }
 
     @Override
@@ -688,6 +694,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 //        finish();
 
         //for testing james 20170615
+        recyclerViewAdapter = null;
+        mPager = null;
+        mPagerAdapter = null;
         if (kProgressHUD != null) {
             if (kProgressHUD.isShowing()) {
                 kProgressHUD.dismiss();
@@ -1070,7 +1079,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
             runOnUiThread(new Runnable() {
                 public void run() {
-                    notifyDataSetChanged();
+                    if(recyclerViewAdapter.getItemCount()>0) {
+                        notifyDataSetChanged();
+                    }
                 }
             });
         }
