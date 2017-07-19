@@ -172,9 +172,12 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 imageList = stringArray;
 
                 mEditText = (MaterialEditText) findViewById(fakeR.getId("id", "etDescription"));
+                mEditText.setHint(fakeR.getId("string","ADD_CAPTION"));
+                mEditText.setFloatingLabelText(getString(fakeR.getId("string","ADD_CAPTION")));
                 InputFilter[] filterArray = new InputFilter[1];
                 filterArray[0] = new InputFilter.LengthFilter(MAX_CHARACTOR);
                 mEditText.setFilters(filterArray);
+                mEditText.setMaxCharacters(MAX_CHARACTOR);
                 mEditText.addTextChangedListener(new TextWatcher() {
                     @Override
                     public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
@@ -183,16 +186,18 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
                     @Override
                     public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-
+                        mEditText.setFloatingLabelText(getString(fakeR.getId("string","ADD_CAPTION"))+"("+charSequence.length()+"/"+MAX_CHARACTOR+")");
                     }
 
                     @Override
                     public void afterTextChanged(Editable editable) {
                         if(editable.length()>0) {
                             if(editable.charAt(editable.length()-1) == '\n'){
+                                editable.delete(editable.length()-1,editable.length());
                                 mEditText.clearFocus();
                                 InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
                                 imm.hideSoftInputFromWindow(mEditText.getWindowToken(), 0);
+
                             }
 
                             captions.set(currentPosition, editable.toString());
