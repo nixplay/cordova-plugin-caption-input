@@ -27,8 +27,10 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.Editable;
+import android.text.InputFilter;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -37,6 +39,7 @@ import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 
 import com.facebook.common.executors.CallerThreadExecutor;
 import com.facebook.common.references.CloseableReference;
@@ -93,6 +96,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     private static final String TAG = PhotoCaptionInputViewActivity.class.getSimpleName();
     private static final String KEY_LABEL = "label";
     private static final String KEY_TYPE = "type";
+    private static final int MAX_CHARACTOR = 160;
     private FakeR fakeR;
     private ArrayList<String> captions;
     private int currentPosition;
@@ -168,6 +172,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 imageList = stringArray;
 
                 mEditText = (MaterialEditText) findViewById(fakeR.getId("id", "etDescription"));
+                InputFilter[] filterArray = new InputFilter[1];
+                filterArray[0] = new InputFilter.LengthFilter(MAX_CHARACTOR);
+                mEditText.setFilters(filterArray);
                 mEditText.addTextChangedListener(new TextWatcher() {
                     @Override
                     public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
@@ -181,7 +188,22 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
                     @Override
                     public void afterTextChanged(Editable editable) {
-                        captions.set(currentPosition, editable.toString());
+                        if(editable.length()>0) {
+                            if(editable.charAt(editable.length()-1) == '\n'){
+                                mEditText.clearFocus();
+                                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                                imm.hideSoftInputFromWindow(mEditText.getWindowToken(), 0);
+                            }
+
+                            captions.set(currentPosition, editable.toString());
+                        }
+                    }
+                });
+                mEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+                    @Override
+                    public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                        Log.d("onEditorAction", " TextView "+ v.toString() + " actionId " + actionId + " event " + event);
+                        return false;
                     }
                 });
 //                LinearLayout toolBarLinearLayout = (LinearLayout) findViewById(fakeR.getId("id", "toolBarLinearLayout"));
