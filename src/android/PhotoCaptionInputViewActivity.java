@@ -180,7 +180,6 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 InputFilter[] filterArray = new InputFilter[1];
                 filterArray[0] = new InputFilter.LengthFilter(MAX_CHARACTOR);
                 mEditText.setFilters(filterArray);
-//                mEditText.setMaxCharacters(MAX_CHARACTOR);
                 mEditText.addTextChangedListener(new TextWatcher() {
                     @Override
                     public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
@@ -358,7 +357,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                                     kProgressHUD.dismiss();
                                 }
                                 for (ChosenImage file : images) {
-                                    if (file.getQueryUri().contains("com.google.android.apps.photos.contentprovider")) {
+                                    if (file.getQueryUri().contains("com.google.android.apps.photos.contentprovider") || file.getQueryUri().contains("com.google.android.apps.docs.storage.legacy") ) {
                                         imageList.add(Uri.fromFile(new File(file.getOriginalPath())).toString());
                                     }else {
                                         String uriString = file.getQueryUri();
