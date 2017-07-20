@@ -986,6 +986,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     protected String storeImageWithExif(String inFileName, Bitmap bmp, ExifInterface exif) throws JSONException, IOException, URISyntaxException {
 
         String filename = inFileName;
+        filename.replace("bmp", "jpg");
         String filePath = System.getProperty("java.io.tmpdir") + "/" + filename;
 //        exif.writeExif(bmp, filePath, 100);
         FileOutputStream out = null;
@@ -1281,7 +1282,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             if (temp.size() == 0) {
                 onImageResized.ResizeCompleted(outList);
             } else {
-
+                if ((width != 0 && height != 0) || temp.get(0).toLowerCase().contains("bmp")) {
                     try {
                         URI uri = new URI(temp.get(0));
 
@@ -1324,15 +1325,21 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                                     protected void onNewResultImpl(Bitmap bmp) {
                                         ExifInterface exif = null;
                                         try {
-                                            exif = new ExifInterface(imageFile.getAbsolutePath());
-                                            exif.setAttribute(ExifInterface.TAG_ORIENTATION, String.valueOf(ExifInterface.ORIENTATION_NORMAL));
-
+                                            if(imageFile.getName().toLowerCase().endsWith("jpg") || imageFile.getName().toLowerCase().endsWith("jpeg")) {
+                                                exif = new ExifInterface(imageFile.getAbsolutePath());
+                                                exif.setAttribute(ExifInterface.TAG_ORIENTATION, String.valueOf(ExifInterface.ORIENTATION_NORMAL));
+                                            }
                                         } catch (IOException e) {
                                             e.printStackTrace();
                                         }
                                         try {
                                             Log.d("processFile", "storeImageWithExif " + imageFile);
-                                            String outFilePath = storeImageWithExif(imageFile.getName(), bmp, exif);
+                                            String outFilePath;
+                                            if(exif != null) {
+                                                outFilePath = storeImageWithExif(imageFile.getName(), bmp, exif);
+                                            }else{
+                                                outFilePath = storeImage(imageFile.getParentFile().getAbsolutePath(), imageFile.getName());
+                                            }
                                             outList.add(Uri.fromFile(new File(outFilePath)).toString());
 
 //                                        resizeImage(imageList, outList, resizeCallback);
@@ -1358,7 +1365,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                         e.printStackTrace();
                         callback.onResizeFailed("URISyntaxException " + e.getMessage());
                     }
-                /*} else {
+                } else {
 
                     try {
                         URI uri = new URI(temp.get(0));
@@ -1381,7 +1388,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     }
 
 
-                }*/
+                }
             }
         }
 
