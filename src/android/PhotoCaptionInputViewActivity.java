@@ -365,13 +365,13 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                                 .create(PhotoCaptionInputViewActivity.this)
                                 .returnAfterFirst(false)
                                 .folderMode(true) // folder mode (false by default)
-                                .folderTitle(getString(fakeR.getId("string","ALBUM"))) // folder selection title
+                                .folderTitle(getString(fakeR.getId("string", "ALBUM"))) // folder selection title
                                 .multi() // multi mode (default mode)
                                 .limit(1000) // max images can be selected (99 by default)
                                 .showCamera(true) // show camera or not (true by default)
                                 .origin(preSelectedAssetsImage)
                                 .enableLog(false) // disabling log
-                                .theme(fakeR.getId("style","ImagePickerTheme"))
+                                .theme(fakeR.getId("style", "ImagePickerTheme"))
                                 .start(REQUEST_CODE_PICKER); // start image picker activity with request code
                         /*imagePicker = new ImagePicker(PhotoCaptionInputViewActivity.this);
                         imagePicker.setImagePickerCallback(new ImagePickerCallback() {
@@ -684,10 +684,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 ArrayList<String> tempList = new ArrayList<String>();
 
                 Iterator it = images.iterator();
-                while (it.hasNext())
-                {
+                while (it.hasNext()) {
                     Image image = (Image) it.next();
-                    if(!preSelectedAssets.contains(image.getPath())) {
+                    if (!preSelectedAssets.contains(image.getPath())) {
                         preSelectedAssets.add(image.getPath());
                         imageList.add(Uri.fromFile(new File(image.getPath())).toString());
                         captions.add("");
@@ -975,8 +974,11 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
         String outFilePath = System.getProperty("java.io.tmpdir") + "/";
         copyFile(inFilePath + File.separator, inFileName, outFilePath);
-
-        copyExif(inFilePath + File.separator + inFileName, outFilePath + inFileName);
+        try {
+            copyExif(inFilePath + File.separator + inFileName, outFilePath + inFileName);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return outFilePath + inFileName;
 
     }
@@ -1279,28 +1281,34 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             if (temp.size() == 0) {
                 onImageResized.ResizeCompleted(outList);
             } else {
-                if (width != 0 && height != 0) {
+
                     try {
                         URI uri = new URI(temp.get(0));
 
                         final File imageFile = new File(uri);
-                        final BitmapFactory.Options options = new BitmapFactory.Options();
-                        options.inJustDecodeBounds = true;
-                        BitmapFactory.decodeFile(imageFile.getAbsolutePath(), options);
-                        float scale = 1.0f;
-                        if (options.outWidth > options.outHeight) {
-                            scale = (width * 1.0f) / (options.outWidth * 1.0f);
-                        } else {
-                            scale = (height * 1.0f) / (options.outHeight * 1.0f);
+                        ImageRequest request = null;
+                        if (width != 0 && height != 0) {
+                            final BitmapFactory.Options options = new BitmapFactory.Options();
+                            options.inJustDecodeBounds = true;
+                            BitmapFactory.decodeFile(imageFile.getAbsolutePath(), options);
+                            float scale = 1.0f;
+                            if (options.outWidth > options.outHeight) {
+                                scale = (width * 1.0f) / (options.outWidth * 1.0f);
+                            } else {
+                                scale = (height * 1.0f) / (options.outHeight * 1.0f);
+                            }
+                            if (scale > 1 || scale <= 0) {
+                                scale = 1;
+                            }
+                            float reqWidth = options.outWidth * scale;
+                            float reqHeight = options.outHeight * scale;
+                            request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(imageList.get(0)))
+                                    .setResizeOptions(new ResizeOptions((int) reqWidth, (int) reqHeight))
+                                    .build();
+                        }else{
+                            request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(imageList.get(0)))
+                                    .build();
                         }
-                        if (scale > 1 || scale <= 0) {
-                            scale = 1;
-                        }
-                        float reqWidth = options.outWidth * scale;
-                        float reqHeight = options.outHeight * scale;
-                        ImageRequest request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(imageList.get(0)))
-                                .setResizeOptions(new ResizeOptions((int) reqWidth, (int) reqHeight))
-                                .build();
                         ImagePipeline imagePipeline = Fresco.getImagePipeline();
                         final DataSource<CloseableReference<CloseableImage>> dataSource = imagePipeline.fetchDecodedImage(request, this);
 
@@ -1350,7 +1358,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                         e.printStackTrace();
                         callback.onResizeFailed("URISyntaxException " + e.getMessage());
                     }
-                } else {
+                /*} else {
 
                     try {
                         URI uri = new URI(temp.get(0));
@@ -1373,7 +1381,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     }
 
 
-                }
+                }*/
             }
         }
 
