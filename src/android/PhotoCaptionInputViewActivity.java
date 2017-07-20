@@ -371,7 +371,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                                 .showCamera(true) // show camera or not (true by default)
                                 .origin(preSelectedAssetsImage)
                                 .enableLog(false) // disabling log
-                                .theme(R.style.ImagePickerTheme)
+                                .theme(fakeR.getId("style","ImagePickerTheme"))
                                 .start(REQUEST_CODE_PICKER); // start image picker activity with request code
                         /*imagePicker = new ImagePicker(PhotoCaptionInputViewActivity.this);
                         imagePicker.setImagePickerCallback(new ImagePickerCallback() {

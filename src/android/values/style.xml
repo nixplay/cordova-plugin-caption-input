@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="ImagePickerTheme" parent="ef_BaseTheme">
+    <style name="ImagePickerTheme" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="colorPrimary">@color/ef_white</item>
         <item name="colorPrimaryDark">@color/ef_grey</item>
         <item name="colorAccent">@color/colorAccent</item>
