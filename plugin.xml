@@ -70,6 +70,7 @@
 		<source-file src="src/android/drawable-xxhdpi/sendfriend.png" target-dir="res/drawable-xxhdpi" />
 		
 		<source-file src="src/android/drawable-xxhdpi/round_corner_button.xml" target-dir="res/drawable-xxhdpi" />
+		<source-file src="src/android/values/style.xml" target-dir="res/values" />
 		
 		
 

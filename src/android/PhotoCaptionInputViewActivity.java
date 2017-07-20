@@ -44,6 +44,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import com.esafirm.imagepicker.model.Image;
 import com.facebook.common.executors.CallerThreadExecutor;
 import com.facebook.common.references.CloseableReference;
 import com.facebook.datasource.DataSource;
@@ -55,11 +56,6 @@ import com.facebook.imagepipeline.image.CloseableImage;
 import com.facebook.imagepipeline.request.ImageRequest;
 import com.facebook.imagepipeline.request.ImageRequestBuilder;
 import com.kaopiz.kprogresshud.KProgressHUD;
-import com.kbeanie.multipicker.api.CacheLocation;
-import com.kbeanie.multipicker.api.ImagePicker;
-import com.kbeanie.multipicker.api.Picker;
-import com.kbeanie.multipicker.api.callbacks.ImagePickerCallback;
-import com.kbeanie.multipicker.api.entity.ChosenImage;
 import com.rengwuxian.materialedittext.MaterialEditText;
 
 import org.json.JSONArray;
@@ -75,6 +71,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import static android.view.View.GONE;
@@ -100,6 +97,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     private static final String KEY_LABEL = "label";
     private static final String KEY_TYPE = "type";
     private static final int MAX_CHARACTOR = 160;
+    private static final int REQUEST_CODE_PICKER = 0x111;
     private FakeR fakeR;
     private ArrayList<String> captions;
     private int currentPosition;
@@ -108,7 +106,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     private MaterialEditText mEditText;
     private LinearLayoutManager linearLayoutManager;
     private RecyclerViewAdapter recyclerViewAdapter;
-    private ImagePicker imagePicker;
+
     private KProgressHUD kProgressHUD;
     private ArrayList<String> imageList;
     private int width, height;
@@ -145,6 +143,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
         }
     };
+    private ArrayList<String> preSelectedAssets = new ArrayList<String>();
 
 
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
@@ -173,7 +172,12 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
 //                this.quality = jsonObject.getInt("quality");
                 JSONArray imagesJsonArray = jsonObject.getJSONArray("images");
-//                JSONArray preSelectedAssets = jsonObject.getJSONArray("preSelectedAssets");
+
+                if (imagesJsonArray != null) {
+                    for (int i = 0; i < imagesJsonArray.length(); i++) {
+                        preSelectedAssets.add(imagesJsonArray.getString(i));
+                    }
+                }
 //                try {
 //                    if (jsonObject.get("friends") != null) {
 //                        JSONArray friends = jsonObject.getJSONArray("friends");
@@ -189,17 +193,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     try {
                         String jsonObj = imagesJsonArray.getString(i);
 
-                        if (jsonObj.contains("content://")) {
-                            //get real path
-                            //https://stackoverflow.com/questions/20067508/get-real-path-from-uri-android-kitkat-new-storage-access-framework
-                            String path = getPath(PhotoCaptionInputViewActivity.this, Uri.parse(jsonObj));
-                            if (path != null) {
-                                stringArray.add(Uri.fromFile(new File(path)).toString());
-                            }
-//                            stringArray.add(Uri.fromFile(new File().toString());
-                        } else {
-                            stringArray.add(jsonObj);
-                        }
+
+                        stringArray.add(Uri.fromFile(new File(jsonObj)).toString());
+
                         captions.add(i, "");
                     } catch (JSONException e) {
                         e.printStackTrace();
@@ -359,8 +355,25 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     @Override
                     public void onClick(View view) {
 
-//                        TODO James Kong 2017-06-09 IDEAL image picker with replace with existing
-                        imagePicker = new ImagePicker(PhotoCaptionInputViewActivity.this);
+
+                        ArrayList<Image> preSelectedAssetsImage = new ArrayList<Image>();
+                        for (int i = 0; i < preSelectedAssets.size(); i++) {
+                            Image image = new Image(i, preSelectedAssets.get(i), preSelectedAssets.get(i));
+                            preSelectedAssetsImage.add(image);
+                        }
+                        com.esafirm.imagepicker.features.ImagePicker
+                                .create(PhotoCaptionInputViewActivity.this)
+                                .returnAfterFirst(false)
+                                .folderMode(true) // folder mode (false by default)
+                                .folderTitle(getString(fakeR.getId("string","ALBUM"))) // folder selection title
+                                .multi() // multi mode (default mode)
+                                .limit(1000) // max images can be selected (99 by default)
+                                .showCamera(true) // show camera or not (true by default)
+                                .origin(preSelectedAssetsImage)
+                                .enableLog(false) // disabling log
+                                .theme(R.style.ImagePickerTheme)
+                                .start(REQUEST_CODE_PICKER); // start image picker activity with request code
+                        /*imagePicker = new ImagePicker(PhotoCaptionInputViewActivity.this);
                         imagePicker.setImagePickerCallback(new ImagePickerCallback() {
                             @Override
                             public void onImagesChosen(List<ChosenImage> images) {
@@ -394,7 +407,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                         imagePicker.shouldGenerateMetadata(true);
                         imagePicker.setCacheLocation(CacheLocation.INTERNAL_APP_DIR);
                         imagePicker.shouldGenerateThumbnails(false); // Default is true
-                        imagePicker.pickImage();
+                        imagePicker.pickImage();*/
 
                     }
                 });
@@ -638,7 +651,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         mPager.setCurrentItem(position);
         setActionBarTitle(imageList, currentPosition);
         mEditText.setText(captions.get(currentPosition));
-        if (recyclerViewAdapter.getItemCount() > 0 || recyclerViewAdapter != null){
+        if (recyclerViewAdapter.getItemCount() > 0 || recyclerViewAdapter != null) {
             recyclerViewAdapter.notifyDataSetChanged();
         }
 
@@ -653,7 +666,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         Vibrator v = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
         // Vibrate for 500 milliseconds
         v.vibrate(500);
-        if (recyclerViewAdapter.getItemCount() > 0 || recyclerViewAdapter != null){
+        if (recyclerViewAdapter.getItemCount() > 0 || recyclerViewAdapter != null) {
             recyclerViewAdapter.notifyDataSetChanged();
         }
     }
@@ -661,7 +674,29 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
-            if (requestCode == Picker.PICK_IMAGE_DEVICE) {
+            if (requestCode == REQUEST_CODE_PICKER && resultCode == RESULT_OK && data != null) {
+
+                ArrayList<Image> images = (ArrayList<Image>) com.esafirm.imagepicker.features.ImagePicker.getImages(data);
+                if (kProgressHUD != null) {
+                    kProgressHUD.dismiss();
+                }
+
+                ArrayList<String> tempList = new ArrayList<String>();
+
+                Iterator it = images.iterator();
+                while (it.hasNext())
+                {
+                    Image image = (Image) it.next();
+                    if(!preSelectedAssets.contains(image.getPath())) {
+                        preSelectedAssets.add(image.getPath());
+                        imageList.add(Uri.fromFile(new File(image.getPath())).toString());
+                        captions.add("");
+                    }
+                }
+
+                refreshList();
+            }
+            /*if (requestCode == Picker.PICK_IMAGE_DEVICE) {
                 kProgressHUD = KProgressHUD.create(PhotoCaptionInputViewActivity.this)
                         .setStyle(KProgressHUD.Style.SPIN_INDETERMINATE)
                         .setDetailsLabel(getString(fakeR.getId("string", "DOWNLOADING")))
@@ -671,7 +706,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                         .show();
 
                 imagePicker.submit(data);
-            }
+            }*/
         }
 
     }
@@ -1149,8 +1184,8 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
             runOnUiThread(new Runnable() {
                 public void run() {
-                    if (recyclerViewAdapter.getItemCount() > 0 || recyclerViewAdapter != null ){
-                        if(itemList.size() > 0 ) {
+                    if (recyclerViewAdapter.getItemCount() > 0 || recyclerViewAdapter != null) {
+                        if (itemList.size() > 0) {
                             notifyDataSetChanged();
                         }
                     }
@@ -1190,12 +1225,13 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
         }
     }
-    public class ImageResizer  {
+
+    public class ImageResizer {
         private final Context context;
         private final List<String> files;
         private ResizeCallback callback;
         private ArrayList<String> outList;
-        OnImageResized onImageResizedCallback = new OnImageResized(){
+        OnImageResized onImageResizedCallback = new OnImageResized() {
 
             @Override
             public void resizeProcessed(ArrayList<String> temp) {
@@ -1209,6 +1245,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 }
             }
         };
+
         public ImageResizer(Context context, List<String> files) {
             this.context = context;
             this.files = files;
@@ -1223,25 +1260,25 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
         private void processFiles() {
 //            for (String file : files) {
-                try {
+            try {
 
 //                    LogUtils.d(TAG, "processFile: Before: " + file);
 
-                    ArrayList<String> tempfiles = new ArrayList<String>(files);
-                    processFile(tempfiles , onImageResizedCallback);
+                ArrayList<String> tempfiles = new ArrayList<String>(files);
+                processFile(tempfiles, onImageResizedCallback);
 //                    LogUtils.d(TAG, "processFile: Final Path: " + file);
-                } catch (Exception e) {
-                    e.printStackTrace();
+            } catch (Exception e) {
+                e.printStackTrace();
 
-                }
+            }
 //            }
         }
 
         private void processFile(final ArrayList<String> temp, final OnImageResized onImageResized) {
-            Log.d("processFile" , "temp "+ temp.size() );
-            if(temp.size()==0){
+            Log.d("processFile", "temp " + temp.size());
+            if (temp.size() == 0) {
                 onImageResized.ResizeCompleted(outList);
-            }else {
+            } else {
                 if (width != 0 && height != 0) {
                     try {
                         URI uri = new URI(temp.get(0));
@@ -1286,7 +1323,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                                             e.printStackTrace();
                                         }
                                         try {
-                                            Log.d("processFile" , "storeImageWithExif "+ imageFile );
+                                            Log.d("processFile", "storeImageWithExif " + imageFile);
                                             String outFilePath = storeImageWithExif(imageFile.getName(), bmp, exif);
                                             outList.add(Uri.fromFile(new File(outFilePath)).toString());
 
@@ -1318,7 +1355,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     try {
                         URI uri = new URI(temp.get(0));
                         final File inFile = new File(uri);
-                        Log.d("processFile" , "storeImage "+ uri );
+                        Log.d("processFile", "storeImage " + uri);
                         String outFilePath = storeImage(inFile.getParentFile().getAbsolutePath(), inFile.getName());
                         outList.add(Uri.fromFile(new File(outFilePath)).toString());
                     } catch (URISyntaxException e) {
@@ -1346,7 +1383,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     ((Activity) context).runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            callback.onResizeSuccess( outList);
+                            callback.onResizeSuccess(outList);
                         }
                     });
                 }
@@ -1362,6 +1399,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
 
     }
+
     private interface OnImageResized {
         void resizeProcessed(ArrayList<String> temp);
 
