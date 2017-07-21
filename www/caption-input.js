@@ -1,5 +1,3 @@
-cordova.define("cordova-plugin-caption-input.PhotoCaptionInputViewPlugin", function(require, exports, module) {
-
 //
 // PhotoCaptionInputView.js
 //
@@ -23,5 +21,3 @@ PhotoCaptionInputView.prototype.showCaptionInput = function(images, successCallb
 var photoCaptionInputView = new PhotoCaptionInputView();
 
 module.exports = photoCaptionInputView;
-
-});
