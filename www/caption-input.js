@@ -1,3 +1,4 @@
+cordova.define("cordova-plugin-caption-input.PhotoCaptionInputViewPlugin", function(require, exports, module) {
 
 //
 // PhotoCaptionInputView.js
@@ -13,8 +14,8 @@ var PhotoCaptionInputView = function() {
 };
 
 // Call this to register for push notifications and retreive a deviceToken
-PhotoCaptionInputView.prototype.showCaptionInput = function(images, callback) {
-  cordova.exec(callback, callback, "PhotoCaptionInputViewPlugin", "showCaptionInput", images ? [images] : []);
+PhotoCaptionInputView.prototype.showCaptionInput = function(images, successCallback, errorCallback) {
+  cordova.exec(successCallback, errorCallback, "PhotoCaptionInputViewPlugin", "showCaptionInput", images ? [images] : []);
 };
 
 
@@ -22,3 +23,5 @@ PhotoCaptionInputView.prototype.showCaptionInput = function(images, callback) {
 var photoCaptionInputView = new PhotoCaptionInputView();
 
 module.exports = photoCaptionInputView;
+
+});
