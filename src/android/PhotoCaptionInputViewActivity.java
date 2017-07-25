@@ -193,8 +193,11 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     try {
                         String jsonObj = imagesJsonArray.getString(i);
 
-
-                        stringArray.add(Uri.fromFile(new File(jsonObj)).toString());
+                        if (jsonObj.contains("file:///")) {
+                            stringArray.add(jsonObj);
+                        } else {
+                            stringArray.add(Uri.fromFile(new File(jsonObj)).toString());
+                        }
 
                         captions.add(i, "");
                     } catch (JSONException e) {
@@ -1306,7 +1309,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                             request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(imageList.get(0)))
                                     .setResizeOptions(new ResizeOptions((int) reqWidth, (int) reqHeight))
                                     .build();
-                        }else{
+                        } else {
                             request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(imageList.get(0)))
                                     .build();
                         }
@@ -1325,7 +1328,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                                     protected void onNewResultImpl(Bitmap bmp) {
                                         ExifInterface exif = null;
                                         try {
-                                            if(imageFile.getName().toLowerCase().endsWith("jpg") || imageFile.getName().toLowerCase().endsWith("jpeg")) {
+                                            if (imageFile.getName().toLowerCase().endsWith("jpg") || imageFile.getName().toLowerCase().endsWith("jpeg")) {
                                                 exif = new ExifInterface(imageFile.getAbsolutePath());
                                                 exif.setAttribute(ExifInterface.TAG_ORIENTATION, String.valueOf(ExifInterface.ORIENTATION_NORMAL));
                                             }
@@ -1335,9 +1338,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                                         try {
                                             Log.d("processFile", "storeImageWithExif " + imageFile);
                                             String outFilePath;
-                                            if(exif != null) {
+                                            if (exif != null) {
                                                 outFilePath = storeImageWithExif(imageFile.getName(), bmp, exif);
-                                            }else{
+                                            } else {
                                                 outFilePath = storeImage(imageFile.getParentFile().getAbsolutePath(), imageFile.getName());
                                             }
                                             outList.add(Uri.fromFile(new File(outFilePath)).toString());
