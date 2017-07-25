@@ -21,6 +21,7 @@ import com.facebook.imagepipeline.request.ImageRequest;
 import com.facebook.imagepipeline.request.ImageRequestBuilder;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolders> implements RecyclerViewHolders.RecyclerViewHoldersListener {
@@ -41,6 +42,7 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolder
     private List<String> itemList;
     private Context context;
     FakeR f;
+
     public RecyclerViewAdapter(Context context, List<String> itemList) {
         f = new FakeR(context);
         this.itemList = itemList;
@@ -51,20 +53,43 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolder
             Log.e(TAG, "RecyclerViewAdapterListener not found");
         }
     }
-    //https://stackoverflow.com/questions/30053610/best-way-to-update-data-with-a-recyclerview-adapter
-    public void swap(ArrayList<String> datas, boolean bNotifyDataSetChanged){
 
-        if (itemList != null) {
-            itemList.clear();
-            itemList.addAll(datas);
-        }
-        else {
-            itemList = datas;
-        }
-        if(bNotifyDataSetChanged) {
-            notifyDataSetChanged();
+    //https://stackoverflow.com/questions/30053610/best-way-to-update-data-with-a-recyclerview-adapter
+    public void swap(ArrayList<String> datas, boolean bNotifyDataSetChanged) {
+        if (!equalLists(itemList, datas)) {
+            if (itemList != null) {
+                itemList.clear();
+                itemList.addAll(datas);
+            } else {
+                itemList = datas;
+            }
+            if (bNotifyDataSetChanged) {
+                notifyDataSetChanged();
+            }
         }
     }
+
+    public boolean equalLists(List<String> one, List<String> two) {
+        if (one == null && two == null) {
+            return true;
+        }
+
+        if ((one == null && two != null)
+                || one != null && two == null
+                || one.size() != two.size()) {
+            return false;
+        }
+
+        //to avoid messing the order of the lists we will use a copy
+        //as noted in comments by A. R. S.
+        one = new ArrayList<String>(one);
+        two = new ArrayList<String>(two);
+
+        Collections.sort(one);
+        Collections.sort(two);
+        return one.equals(two);
+    }
+
     @Override
     public RecyclerViewHolders onCreateViewHolder(ViewGroup parent, int viewType) {
 
@@ -87,23 +112,23 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolder
                 .setImageRequest(request)
                 .build();
         final ProgressBarDrawable progressBarDrawable = new ProgressBarDrawable();
-        progressBarDrawable.setColor(context.getResources().getColor(f.getId("color","colorAccent")));
-        progressBarDrawable.setBackgroundColor(context.getResources().getColor(f.getId("color","colorPrimaryDark")));
+        progressBarDrawable.setColor(context.getResources().getColor(f.getId("color", "colorAccent")));
+        progressBarDrawable.setBackgroundColor(context.getResources().getColor(f.getId("color", "colorPrimaryDark")));
         progressBarDrawable
                 .setRadius(5);
-        final Drawable failureDrawable = context.getResources().getDrawable(f.getId("drawable","missing"));
+        final Drawable failureDrawable = context.getResources().getDrawable(f.getId("drawable", "missing"));
         DrawableCompat.setTint(failureDrawable, Color.RED);
-        final Drawable placeholderDrawable = context.getResources().getDrawable(f.getId("drawable","loading"));
+        final Drawable placeholderDrawable = context.getResources().getDrawable(f.getId("drawable", "loading"));
         holder.simpleDraweeView.getHierarchy().setPlaceholderImage(placeholderDrawable, ScalingUtils.ScaleType.CENTER_INSIDE);
         holder.simpleDraweeView.getHierarchy().setFailureImage(failureDrawable, ScalingUtils.ScaleType.CENTER_INSIDE);
         holder.simpleDraweeView.getHierarchy().setProgressBarImage(progressBarDrawable, ScalingUtils.ScaleType.CENTER_INSIDE);
-        if(listener != null) {
-            if(listener.isPhotoSelected(position)) {
+        if (listener != null) {
+            if (listener.isPhotoSelected(position)) {
                 RoundingParams roundingParams = RoundingParams.fromCornersRadius(0);
                 roundingParams.setBorder(0xFF62b1e6, 3.0f);
                 roundingParams.setRoundAsCircle(false);
                 holder.simpleDraweeView.getHierarchy().setRoundingParams(roundingParams);
-            }else{
+            } else {
                 holder.simpleDraweeView.getHierarchy().setRoundingParams(null);
             }
         }
