@@ -52,7 +52,7 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolder
         }
     }
     //https://stackoverflow.com/questions/30053610/best-way-to-update-data-with-a-recyclerview-adapter
-    public void swap(ArrayList<String> datas){
+    public void swap(ArrayList<String> datas, boolean bNotifyDataSetChanged){
 
         if (itemList != null) {
             itemList.clear();
@@ -61,7 +61,9 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolder
         else {
             itemList = datas;
         }
-        notifyDataSetChanged();
+        if(bNotifyDataSetChanged) {
+            notifyDataSetChanged();
+        }
     }
     @Override
     public RecyclerViewHolders onCreateViewHolder(ViewGroup parent, int viewType) {

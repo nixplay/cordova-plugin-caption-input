@@ -600,7 +600,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             if (imageList.size() > 0) {
                 imageList.remove(currentPosition);
                 captions.remove(currentPosition);
+                recyclerViewAdapter.notifyItemRemoved(currentPosition);
                 currentPosition = Math.max(0, Math.min(currentPosition, imageList.size() - 1));
+                recyclerViewAdapter.notifyItemChanged(currentPosition);
                 if (imageList.size() == 0) {
 
                     finishActivity(RESULT_CANCELED);
@@ -610,7 +612,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     ArrayList<String> clonedPoster = new ArrayList<String>(imageList);
                     ArrayList<String> clonedPoster2 = new ArrayList<String>(imageList);
                     mPagerAdapter.swap(clonedPoster);
-                    recyclerViewAdapter.swap(clonedPoster2);
+                    recyclerViewAdapter.swap(clonedPoster2, false);
                     linearLayoutManager.scrollToPositionWithOffset(currentPosition, -1);
                     setActionBarTitle(imageList, currentPosition);
                 }
@@ -1150,7 +1152,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         ArrayList<String> clonedPoster = new ArrayList<String>(imageList);
         mPagerAdapter.swap(clonedPoster);
         ArrayList<String> clonedPoster2 = new ArrayList<String>(imageList);
-        recyclerViewAdapter.swap(clonedPoster);
+        recyclerViewAdapter.swap(clonedPoster, true);
         mPagerAdapter.swap(clonedPoster2);
         setActionBarTitle(imageList, currentPosition);
 
@@ -1188,15 +1190,12 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         public void swap(ArrayList<String> poster) {
             itemList = poster;
 
-            runOnUiThread(new Runnable() {
-                public void run() {
-                    if (recyclerViewAdapter.getItemCount() > 0 || recyclerViewAdapter != null) {
-                        if (itemList.size() > 0) {
-                            notifyDataSetChanged();
-                        }
-                    }
+            if (recyclerViewAdapter.getItemCount() > 0 || recyclerViewAdapter != null) {
+                if (itemList.size() > 0) {
+                    notifyDataSetChanged();
                 }
-            });
+            }
+
         }
 
         //        https://stackoverflow.com/questions/13695649/refresh-images-on-fragmentstatepageradapter-on-resuming-activity
