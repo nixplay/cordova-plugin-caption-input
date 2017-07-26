@@ -48,8 +48,7 @@
     NSMutableArray *images = [[NSMutableArray alloc] init];
     NSMutableArray *thumbs = [[NSMutableArray alloc] init];
     NSInteger maximumImagesCount = [[options objectForKey:@"maximumImagesCount"] integerValue];
-#warning debug testing 10 images
-    self.maximumImagesCount = 10;//(maximumImagesCount == 0 ) ? 100 : maximumImagesCount;
+    self.maximumImagesCount = (maximumImagesCount == 0 ) ? 100 : maximumImagesCount;
     self.outputType = [[options objectForKey:@"outputType"] integerValue];
     self.width = [[options objectForKey:@"width"] integerValue];
     self.height = [[options objectForKey:@"height"] integerValue];
