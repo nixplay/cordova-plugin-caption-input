@@ -35,7 +35,7 @@
 		<config-file target="AndroidManifest.xml" parent="/manifest/application">
 			<activity
 				android:name="com.creedon.cordova.plugin.captioninput.PhotoCaptionInputViewActivity"
-				android:screenOrientation="portrait"  android:theme="@style/AppTheme" >
+				android:screenOrientation="portrait"  android:theme="@style/Theme.Transparent" >
 			</activity>
 		</config-file>
 		<config-file parent="/*" target="res/xml/config.xml">
@@ -43,6 +43,15 @@
 				<param name="android-package" value="com.creedon.cordova.plugin.captioninput.PhotoCaptionInputViewPlugin"/>
 			</feature>
 		</config-file>
+
+		<config-file target="res/values/styles.xml" parent="/resources">
+			<style name="Theme.Transparent" parent="Theme.AppCompat.Light">
+				<item name="background">@android:color/transparent</item>
+        		<item name="android:textColorPrimary">@color/ef_white</item>
+        		<item name="colorPrimary">@android:color/transparent</item>
+			</style>
+		</config-file>
+
 		<config-file parent="/*" target="AndroidManifest.xml"/>
 		<source-file src="src/android/PhotoCaptionInputViewPlugin.java" target-dir="src/com/creedon/cordova/plugin/captioninput"/>
 		<source-file src="src/android/PhotoCaptionInputViewActivity.java" target-dir="src/com/creedon/cordova/plugin/captioninput"/>

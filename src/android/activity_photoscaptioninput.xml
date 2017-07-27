@@ -60,6 +60,7 @@
             android:layout_height="match_parent"
             android:layout_alignParentBottom="@+id/btnAdd"
             android:layout_alignParentTop="true"
+            android:layout_marginRight="5dp"
             android:layout_toLeftOf="@+id/btnAdd"
             android:layout_toStartOf="@+id/btnAdd"
             android:background="#FF000000"

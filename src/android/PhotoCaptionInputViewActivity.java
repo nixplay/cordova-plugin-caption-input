@@ -7,7 +7,9 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.graphics.Rect;
+import android.graphics.drawable.ColorDrawable;
 import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -39,6 +41,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.Window;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
@@ -153,6 +156,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             Fresco.initialize(this);
 
         }
+        getWindow().requestFeature(Window.FEATURE_ACTION_BAR_OVERLAY);
         super.onCreate(savedInstanceState);
 
         fakeR = new FakeR(this.getApplicationContext());
@@ -563,8 +567,12 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         try {
             ActionBar actionBar = getSupportActionBar();
             if (actionBar != null) {
+
+                actionBar.setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+                actionBar.setStackedBackgroundDrawable(new ColorDrawable(Color.parseColor("#550000ff")));
                 actionBar.setDisplayHomeAsUpEnabled(true);
                 actionBar.setHomeAsUpIndicator(fakeR.getId("drawable", "ic_up_white_24dp"));
+
             }
         } catch (NullPointerException e) {
             e.printStackTrace();
