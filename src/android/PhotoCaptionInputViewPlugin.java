@@ -20,6 +20,7 @@ import static org.apache.cordova.PluginResult.Status.OK;
 public class PhotoCaptionInputViewPlugin extends CordovaPlugin {
 
     private CallbackContext callbackContext;
+    private int maxImages;
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
@@ -32,7 +33,7 @@ public class PhotoCaptionInputViewPlugin extends CordovaPlugin {
         return false;
     }
 
-    private void showCaptionInput(JSONObject options, CallbackContext callbackContext) {
+    private void showCaptionInput(JSONObject options, CallbackContext callbackContext) throws JSONException {
         if (options != null && options.length() > 0) {
             ActivityManager.MemoryInfo mi = new ActivityManager.MemoryInfo();
             ActivityManager activityManager = (ActivityManager) this.cordova.getActivity().getApplicationContext().getSystemService(Context.ACTIVITY_SERVICE);
@@ -41,9 +42,15 @@ public class PhotoCaptionInputViewPlugin extends CordovaPlugin {
             System.out.println("[NIX] totalMegs: " + totalMegs);
 
             Intent intent = new Intent(cordova.getActivity(), PhotoCaptionInputViewActivity.class);
+            if (options.has("maximumImagesCount")) {
 
+                this.maxImages = options.getInt("maximumImagesCount");
+            } else {
+                this.maxImages = 100;
+            }
             intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
             intent.putExtra("options", options.toString());
+            intent.putExtra("MAX_IMAGES", this.maxImages);
             this.cordova.startActivityForResult(this, intent, 0);
         } else {
             callbackContext.error("Expected one non-empty string argument.");

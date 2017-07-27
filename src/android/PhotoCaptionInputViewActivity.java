@@ -145,6 +145,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         }
     };
     private ArrayList<String> preSelectedAssets = new ArrayList<String>();
+    private int maxImages;
 
 
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
@@ -163,6 +164,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         if (getIntent().getExtras() != null) {
             Bundle bundle = getIntent().getExtras();
             String optionsJsonString = bundle.getString("options");
+            this.maxImages = bundle.getInt("MAX_IMAGES");
             try {
                 JSONObject jsonObject = new JSONObject(optionsJsonString);
 
@@ -372,7 +374,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                                 .folderMode(true) // folder mode (false by default)
                                 .folderTitle(getString(fakeR.getId("string", "ALBUM"))) // folder selection title
                                 .multi() // multi mode (default mode)
-                                .limit(1000) // max images can be selected (99 by default)
+                                .limit(maxImages) // max images can be selected (99 by default)
                                 .showCamera(true) // show camera or not (true by default)
                                 .origin(preSelectedAssetsImage)
                                 .enableLog(false) // disabling log
@@ -616,7 +618,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     ArrayList<String> clonedPoster = new ArrayList<String>(imageList);
                     ArrayList<String> clonedPoster2 = new ArrayList<String>(imageList);
                     mPagerAdapter.swap(clonedPoster);
-                    recyclerViewAdapter.swap(clonedPoster2, false);
+                    recyclerViewAdapter.swap(clonedPoster2);
                     linearLayoutManager.scrollToPositionWithOffset(currentPosition, -1);
                     setActionBarTitle(imageList, currentPosition);
                 }
@@ -1156,7 +1158,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         ArrayList<String> clonedPoster = new ArrayList<String>(imageList);
         mPagerAdapter.swap(clonedPoster);
         ArrayList<String> clonedPoster2 = new ArrayList<String>(imageList);
-        recyclerViewAdapter.swap(clonedPoster, true);
+        recyclerViewAdapter.swap(clonedPoster);
         mPagerAdapter.swap(clonedPoster2);
         setActionBarTitle(imageList, currentPosition);
 
