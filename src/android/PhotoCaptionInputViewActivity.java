@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -161,6 +162,13 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         fakeR = new FakeR(this.getApplicationContext());
         setContentView(fakeR.getId("layout", "activity_photoscaptioninput"));
         setupToolBar();
+
+        SharedPreferences sharedPrefs = getSharedPreferences("group.com.creedon.Nixplay", Context.MODE_PRIVATE);
+        boolean isOptimizeSize = sharedPrefs.getBoolean("nixSettings.settings.resolution",false);
+        if(isOptimizeSize) {
+            this.width = 1820;
+            this.height = 1820;
+        }
         if (getIntent().getExtras() != null) {
             Bundle bundle = getIntent().getExtras();
             String optionsJsonString = bundle.getString("options");
@@ -169,10 +177,12 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 JSONObject jsonObject = new JSONObject(optionsJsonString);
 
 //                String tc = jsonObject.getString("ts");
-                this.width = jsonObject.has("width") ? jsonObject.getInt("width") : 0;
-                this.height = jsonObject.has("height") ? jsonObject.getInt("height") : 0;
-                this.buttonOptions = jsonObject.getJSONArray("buttons");
+                try {
+                    this.buttonOptions = jsonObject.getJSONArray("buttons");
+                } catch (Exception e) {
+                    e.printStackTrace();
 
+                }
 
 //                this.quality = jsonObject.getInt("quality");
                 JSONArray imagesJsonArray = jsonObject.getJSONArray("images");
@@ -255,58 +265,60 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 //for test only
 //                buttonOptions.remove(1);
                 //for test only
-                for (int i = 0; i < this.buttonOptions.length(); i++) {
-                    JSONObject obj = (JSONObject) this.buttonOptions.get(i);
-                    String label = obj.getString(KEY_LABEL);
-                    final String type = obj.getString(KEY_TYPE);
-                    if (i == 0) {
-                        if (this.buttonOptions.length() == 1) {
-                            findViewById(fakeR.getId("id", "button1")).setVisibility(GONE);
-                            Button button = (Button) findViewById(fakeR.getId("id", "button2"));
-                            button.setText(label);
-                            button.setOnClickListener(new View.OnClickListener() {
-                                @Override
-                                public void onClick(View v) {
-                                    try {
-                                        finishWithResult(type);
-                                    } catch (JSONException e) {
-                                        e.printStackTrace();
-                                        finishActivity(-1);
+                if (this.buttonOptions != null) {
+                    for (int i = 0; i < this.buttonOptions.length(); i++) {
+                        JSONObject obj = (JSONObject) this.buttonOptions.get(i);
+                        String label = obj.getString(KEY_LABEL);
+                        final String type = obj.getString(KEY_TYPE);
+                        if (i == 0) {
+                            if (this.buttonOptions.length() == 1) {
+                                findViewById(fakeR.getId("id", "button1")).setVisibility(GONE);
+                                Button button = (Button) findViewById(fakeR.getId("id", "button2"));
+                                button.setText(label);
+                                button.setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        try {
+                                            finishWithResult(type);
+                                        } catch (JSONException e) {
+                                            e.printStackTrace();
+                                            finishActivity(-1);
+                                        }
                                     }
-                                }
-                            });
-                        } else {
-                            Button button1 = (Button) findViewById(fakeR.getId("id", "button1"));
-                            button1.setText(label);
-                            button1.setOnClickListener(new View.OnClickListener() {
-                                @Override
-                                public void onClick(View v) {
-                                    try {
-                                        finishWithResult(type);
-                                    } catch (JSONException e) {
-                                        e.printStackTrace();
-                                        finishActivity(-1);
+                                });
+                            } else {
+                                Button button1 = (Button) findViewById(fakeR.getId("id", "button1"));
+                                button1.setText(label);
+                                button1.setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View v) {
+                                        try {
+                                            finishWithResult(type);
+                                        } catch (JSONException e) {
+                                            e.printStackTrace();
+                                            finishActivity(-1);
+                                        }
                                     }
-                                }
-                            });
-                        }
-                    } else if (i == 1) {
-
-
-                        Button button2 = (Button) findViewById(fakeR.getId("id", "button2"));
-                        button2.setText(label);
-                        button2.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                try {
-                                    finishWithResult(type);
-                                } catch (JSONException e) {
-                                    e.printStackTrace();
-                                    finishActivity(-1);
-                                }
+                                });
                             }
-                        });
+                        } else if (i == 1) {
 
+
+                            Button button2 = (Button) findViewById(fakeR.getId("id", "button2"));
+                            button2.setText(label);
+                            button2.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    try {
+                                        finishWithResult(type);
+                                    } catch (JSONException e) {
+                                        e.printStackTrace();
+                                        finishActivity(-1);
+                                    }
+                                }
+                            });
+
+                        }
                     }
 //                    Button button = new Button(this);
 //
@@ -423,12 +435,14 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             } catch (Exception e) {
                 e.printStackTrace();
                 //TODO setresult failed
-                setResult(Activity.RESULT_CANCELED);
+                Intent intent = new Intent();
+                setResult(RESULT_CANCELED, intent);
                 finish();
             }
         } else {
             //TODO setresult failed
-            setResult(Activity.RESULT_CANCELED);
+            Intent intent = new Intent();
+            setResult(RESULT_CANCELED, intent);
             finish();
         }
     }

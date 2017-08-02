@@ -59,7 +59,6 @@ public class PhotoCaptionInputViewPlugin extends CordovaPlugin {
 
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == Activity.RESULT_OK && data != null) {
-//            if(requestCode == REQUEST_SUBMIT){
 
             String result = data.getStringExtra(Constants.RESULT);
             JSONObject res = null;
@@ -78,27 +77,12 @@ public class PhotoCaptionInputViewPlugin extends CordovaPlugin {
 
             }
 
-//            }else {
-//                JSONObject res = new JSONObject();
-//                if(this.callbackContext != null ) {
-//                    this.callbackContext.error(res);
-//                }
-//            }
-
         } else if (resultCode == Activity.RESULT_CANCELED && data != null) {
-            String error = data.getStringExtra("ERRORMESSAGE");
-            if (error == null)
-                this.callbackContext.error("Error");
-            this.callbackContext.error(error);
+            callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR));
         } else if (resultCode == Activity.RESULT_CANCELED) {
-            JSONObject res = new JSONObject();
-            if (this.callbackContext != null)
-                this.callbackContext.error(res);
-
+            callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.INVALID_ACTION));
         } else {
-            JSONObject res = new JSONObject();
-            if (this.callbackContext != null)
-                this.callbackContext.error(res);
+            callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.INVALID_ACTION));
         }
 
     }
