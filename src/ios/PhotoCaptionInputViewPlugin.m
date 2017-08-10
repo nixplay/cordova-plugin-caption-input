@@ -11,6 +11,7 @@
 #import "MBProgressHUD.h"
 #import "MWPhotoExt.h"
 #import "CustomViewController.h"
+#import "SDAVAssetExportSession.h"
 #define LIGHT_BLUE_COLOR [UIColor colorWithRed:(99/255.0f)  green:(176/255.0f)  blue:(228.0f/255.0f) alpha:1.0]
 #define BUNDLE_UIIMAGE(imageNames) [UIImage imageNamed:[NSString stringWithFormat:@"%@.bundle/%@", NSStringFromClass([self class]), imageNames]]
 #define BIN_UIIMAGE BUNDLE_UIIMAGE(@"images/bin.png")
@@ -53,7 +54,7 @@
     self.width = [[options objectForKey:@"width"] integerValue];
     self.height = [[options objectForKey:@"height"] integerValue];
     self.quality = [[options objectForKey:@"quality"] integerValue];
-    
+    self.allow_video = true;//[[options objectForKey:@"allow_video" ] boolValue ];
     //    NSUInteger photoIndex = [[options objectForKey:@"index"] intValue];
     self.preSelectedAssets = [options objectForKey:@"preSelectedAssets"];
     
@@ -84,6 +85,7 @@
     CGSize thumbTargetSize = CGSizeMake(imageSize / 3.0 * scale, imageSize / 3.0 * scale);
     
     PHFetchResult<PHAsset *> * result = [PHAsset fetchAssetsWithLocalIdentifiers:self.preSelectedAssets options:nil];
+    NSInteger numVideos = 0;
     [result enumerateObjectsUsingBlock:^(PHAsset * _Nonnull asset, NSUInteger idx, BOOL * _Nonnull stop) {
         [images addObject:[MWPhotoExt photoWithAsset:asset targetSize:imageTargetSize] ];
         [thumbs addObject:[MWPhotoExt photoWithAsset:asset targetSize:thumbTargetSize] ];
@@ -94,6 +96,7 @@
     
     
     PhotoCaptionInputViewController *vc = [[PhotoCaptionInputViewController alloc] initWithPhotos:_photos thumbnails:_thumbnails preselectedAssets:self.preSelectedAssets delegate:self];
+    vc.allow_video = self.allow_video;
     vc.alwaysShowControls = YES;
     vc.maximumImagesCount = self.maximumImagesCount;
     _photoCaptionInputViewController = vc;
