@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<plugin id="cordova-plugin-caption-input" version="1.2.12" xmlns="http://cordova.apache.org/ns/plugins/1.0">
+<plugin id="cordova-plugin-caption-input" version="1.2.13" xmlns="http://cordova.apache.org/ns/plugins/1.0">
 	<!-- pre add gradle dependencies -->
 	<name>PhotoCaptionInputViewPlugin</name>
 	<author>James Kong</author>
@@ -17,7 +17,7 @@
 		<header-file src="src/ios/PhotoCaptionInputViewPlugin.h"/>
 		<source-file src="src/ios/PhotoCaptionInputViewPlugin.m"/>
 		<pod tag="2.1.22" git="https://github.com/nixplay/MWPhotoBrowser" name="MWPhotoBrowser"/>
-		<pod tag="0.4.5" git="https://github.com/nixplay/PhotoCaptionInputView.git" name="PhotoCaptionInputView"/>
+		<pod branch="develop" git="https://github.com/nixplay/PhotoCaptionInputView.git" name="PhotoCaptionInputView"/>
 		<pod name="SDWebImage" version="4.0.0"/>
 		<pod name="CRGradientNavigationBar"/>
 		<resource-file src="src/ios/PhotoCaptionInputViewPlugin.bundle"/>
@@ -104,10 +104,10 @@
 		<source-file src="src/android/drawable-xxhdpi/add.png" target-dir="res/drawable-xxhdpi" />
 		<source-file src="src/android/drawable-xxxhdpi/add.png" target-dir="res/drawable-xxxhdpi" />
 		<source-file src="src/android/drawable-xxhdpi/sendfriend.png" target-dir="res/drawable-xxhdpi" />
-		
+
 		<source-file src="src/android/drawable-xxhdpi/round_corner_button.xml" target-dir="res/drawable-xxhdpi" />
 		<source-file src="src/android/drawable-xxhdpi/action_bar_bg.xml" target-dir="res/drawable-xxhdpi" />
-		
+
 
 
 	</platform>
