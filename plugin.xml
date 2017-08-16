@@ -16,6 +16,7 @@
 		</config-file>
 		<header-file src="src/ios/PhotoCaptionInputViewPlugin.h"/>
 		<source-file src="src/ios/PhotoCaptionInputViewPlugin.m"/>
+		<pods-config ios-min-version="9.0" use-frameworks="true"></pods-config>
 		<pod tag="2.1.22" git="https://github.com/nixplay/MWPhotoBrowser" name="MWPhotoBrowser"/>
 		<pod tag="0.4.6" git="https://github.com/nixplay/PhotoCaptionInputView.git" name="PhotoCaptionInputView"/>
 		<pod name="SDWebImage" version="4.0.0"/>
