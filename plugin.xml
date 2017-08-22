@@ -24,6 +24,7 @@
 		<pod name="GMImagePicker" git="https://github.com/nixplay/GMImagePicker.git" tag="0.0.15"/>
 		<pod name="ICGVideoTrimmer" git="https://github.com/abdelrahman-badary/ICGVideoTrimmer.git" branch="master"/>
 		<pod name="SDAVAssetExportSession" git="https://github.com/rs/SDAVAssetExportSession" branch="master"/>
+		<pod name="ICGVideoTrimmer" git="https://github.com/nixplay/ICGVideoTrimmer.git" branch="master"/>
 		<pod name="SDWebImage" version="4.0.0"/>
 		<pod name="CRGradientNavigationBar"/>
 		<resource-file src="src/ios/PhotoCaptionInputViewPlugin.bundle"/>
