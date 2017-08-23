@@ -103,6 +103,7 @@
     transition.duration = 0.35;
     transition.type = kCATransitionPush;
     transition.subtype = kCATransitionFromRight;
+    [[UINavigationBar appearance] setBarTintColor:[UIColor clearColor]];
     [self.viewController.view.window.layer addAnimation:transition forKey:kCATransition];
     
     [self.viewController presentViewController:nc animated:NO completion:^{
