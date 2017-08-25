@@ -673,27 +673,35 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
     @Override
     public void onItemClick(View view, int position) {
-        currentPosition = position;
-        mPager.setCurrentItem(position);
-        setActionBarTitle(imageList, currentPosition);
-        mEditText.setText(captions.get(currentPosition));
-        if (recyclerViewAdapter.getItemCount() > 0 || recyclerViewAdapter != null) {
-            recyclerViewAdapter.notifyDataSetChanged();
+        try {
+            currentPosition = (position > 0 && position < imageList.size()) ? position : 0;
+            mPager.setCurrentItem(currentPosition);
+            setActionBarTitle(imageList, currentPosition);
+            mEditText.setText(captions.get(currentPosition));
+            if (recyclerViewAdapter.getItemCount() > 0 || recyclerViewAdapter != null) {
+                recyclerViewAdapter.notifyDataSetChanged();
+            }
+        }catch (Exception e){
+            e.printStackTrace();
         }
 
     }
 
     @Override
     public void onItemLongClick(View view, int position) {
-        currentPosition = position;
-        mPager.setCurrentItem(position);
-        setActionBarTitle(imageList, currentPosition);
-        mEditText.setText(captions.get(currentPosition));
-        Vibrator v = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
-        // Vibrate for 500 milliseconds
-        v.vibrate(500);
-        if (recyclerViewAdapter.getItemCount() > 0 || recyclerViewAdapter != null) {
-            recyclerViewAdapter.notifyDataSetChanged();
+        try {
+            currentPosition = (position > 0 && position < imageList.size()) ? position : 0;
+            mPager.setCurrentItem(currentPosition);
+            setActionBarTitle(imageList, currentPosition);
+            mEditText.setText(captions.get(currentPosition));
+            Vibrator v = (Vibrator) this.getSystemService(Context.VIBRATOR_SERVICE);
+            // Vibrate for 500 milliseconds
+            v.vibrate(500);
+            if (recyclerViewAdapter.getItemCount() > 0 || recyclerViewAdapter != null) {
+                recyclerViewAdapter.notifyDataSetChanged();
+            }
+        }catch (Exception e){
+            e.printStackTrace();
         }
     }
 
