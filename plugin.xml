@@ -21,7 +21,7 @@
 		<pod name="MWPhotoBrowser" git="https://github.com/nixplay/MWPhotoBrowser"  branch="feature/video_upload" />
 		<pod name="PhotoCaptionInputView" git="https://github.com/nixplay/PhotoCaptionInputView.git" branch="feature/video_upload" />
 		<pod name="MWPhotoBrowser" git="https://github.com/nixplay/MWPhotoBrowser.git" branch="feature/video_upload" />
-		<pod name="GMImagePicker" git="https://github.com/nixplay/GMImagePicker.git" tag="0.0.15"/>
+		<pod name="GMImagePicker" git="https://github.com/nixplay/GMImagePicker.git" branch="feature/video_upload"/>
 		<pod name="ICGVideoTrimmer" git="https://github.com/abdelrahman-badary/ICGVideoTrimmer.git" branch="master"/>
 		<pod name="SDAVAssetExportSession" git="https://github.com/rs/SDAVAssetExportSession" branch="master"/>
 		<pod name="ICGVideoTrimmer" git="https://github.com/nixplay/ICGVideoTrimmer.git" branch="master"/>
