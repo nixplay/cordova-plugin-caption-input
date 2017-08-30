@@ -1334,11 +1334,11 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                             }
                             float reqWidth = options.outWidth * scale;
                             float reqHeight = options.outHeight * scale;
-                            request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(imageList.get(0)))
+                            request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(temp.get(0)))
                                     .setResizeOptions(new ResizeOptions((int) reqWidth, (int) reqHeight))
                                     .build();
                         } else {
-                            request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(imageList.get(0)))
+                            request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(temp.get(0)))
                                     .build();
                         }
                         ImagePipeline imagePipeline = Fresco.getImagePipeline();
