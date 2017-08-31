@@ -12,7 +12,7 @@
 @interface PhotoCaptionInputViewPlugin : CDVPlugin <PhotoCaptionInputViewDelegate> {
 
     NSMutableDictionary* callbackIds;
-    NSMutableDictionary* exportingAssets;
+
     NSArray* photos;
     
 }
