@@ -178,10 +178,10 @@
     
     MBProgressHUD *progressHUD = [MBProgressHUD showHUDAddedTo:self.viewController.view
                                                       animated:YES];
-    progressHUD.mode = MBProgressHUDModeIndeterminate;
-    progressHUD.dimBackground = YES;
-    progressHUD.labelText = NSLocalizedString(@"PROCESSING",nil);
-    [progressHUD show: YES];
+    progressHUD.mode = MBProgressHUDModeDeterminateHorizontalBar;
+    progressHUD.backgroundColor = [UIColor colorWithWhite:0.0f alpha:0.3f];
+    [progressHUD.label setText: NSLocalizedString(@"PROCESSING",nil)];
+    [progressHUD showAnimated: YES];
     
     dispatch_group_async(dispatchGroup, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
         __block NSString* filePath;
@@ -198,6 +198,97 @@
             __block NSDictionary *startEndTime = [startEndTimes objectAtIndex:currentIndex];
             NSString *localIdentifier;
             
+        }
+        
+    });
+    
+    dispatch_group_notify(dispatchGroup, dispatch_get_main_queue(), ^{
+        
+        PHFetchResult<PHAsset *> * fetchArray = [PHAsset fetchAssetsWithLocalIdentifiers:preselectAssets options:nil];
+        __block CGFloat numberOfImage = [fetchArray count];
+        [self processAssets:fetchArray
+                      index:0
+                   docsPath:docsPath
+                 targetSize:targetSize
+                    manager:manager
+             requestOptions:requestOptions
+              startEndTimes:startEndTimes
+          completedCallback:^() {
+              if (nil == result) {
+                  result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: [NSDictionary dictionaryWithObjectsAndKeys: preSelectedAssets, @"preSelectedAssets", fileStrings, @"images", captions, @"captions",  invalidImages, @"invalidImages", _distinationType, KEY_TYPE, nil]];
+              }
+              dispatch_group_notify(dispatchGroup, dispatch_get_main_queue(), ^{
+                  progressHUD.progress = 1.f;
+                  [progressHUD hideAnimated:YES];
+                  [self.commandDelegate sendPluginResult:result callbackId:self.callbackId];
+                  [controller.presentingViewController dismissViewControllerAnimated:YES completion:nil];
+                  [self.viewController dismissViewControllerAnimated:YES completion:nil];
+                  
+                  
+              });
+              
+          } nextCallback:^(NSInteger index, NSString *filePath, NSString *localIdentifier, NSString *invalidImage) {
+              if(invalidImage != nil){
+                  [fileStrings addObject:@""];
+                  [preSelectedAssets addObject: @""];
+                  [invalidImages addObject: invalidImage];
+              }else{
+                  [fileStrings addObject:filePath];
+                  [preSelectedAssets addObject: localIdentifier];
+                  [invalidImages addObject: @""];
+              }
+              dispatch_async(dispatch_get_main_queue(), ^{
+                  
+                  [progressHUD setProgress:index/numberOfImage];
+              });
+              
+          } errorCallback:^(CDVPluginResult *errorResult) {
+              dispatch_group_notify(dispatchGroup, dispatch_get_main_queue(), ^{
+                  [self.commandDelegate sendPluginResult:errorResult callbackId:self.callbackId];
+                  [controller.presentingViewController dismissViewControllerAnimated:YES completion:nil];
+                  [self.viewController dismissViewControllerAnimated:YES completion:nil];
+              });
+          }];
+        
+        
+        
+    });
+}
+
+-(void) processAssets:(PHFetchResult<PHAsset *>*)fetchAssets
+                index:(NSInteger)index
+             docsPath:(NSString*)docsPath
+           targetSize:(CGSize)targetSize
+              manager:(PHImageManager*)manager
+       requestOptions:(PHImageRequestOptions *)requestOptions
+        startEndTimes:(NSArray*)startEndTimes
+    completedCallback:(void(^)(void))completedCallback
+         nextCallback:(void(^)(NSInteger index , NSString* filePath, NSString* localIdentifier, NSString* invalidImage))nextCallback
+        errorCallback:(void(^)(CDVPluginResult* errorResult))errorCallback{
+    
+    if(index >= [fetchAssets count]){
+        completedCallback();
+        return;
+    }
+    
+    __block NSInteger internalIndex = index;
+    __block NSData *imgData;
+    PHAsset *asset = [fetchAssets objectAtIndex:internalIndex];
+    
+    NSString *localIdentifier;
+    NSError * err;
+    CDVPluginResult *result = nil;
+    if (asset == nil) {
+        result = [CDVPluginResult resultWithStatus:CDVCommandStatus_IO_EXCEPTION messageAsString:[err localizedDescription]];
+    } else if(asset.mediaType == PHAssetMediaTypeImage){
+        __block UIImage *image;
+        localIdentifier = [asset localIdentifier];
+        NSLog(@"localIdentifier: %@", localIdentifier);
+        NSString* fileName = [[localIdentifier componentsSeparatedByString:@"/"] objectAtIndex:0];
+        NSString *filePath = [NSString stringWithFormat:@"%@/%@.%@", docsPath, fileName, @"jpg"];
+        requestOptions.deliveryMode = PHImageRequestOptionsDeliveryModeFastFormat;
+        
+        if([[NSFileManager defaultManager] fileExistsAtPath:filePath]){
             
             if (asset == nil) {
                 result = [CDVPluginResult resultWithStatus:CDVCommandStatus_IO_EXCEPTION messageAsString:[err localizedDescription]];
