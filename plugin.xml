@@ -19,7 +19,7 @@
 		<pods-config ios-min-version="9.0" use-frameworks="true"></pods-config>
 		<pod name="MWPhotoBrowser" git="https://github.com/nixplay/MWPhotoBrowser"  tag="2.1.22" />
 		<pod name="PhotoCaptionInputView" git="https://github.com/nixplay/PhotoCaptionInputView.git" tag="0.4.6" />
-		<pod name="GMImagePicker" git="https://github.com/nixplay/GMImagePicker.git" tag="0.0.7"/>
+		<pod name="GMImagePicker" git="https://github.com/nixplay/GMImagePicker.git" branch="develop"/>
 
 		<pod name="SDWebImage" version="4.0.0"/>
 		<pod name="CRGradientNavigationBar"/>
