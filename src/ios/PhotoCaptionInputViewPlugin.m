@@ -212,7 +212,8 @@
                                                         NSString *dataUTI,
                                                         UIImageOrientation orientation,
                                                         NSDictionary *info) {
-                                            if([dataUTI isEqualToString:@"public.png"] || [dataUTI isEqualToString:@"public.jpeg"] || [dataUTI isEqualToString:@"public.jpeg-2000"]) {
+                                            if([dataUTI isEqualToString:@"public.png"] || [dataUTI isEqualToString:@"public.jpeg"] || [dataUTI isEqualToString:@"public.jpeg-2000"] || [dataUTI isEqualToString:@"public.heic"]) {
+
                                                 imgData = [imageData copy];
                                                 NSString* fullFilePath = [info objectForKey:@"PHImageFileURLKey"];
                                                 NSLog(@"fullFilePath: %@: " , fullFilePath);
