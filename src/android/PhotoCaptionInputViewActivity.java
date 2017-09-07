@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -163,16 +162,16 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         setContentView(fakeR.getId("layout", "activity_photoscaptioninput"));
         setupToolBar();
 
-        SharedPreferences sharedPrefs = getSharedPreferences("group.com.creedon.Nixplay", Context.MODE_PRIVATE);
-        boolean isOptimizeSize = sharedPrefs.getBoolean("nixSettings.settings.resolution",false);
-        if(isOptimizeSize) {
-            this.width = 1820;
-            this.height = 1820;
-        }
         if (getIntent().getExtras() != null) {
             Bundle bundle = getIntent().getExtras();
             String optionsJsonString = bundle.getString("options");
             this.maxImages = bundle.getInt("MAX_IMAGES");
+            boolean isOptimizeSize = bundle.getBoolean("OPTIMIZE_SIZE");
+
+            if(isOptimizeSize) {
+                this.width = 1820;
+                this.height = 1820;
+            }
             try {
                 JSONObject jsonObject = new JSONObject(optionsJsonString);
 
