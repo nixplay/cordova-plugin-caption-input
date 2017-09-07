@@ -164,7 +164,17 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         setupToolBar();
 
         SharedPreferences sharedPrefs = getSharedPreferences("group.com.creedon.Nixplay", Context.MODE_PRIVATE);
-        boolean isOptimizeSize = sharedPrefs.getBoolean("nixSettings.settings.resolution",false);
+        boolean isOptimizeSize = false;
+        try{
+            isOptimizeSize = sharedPrefs.getBoolean("nixSettings.settings.resolution",false);
+        }catch(Exception e){
+            try {
+                String ret = sharedPrefs.getString("nixSettings.settings.resolution", "");
+                isOptimizeSize = Boolean.parseBoolean(ret);
+            }catch (Exception e1){
+                e1.printStackTrace();
+            }
+        }
         if(isOptimizeSize) {
             this.width = 1820;
             this.height = 1820;
