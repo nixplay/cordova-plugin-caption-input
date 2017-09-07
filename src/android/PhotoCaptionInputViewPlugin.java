@@ -21,7 +21,6 @@ public class PhotoCaptionInputViewPlugin extends CordovaPlugin {
 
     private CallbackContext callbackContext;
     private int maxImages;
-    private boolean optimizeSize;
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
@@ -49,17 +48,9 @@ public class PhotoCaptionInputViewPlugin extends CordovaPlugin {
             } else {
                 this.maxImages = 100;
             }
-
-            if (options.has("optimizeSize")) {
-
-                this.optimizeSize = options.getBoolean("optimizeSize");
-            } else {
-                this.optimizeSize = false;
-            }
             intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
             intent.putExtra("options", options.toString());
             intent.putExtra("MAX_IMAGES", this.maxImages);
-            intent.putExtra("OPTIMIZE_SIZE", this.optimizeSize);
             this.cordova.startActivityForResult(this, intent, 0);
         } else {
             callbackContext.error("Expected one non-empty string argument.");
