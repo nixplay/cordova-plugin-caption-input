@@ -780,7 +780,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
 
         String outFilePath = System.getProperty("java.io.tmpdir") + "/";
-        if((inFilePath + File.separator + inFileName).equals(outFilePath + inFileName)) {
+        if(!(inFilePath + File.separator + inFileName).equals(outFilePath + inFileName)) {
             copyFile(inFilePath + File.separator, inFileName, outFilePath);
             try {
                 copyExif(inFilePath + File.separator + inFileName, outFilePath + inFileName);
