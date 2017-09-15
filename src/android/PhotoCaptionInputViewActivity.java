@@ -1,3 +1,4 @@
+
 package com.creedon.cordova.plugin.captioninput;
 
 import android.app.Activity;
