@@ -790,7 +790,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             }
             return outFilePath + inFileName;
         }
-        return inFilePath + inFileName;
+        return inFilePath + File.separator + inFileName;
 
     }
 
