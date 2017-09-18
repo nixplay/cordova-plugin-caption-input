@@ -331,8 +331,10 @@
     }else{
         
         [_buttonOptions enumerateObjectsUsingBlock:^(NSDictionary *obj, NSUInteger idx, BOOL * _Nonnull stop) {
-            float buttonWidth = (self.viewController.view.frame.size.width *.49)-2.5;
-            
+            //            float buttonWidth = (self.viewController.view.frame.size.width *.49)-5;
+            //            if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+            float  buttonWidth = (self.viewController.view.frame.size.width *.40);
+            //            }
             NSString *labelText = [obj valueForKey:KEY_LABEL];
             if (idx ==0 ) {
                 UIButton *button =  [UIButton buttonWithType:UIButtonTypeCustom];
@@ -369,7 +371,11 @@
             }
             if(idx != [_buttonOptions count]-1){
                 UIBarButtonItem *fixedSpace = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFixedSpace target:self action:nil];
-                fixedSpace.width = -8;
+                //                if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
+                fixedSpace.width = 1;
+                //                }else{
+                //                    fixedSpace.width = -8;
+                //                }
                 [items addObject:fixedSpace];
                 
             }
@@ -449,4 +455,3 @@
 
 
 @end
-
