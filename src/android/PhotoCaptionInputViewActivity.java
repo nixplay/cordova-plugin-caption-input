@@ -1065,7 +1065,6 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         }
 
         private void processFile(final ArrayList<String> temp, final OnImageResized onImageResized) {
-            Log.d("processFile", "temp " + temp.size());
             if (temp.size() == 0) {
                 onImageResized.ResizeCompleted(outList);
             } else {
@@ -1098,7 +1097,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                                     .build();
                         }
                         ImagePipeline imagePipeline = Fresco.getImagePipeline();
-                        final DataSource<CloseableReference<CloseableImage>> dataSource = imagePipeline.fetchDecodedImage(request, this);
+                        DataSource<CloseableReference<CloseableImage>> dataSource = imagePipeline.fetchDecodedImage(request, this);
 
                         CallerThreadExecutor executor = CallerThreadExecutor.getInstance();
                         dataSource.subscribe(
@@ -1155,7 +1154,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
                     try {
                         URI uri = new URI(temp.get(0));
-                        final File inFile = new File(uri);
+                        File inFile = new File(uri);
                         Log.d("processFile", "storeImage " + uri);
                         String outFilePath = storeImage(inFile.getParentFile().getAbsolutePath(), inFile.getName());
                         outList.add(Uri.fromFile(new File(outFilePath)).toString());
