@@ -77,6 +77,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import me.iwf.photopicker.PhotoPicker;
+import me.iwf.photopicker.PhotoPreview;
 
 import static android.view.View.GONE;
 import static com.creedon.cordova.plugin.captioninput.Constants.KEY_CAPTIONS;
@@ -644,7 +645,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
-            if (requestCode == REQUEST_CODE_PICKER && resultCode == RESULT_OK && data != null) {
+            if ((requestCode == PhotoPicker.REQUEST_CODE || requestCode == PhotoPreview.REQUEST_CODE)) {
                 ArrayList<String> photos = null;
                 if (data != null) {
                     photos = data.getStringArrayListExtra(PhotoPicker.KEY_SELECTED_PHOTOS);
