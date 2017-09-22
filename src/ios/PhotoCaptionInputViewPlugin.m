@@ -305,8 +305,8 @@
              forToolbarPosition:UIToolbarPositionAny
                      barMetrics:UIBarMetricsDefault];
     
-    [toolBar setBackgroundColor:[UIColor blackColor]];
-    
+    [toolBar setBackgroundColor:[UIColor clearColor]];
+    toolBar.clipsToBounds = YES;
     for (UIView *subView in [toolBar subviews]) {
         if ([subView isKindOfClass:[UIImageView class]]) {
             // Hide the hairline border
