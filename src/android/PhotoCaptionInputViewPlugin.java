@@ -64,10 +64,14 @@ public class PhotoCaptionInputViewPlugin extends CordovaPlugin {
             JSONObject res = null;
             try {
                 res = new JSONObject(result);
-                this.callbackContext.success(res);
-                PluginResult pluginResult = new PluginResult(OK, res);
-                pluginResult.setKeepCallback(false);
-                this.callbackContext.sendPluginResult(pluginResult);
+                if(res != null){
+                    this.callbackContext.success(res);
+                    PluginResult pluginResult = new PluginResult(OK, res);
+                    pluginResult.setKeepCallback(false);
+                    this.callbackContext.sendPluginResult(pluginResult);
+                }else{
+                    callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR));
+                }
             } catch (JSONException e) {
                 e.printStackTrace();
                 res = new JSONObject();
