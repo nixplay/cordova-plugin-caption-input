@@ -31,7 +31,7 @@
 @property (nonatomic, assign) NSInteger outputType;
 @property (nonatomic, assign) NSInteger maximumImagesCount;
 @property (nonatomic, assign) BOOL allow_video;
-//@property (nonatomic, strong) AVAssetExportSession* exportSession;
+@property (nonatomic, strong) AVAssetExportSession* exportSession;
 @property (nonatomic,assign) PhotoCaptionInputViewController* photoCaptionInputViewController;
 - (void)showCaptionInput:(CDVInvokedUrlCommand*)command ;
 

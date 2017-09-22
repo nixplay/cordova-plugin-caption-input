@@ -183,25 +183,6 @@
     [progressHUD.label setText: NSLocalizedString(@"PROCESSING",nil)];
     [progressHUD showAnimated: YES];
     
-    dispatch_group_async(dispatchGroup, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-        __block NSString* filePath;
-        NSError* err = nil;
-        __block NSData *imgData;
-        // Index for tracking the current image
-        __block int index = 0;
-        __block int currentIndex = 0;
-        // If image fetching fails then retry 3 times before giving up
-        PHFetchResult<PHAsset *> * featchArray = [PHAsset fetchAssetsWithLocalIdentifiers:preselectAssets options:nil];
-        do {
-            
-            PHAsset *asset = [featchArray objectAtIndex:index];
-            __block NSDictionary *startEndTime = [startEndTimes objectAtIndex:currentIndex];
-            NSString *localIdentifier;
-            
-        }
-        
-    });
-    
     dispatch_group_notify(dispatchGroup, dispatch_get_main_queue(), ^{
         
         PHFetchResult<PHAsset *> * fetchArray = [PHAsset fetchAssetsWithLocalIdentifiers:preselectAssets options:nil];
@@ -299,8 +280,9 @@
                 NSString* fileName = [[localIdentifier componentsSeparatedByString:@"/"] objectAtIndex:0];
                 filePath = [NSString stringWithFormat:@"%@/%@.%@", docsPath, fileName, @"jpg"];
                 if([[NSFileManager defaultManager] fileExistsAtPath:filePath]){
-                    [fileStrings addObject:[[NSURL fileURLWithPath:filePath] absoluteString]];
-                    [preSelectedAssets addObject: localIdentifier];
+                    //                    [fileStrings addObject:[[NSURL fileURLWithPath:filePath] absoluteString]];
+                    //                    [preSelectedAssets addObject: localIdentifier];
+                    //                    nextCallback();
                     index++;
                 }else{
                     [manager requestImageDataForAsset:asset
@@ -317,8 +299,10 @@
                                                 
                                             } else {
                                                 imgData = nil;
-                                                [invalidImages addObject: localIdentifier];
-                                                index++;
+                                                //                                                [invalidImages addObject: localIdentifier];
+                                                //                                                index++;
+                                                internalIndex ++;
+                                                nextCallback(internalIndex,nil, nil, localIdentifier);
                                             }
                                         }];
                     
@@ -347,10 +331,12 @@
                             
                             if (![data writeToFile:filePath options:NSAtomicWrite error:&err] ) {
                                 result = [CDVPluginResult resultWithStatus:CDVCommandStatus_IO_EXCEPTION messageAsString:[err localizedDescription]];
-                                break;
+                                //                                break;
                             } else {
-                                [fileStrings addObject:[[NSURL fileURLWithPath:filePath] absoluteString]];
-                                [preSelectedAssets addObject: localIdentifier];
+                                //                                [fileStrings addObject:[[NSURL fileURLWithPath:filePath] absoluteString]];
+                                //                                [preSelectedAssets addObject: localIdentifier];
+                                internalIndex++;
+                                nextCallback(internalIndex,[[NSURL fileURLWithPath:filePath] absoluteString], localIdentifier, nil);
                             }
                             data = nil;
                         }
@@ -364,94 +350,71 @@
             } else if(asset.mediaType == PHAssetMediaTypeVideo){
                 localIdentifier = [asset localIdentifier];
                 NSLog(@"localIdentifier: %@", localIdentifier);
-                CGFloat startTime = [[startEndTime valueForKey:@"startTime"] floatValue];
-                CGFloat endTime = [[startEndTime valueForKey:@"endTime"] floatValue];
+                CGFloat startTime = [[[startEndTimes objectAtIndex:internalIndex] valueForKey:@"startTime"] floatValue];
+                CGFloat endTime = [[[startEndTimes objectAtIndex:internalIndex] valueForKey:@"endTime"] floatValue];
                 NSString* fileName = [[localIdentifier componentsSeparatedByString:@"/"] objectAtIndex:0];
                 filePath = [NSString stringWithFormat:@"%@/%@.%@", docsPath, fileName, @"jpg"];
-                if([[NSFileManager defaultManager] fileExistsAtPath:filePath]){
-                    [fileStrings addObject:[[NSURL fileURLWithPath:filePath] absoluteString]];
-                    [preSelectedAssets addObject: localIdentifier];
-                    index++;
-                }else{
-                    if([self.exportSession status] != AVAssetExportSessionStatusExporting){
-                        PHVideoRequestOptions *options = [PHVideoRequestOptions new];
-                        options.networkAccessAllowed = YES;
-                        
-                        [manager requestAVAssetForVideo:asset options:options resultHandler:^(AVAsset * _Nullable asset, AVAudioMix * _Nullable audioMix, NSDictionary * _Nullable info) {
-                            if ([asset isKindOfClass:[AVURLAsset class]]) {
-                                NSArray *compatiblePresets = [AVAssetExportSession exportPresetsCompatibleWithAsset:asset];
-                                if ([compatiblePresets containsObject:AVAssetExportPresetMediumQuality]) {
+                
+                if([self.exportSession status] != AVAssetExportSessionStatusExporting){
+                    PHVideoRequestOptions *options = [PHVideoRequestOptions new];
+                    options.networkAccessAllowed = YES;
+                    
+                    [manager requestAVAssetForVideo:asset options:options resultHandler:^(AVAsset * _Nullable asset, AVAudioMix * _Nullable audioMix, NSDictionary * _Nullable info) {
+                        if ([asset isKindOfClass:[AVURLAsset class]]) {
+                            NSArray *compatiblePresets = [AVAssetExportSession exportPresetsCompatibleWithAsset:asset];
+                            if ([compatiblePresets containsObject:AVAssetExportPresetMediumQuality]) {
+                                
+                                self.exportSession = [[AVAssetExportSession alloc]
+                                                      initWithAsset:asset presetName:AVAssetExportPresetPassthrough];
+                                // Implementation continues.
+                                
+                                NSURL *furl = [NSURL fileURLWithPath:filePath];
+                                
+                                self.exportSession.outputURL = furl;
+                                self.exportSession.outputFileType = AVFileTypeQuickTimeMovie;
+                                
+                                CMTime start = CMTimeMakeWithSeconds(startTime, asset.duration.timescale);
+                                CMTime duration = CMTimeMakeWithSeconds(endTime - startTime, asset.duration.timescale);
+                                CMTimeRange range = CMTimeRangeMake(start, duration);
+                                self.exportSession.timeRange = range;
+                                
+                                [self.exportSession exportAsynchronouslyWithCompletionHandler:^{
                                     
-                                    self.exportSession = [[AVAssetExportSession alloc]
-                                                          initWithAsset:asset presetName:AVAssetExportPresetPassthrough];
-                                    // Implementation continues.
-                                    
-                                    NSURL *furl = [NSURL fileURLWithPath:filePath];
-                                    
-                                    self.exportSession.outputURL = furl;
-                                    self.exportSession.outputFileType = AVFileTypeQuickTimeMovie;
-                                    
-                                    CMTime start = CMTimeMakeWithSeconds(startTime, asset.duration.timescale);
-                                    CMTime duration = CMTimeMakeWithSeconds(endTime - startTime, asset.duration.timescale);
-                                    CMTimeRange range = CMTimeRangeMake(start, duration);
-                                    self.exportSession.timeRange = range;
-                                    
-                                    [self.exportSession exportAsynchronouslyWithCompletionHandler:^{
-                                        
-                                        switch ([self.exportSession status]) {
-                                            case AVAssetExportSessionStatusFailed:
+                                    switch ([self.exportSession status]) {
+                                        case AVAssetExportSessionStatusFailed:
+                                            
+                                            NSLog(@"Export failed: %@", [[self.exportSession error] localizedDescription]);
+                                            internalIndex ++;
+                                            nextCallback(internalIndex,nil, nil, localIdentifier);
+                                            break;
+                                        case AVAssetExportSessionStatusCancelled:
+                                            
+                                            NSLog(@"Export canceled");
+                                            internalIndex ++;
+                                            nextCallback(internalIndex,nil, nil, localIdentifier);
+                                            break;
+                                        default:
+                                            NSLog(@"NONE");
+                                            dispatch_async(dispatch_get_main_queue(), ^{
                                                 
-                                                NSLog(@"Export failed: %@", [[self.exportSession error] localizedDescription]);
-                                                index++;
-                                                break;
-                                            case AVAssetExportSessionStatusCancelled:
-                                                
-                                                NSLog(@"Export canceled");
-                                                index++;
-                                                break;
-                                            default:
-                                                NSLog(@"NONE");
-                                                dispatch_async(dispatch_get_main_queue(), ^{
-                                                    
-                                                    //                                                NSURL *movieUrl = [NSURL fileURLWithPath:filePath];
-                                                    [fileStrings addObject:[[NSURL fileURLWithPath:filePath] absoluteString]];
-                                                    [preSelectedAssets addObject: localIdentifier];
-                                                    index++;
-                                                });
-                                                
-                                                break;
-                                        }
-                                    }];
-                                    
-                                }
+                                                //                                                NSURL *movieUrl = [NSURL fileURLWithPath:filePath];
+                                                internalIndex++;
+                                                nextCallback(internalIndex,[[NSURL fileURLWithPath:filePath] absoluteString], localIdentifier, nil);
+                                            });
+                                            
+                                            break;
+                                    }
+                                }];
+                                
                             }
-                        }];
-                    }
+                        }
+                    }];
                 }
+                
             }
-        } while (index < featchArray.count);
-        
-        if (result == nil) {
-            
-            result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: [NSDictionary dictionaryWithObjectsAndKeys: preSelectedAssets, @"preSelectedAssets", fileStrings, @"images", captions, @"captions", invalidImages, @"invalidImages", _distinationType, KEY_TYPE, nil]];
             
         }
-    });
-    
-    dispatch_group_notify(dispatchGroup, dispatch_get_main_queue(), ^{
-        if (nil == result) {
-            result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: [NSDictionary dictionaryWithObjectsAndKeys: preSelectedAssets, @"preSelectedAssets", fileStrings, @"images", captions, @"captions",  invalidImages, @"invalidImages", _distinationType, KEY_TYPE, nil]];
-            
-            
-        }
-        
-        progressHUD.progress = 1.f;
-        [progressHUD hide:YES];
-        [self.viewController dismissViewControllerAnimated:YES completion:nil];
-        [self.commandDelegate sendPluginResult:result callbackId:self.callbackId];
-    });
-    
-    
+    }
     
 }
 
@@ -648,7 +611,7 @@
     if (saveToPhotoAlbum && !UIVideoAtPathIsCompatibleWithSavedPhotosAlbum([inputFileURL path]))
     {
         NSString *error = @"Video cannot be saved to photo album";
-//        [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:error ] callbackId:command.callbackId];
+        //        [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:error ] callbackId:command.callbackId];
         return;
     }
     
@@ -746,10 +709,10 @@
             NSMutableDictionary *dictionary = [[NSMutableDictionary alloc] init];
             [dictionary setValue: [NSNumber numberWithDouble: progress] forKey: @"progress"];
             
-//            CDVPluginResult* result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: dictionary];
-//            
-//            [result setKeepCallbackAsBool:YES];
-//            [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
+            //            CDVPluginResult* result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: dictionary];
+            //
+            //            [result setKeepCallbackAsBool:YES];
+            //            [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
             dispatch_semaphore_wait(sessionWaitSemaphore, dispatchTime);
         } while( [encoder status] < AVAssetExportSessionStatusCompleted );
         
@@ -760,10 +723,10 @@
             double progress = 100.00;
             [dictionary setValue: [NSNumber numberWithDouble: progress] forKey: @"progress"];
             
-//            CDVPluginResult* result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: dictionary];
+            //            CDVPluginResult* result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: dictionary];
             
-//            [result setKeepCallbackAsBool:YES];
-//            [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
+            //            [result setKeepCallbackAsBool:YES];
+            //            [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
         }
         
         if (encoder.status == AVAssetExportSessionStatusCompleted)
@@ -772,17 +735,17 @@
             if (saveToPhotoAlbum) {
                 UISaveVideoAtPathToSavedPhotosAlbum(outputPath, self, nil, nil);
             }
-//            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:outputPath] callbackId:command.callbackId];
+            //            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:outputPath] callbackId:command.callbackId];
         }
         else if (encoder.status == AVAssetExportSessionStatusCancelled)
         {
             NSLog(@"Video export cancelled");
-//            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Video export cancelled"] callbackId:command.callbackId];
+            //            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Video export cancelled"] callbackId:command.callbackId];
         }
         else
         {
             NSString *error = [NSString stringWithFormat:@"Video export failed with error: %@ (%ld)", encoder.error.localizedDescription, (long)encoder.error.code];
-//            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:error] callbackId:command.callbackId];
+            //            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:error] callbackId:command.callbackId];
         }
     }];
 }
@@ -820,3 +783,4 @@ static dispatch_time_t getDispatchTimeFromSeconds(float seconds) {
     return waitTime;
 }
 @end
+
