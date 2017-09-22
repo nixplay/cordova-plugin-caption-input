@@ -21,7 +21,7 @@
 		<pod name="PhotoCaptionInputView" git="https://github.com/nixplay/PhotoCaptionInputView.git" tag="0.4.9" />
 		<pod name="GMImagePicker" git="https://github.com/nixplay/GMImagePicker.git" tag="0.0.16"/>
 
-		<pod name="SDWebImage" version="4.0.0"/>
+		<pod name="SDWebImage" version="4.1.0"/>
 		<pod name="CRGradientNavigationBar"/>
 		<resource-file src="src/ios/PhotoCaptionInputViewPlugin.bundle"/>
 	</platform>
