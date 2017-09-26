@@ -17,9 +17,9 @@
 		<header-file src="src/ios/PhotoCaptionInputViewPlugin.h"/>
 		<source-file src="src/ios/PhotoCaptionInputViewPlugin.m"/>
 		<pods-config ios-min-version="9.0" use-frameworks="true"></pods-config>
-		<pod name="MWPhotoBrowser" git="https://github.com/nixplay/MWPhotoBrowser"  tag="2.1.24" />
-		<pod name="PhotoCaptionInputView" git="https://github.com/nixplay/PhotoCaptionInputView.git" tag="0.5.1" />
-		<pod name="GMImagePicker" git="https://github.com/nixplay/GMImagePicker.git" tag="0.1.0"/>
+		<pod name="MWPhotoBrowser" git="https://github.com/nixplay/MWPhotoBrowser"  tag="2.1.26" />
+		<pod name="PhotoCaptionInputView" git="https://github.com/nixplay/PhotoCaptionInputView.git" tag="0.5.2" />
+		<pod name="GMImagePicker" git="https://github.com/nixplay/GMImagePicker.git" tag="0.1.1"/>
 		<pod name="MRProgress"/>
 		<pod name="Masonry"/>
 		<pod name="SDWebImage" version="4.1.0"/>
