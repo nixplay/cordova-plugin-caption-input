@@ -13,8 +13,9 @@
 #import "MWPhotoExt.h"
 #import "MWCommon.h"
 #import "CustomViewController.h"
-#import "SDAVAssetExportSession.h"
+
 #import "Masonry.h"
+#import "FileHash.h"
 @import Photos;
 #define LIGHT_BLUE_COLOR [UIColor colorWithRed:(99/255.0f)  green:(176/255.0f)  blue:(228.0f/255.0f) alpha:1.0]
 #define BUNDLE_UIIMAGE(imageNames) [UIImage imageNamed:[NSString stringWithFormat:@"%@.bundle/%@", NSStringFromClass([self class]), imageNames]]
@@ -162,7 +163,7 @@
     
     __block NSMutableArray *invalidImages = [[NSMutableArray alloc] init];
     CGSize targetSize = CGSizeMake(self.width, self.height);
-    NSString* docsPath = [NSTemporaryDirectory()stringByStandardizingPath];
+    NSString* docsPath = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) objectAtIndex:0];
     
     __block CDVPluginResult* result = nil;
     
@@ -258,16 +259,14 @@
     NSString *localIdentifier;
     NSError * err;
     CDVPluginResult *result = nil;
-    NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
-    [dateFormatter setDateFormat:@"yyyyMMddHHmmss"];
-    NSString *localizedDateString = [dateFormatter stringFromDate:[NSDate date]];
+    
     if (asset == nil) {
         result = [CDVPluginResult resultWithStatus:CDVCommandStatus_IO_EXCEPTION messageAsString:[err localizedDescription]];
         errorCallback(result);
     } else if(asset.mediaType == PHAssetMediaTypeImage){
         localIdentifier = [asset localIdentifier];
         NSString* fileName = [[localIdentifier componentsSeparatedByString:@"/"] objectAtIndex:0] ;
-        NSString *filePath = [NSString stringWithFormat:@"%@/%@-%@.%@", docsPath, fileName, localizedDateString, @"jpg"];
+        NSString *filePath = [NSString stringWithFormat:@"%@/%@.%@", docsPath, fileName, @"jpg"];
         __block UIImage *image;
         localIdentifier = [asset localIdentifier];
         if([[NSFileManager defaultManager] fileExistsAtPath:filePath]){
@@ -316,8 +315,9 @@
                                                     CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_IO_EXCEPTION messageAsString:[err localizedDescription]];
                                                     errorCallback(result);
                                                 } else {
+                                                    ;
                                                     internalIndex++;
-                                                    nextCallback(internalIndex,[[NSURL fileURLWithPath:filePath] absoluteString], localIdentifier, nil);
+                                                    nextCallback(internalIndex,[[NSURL fileURLWithPath:[self getMD5FileString:filePath docPath:docsPath subtype:@".jpg"]] absoluteString], localIdentifier, nil);
                                                     [self processAssets:fetchAssets
                                                                   index:internalIndex
                                                                docsPath:docsPath
@@ -358,31 +358,90 @@
         CGFloat startTime = [[[startEndTimes objectAtIndex:internalIndex] valueForKey:@"startTime"] floatValue];
         CGFloat endTime = [[[startEndTimes objectAtIndex:internalIndex] valueForKey:@"endTime"] floatValue];
         NSString* fileName = [[localIdentifier componentsSeparatedByString:@"/"] objectAtIndex:0];
-        __block NSString *filePath = [NSString stringWithFormat:@"%@/%@-%@.%@", docsPath, fileName, localizedDateString, @"mov"];
+        __block NSString *filePath = [NSString stringWithFormat:@"%@/%@.%@", docsPath, fileName, @"mov"];
         
         if([self.exportSession status] != AVAssetExportSessionStatusExporting){
             PHVideoRequestOptions *options = [PHVideoRequestOptions new];
             options.networkAccessAllowed = YES;
             
-            [manager requestAVAssetForVideo:asset options:options resultHandler:^(AVAsset * _Nullable asset, AVAudioMix * _Nullable audioMix, NSDictionary * _Nullable info) {
-                if ([asset isKindOfClass:[AVURLAsset class]]) {
-                    NSArray *compatiblePresets = [AVAssetExportSession exportPresetsCompatibleWithAsset:asset];
+            [manager requestAVAssetForVideo:asset options:options resultHandler:^(AVAsset * _Nullable avasset, AVAudioMix * _Nullable audioMix, NSDictionary * _Nullable info) {
+                if ([avasset isKindOfClass:[AVURLAsset class]]) {
+                    NSArray *compatiblePresets = [AVAssetExportSession exportPresetsCompatibleWithAsset:avasset];
                     if ([compatiblePresets containsObject:AVAssetExportPresetMediumQuality]) {
                         
-                        self.exportSession = [[AVAssetExportSession alloc]
-                                              initWithAsset:asset presetName:AVAssetExportPresetPassthrough];
-                        // Implementation continues.
-                        
+                        //                        self.exportSession = [[AVAssetExportSession alloc]
+                        //                                              initWithAsset:avasset presetName:AVAssetExportPresetPassthrough];
+                        //                        // Implementation continues.
+                        //
                         NSURL *furl = [NSURL fileURLWithPath:filePath];
-                        
-                        self.exportSession.outputURL = furl;
-                        self.exportSession.outputFileType = AVFileTypeQuickTimeMovie;
-                        
-                        CMTime start = CMTimeMakeWithSeconds(startTime, asset.duration.timescale);
-                        CMTime duration = CMTimeMakeWithSeconds(endTime - startTime, asset.duration.timescale);
+                        //
+                        //                        self.exportSession.outputURL = furl;
+                        //                        self.exportSession.outputFileType = AVFileTypeQuickTimeMovie;
+                        CMTime start = CMTimeMakeWithSeconds(startTime, avasset.duration.timescale);
+                        CMTime duration = CMTimeMakeWithSeconds(endTime - startTime, avasset.duration.timescale);
                         CMTimeRange range = CMTimeRangeMake(start, duration);
+                        //                        self.exportSession.timeRange = range;
+                        float width = 1280;
+                        float height = 1280;
+                        NSArray *tracks = [avasset tracksWithMediaType:AVMediaTypeVideo];
+                        AVAssetTrack *track = [tracks objectAtIndex:0];
+                        CGSize mediaSize = track.naturalSize;
+                        
+                        BOOL maintainAspectRatio = YES;
+                        float videoWidth = mediaSize.width;
+                        float videoHeight = mediaSize.height;
+                        int newWidth;
+                        int newHeight;
+                        
+                        if (maintainAspectRatio) {
+                            float aspectRatio = videoWidth / videoHeight;
+                            
+                            // for some portrait videos ios gives the wrong width and height, this fixes that
+                            NSString *videoOrientation = [self getOrientationForTrack:avasset];
+                            if ([videoOrientation isEqual: @"portrait"]) {
+                                if (videoWidth > videoHeight) {
+                                    videoWidth = mediaSize.height;
+                                    videoHeight = mediaSize.width;
+                                    aspectRatio = videoWidth / videoHeight;
+                                }
+                            }
+                            
+                            newWidth = (width && height) ? height * aspectRatio : videoWidth;
+                            newHeight = (width && height) ? newWidth / aspectRatio : videoHeight;
+                        } else {
+                            newWidth = (width && height) ? width : videoWidth;
+                            newHeight = (width && height) ? height : videoHeight;
+                        }
+                        NSString *stringOutputFileType = AVFileTypeQuickTimeMovie;
+                        NSString *outputExtension = @".mov";
+                        self.exportSession = [SDAVAssetExportSession.alloc initWithAsset:avasset];
+                        self.exportSession.outputFileType = stringOutputFileType;
+                        self.exportSession.outputURL = furl;
+                        self.exportSession.shouldOptimizeForNetworkUse = YES;
+                        self.exportSession.videoSettings = @
+                        {
+                        AVVideoCodecKey: AVVideoCodecH264,
+                        AVVideoWidthKey: [NSNumber numberWithInt: newWidth],
+                        AVVideoHeightKey: [NSNumber numberWithInt: newHeight],
+                        AVVideoCompressionPropertiesKey: @
+                            {
+                            AVVideoAverageBitRateKey: [NSNumber numberWithInt: 1000000],
+                            AVVideoProfileLevelKey: AVVideoProfileLevelH264High40
+                            }
+                        };
+                        self.exportSession.audioSettings = @
+                        {
+                        AVFormatIDKey: @(kAudioFormatMPEG4AAC),
+                        AVNumberOfChannelsKey: [NSNumber numberWithInt: 2],
+                        AVSampleRateKey: [NSNumber numberWithInt: 44100],
+                        AVEncoderBitRateKey: [NSNumber numberWithInt: 128000]
+                        };
+                        
                         self.exportSession.timeRange = range;
                         
+                        
+                        //  Set up a semaphore for the completion handler and progress timer
+                        //                        dispatch_semaphore_t sessionWaitSemaphore = dispatch_semaphore_create(0);
                         [self.exportSession exportAsynchronouslyWithCompletionHandler:^{
                             
                             switch ([self.exportSession status]) {
@@ -398,12 +457,51 @@
                                     internalIndex ++;
                                     nextCallback(internalIndex,nil, nil, localIdentifier);
                                     break;
-                                default:
-                                    NSLog(@"NONE");
-                                    internalIndex++;
-                                    nextCallback(internalIndex,[[NSURL fileURLWithPath:filePath] absoluteString], localIdentifier, nil);
-                                    
+                                case AVAssetExportSessionStatusWaiting:
+                                    NSLog(@"Export waiting");
                                     break;
+                                case AVAssetExportSessionStatusExporting:
+                                    NSLog(@"Export exporting");
+                                    break;
+                                case AVAssetExportSessionStatusUnknown:
+                                    NSLog(@"Export unknown");
+                                    break;
+                                case AVAssetExportSessionStatusCompleted:
+                                    NSLog(@"AVAssetExportSessionStatusCompleted");
+                                    __block NSString *exportFileName = [self getMD5FileString:filePath  docPath:docsPath subtype:@"mov"];
+                                    [manager requestImageForAsset:asset targetSize:CGSizeMake(512, 512) contentMode:PHImageContentModeDefault options:requestOptions resultHandler:^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
+                                        @autoreleasepool {
+                                            if(result != nil){
+                                                NSString *thumbnailPath = [exportFileName stringByReplacingOccurrencesOfString:@".mov" withString:@"-thumbnail.jpg"];
+                                                NSData * binaryImageData = UIImageJPEGRepresentation(result, self.quality/100.0f);
+                                                NSError *err;
+                                                if (![binaryImageData writeToFile:thumbnailPath options:NSAtomicWrite error:&err] ) {
+                                                    NSLog(@"Error: %@", err);
+                                                } else {
+                                                    
+                                                }
+                                            }
+                                        }
+                                    }];
+                                    [manager requestImageForAsset:asset targetSize:CGSizeMake(asset.pixelWidth, asset.pixelHeight) contentMode:PHImageContentModeDefault options:requestOptions resultHandler:^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
+                                        @autoreleasepool {
+                                            if(result != nil){
+                                                NSString *previewPath = [exportFileName stringByReplacingOccurrencesOfString:@".mov" withString:@"-preview.jpg"];
+                                                NSData * binaryImageData = UIImageJPEGRepresentation(result, self.quality/100.0f);
+                                                NSError *err;
+                                                if (![binaryImageData writeToFile:previewPath options:NSAtomicWrite error:&err] ) {
+                                                    NSLog(@"Error: %@", err);
+                                                } else {
+                                                    
+                                                }
+                                            }
+                                        }
+                                    }];
+                                    
+                                    internalIndex++;
+                                    nextCallback(internalIndex,[[NSURL fileURLWithPath:exportFileName] absoluteString], localIdentifier, nil);
+                                    break;
+                                    
                             }
                             [self processAssets:fetchAssets
                                           index:internalIndex
@@ -424,6 +522,21 @@
     
 }
 
+-(NSString*) getMD5FileString:(NSString*)filePath docPath:(NSString*)docsPath subtype:(NSString*)subtype{
+    NSString *executableFileMD5Hash = [FileHash md5HashOfFileAtPath:filePath];
+    
+    NSError * err = NULL;
+    NSFileManager * fm = [[NSFileManager alloc] init];
+    NSString *newFileName = [NSString stringWithFormat:@"%@/%@.%@", docsPath, executableFileMD5Hash, subtype];
+    BOOL result = [fm moveItemAtPath:filePath
+                              toPath:newFileName
+                               error:&err];
+    if(!result){
+        NSLog(@"Error: %@", err);
+        return filePath;
+    }
+    return newFileName;
+}
 
 - (NSMutableArray*)photoBrowser:(MWPhotoBrowser *)photoBrowser buildToolbarItems:(UIToolbar*)toolBar{
     NSMutableArray *items = [[NSMutableArray alloc] init];
@@ -600,7 +713,7 @@
     NSString *videoFileName = [options objectForKey:@"outputFileName"];
     
     BOOL optimizeForNetworkUse = ([options objectForKey:@"optimizeForNetworkUse"]) ? [[options objectForKey:@"optimizeForNetworkUse"] intValue] : NO;
-    BOOL saveToPhotoAlbum = [options objectForKey:@"saveToLibrary"] ? [[options objectForKey:@"saveToLibrary"] boolValue] : YES;
+    
     //float videoDuration = [[options objectForKey:@"duration"] floatValue];
     BOOL maintainAspectRatio = [options objectForKey:@"maintainAspectRatio"] ? [[options objectForKey:@"maintainAspectRatio"] boolValue] : YES;
     float width = [[options objectForKey:@"width"] floatValue];
@@ -611,15 +724,28 @@
     int audioBitrate = ([options objectForKey:@"audioBitrate"]) ? [[options objectForKey:@"audioBitrate"] intValue] : 128000; // default to 128 kilobits
     
     NSString *stringOutputFileType = Nil;
-    NSString *outputExtension = @".mov";
-    
+    NSString *outputExtension = Nil;
+    //
+    //    switch (outputFileType) {
+    //        case QUICK_TIME:
+    stringOutputFileType = AVFileTypeQuickTimeMovie;
+    outputExtension = @".mov";
+    //            break;
+    //        case M4A:
+    //            stringOutputFileType = AVFileTypeAppleM4A;
+    //            outputExtension = @".m4a";
+    //            break;
+    //        case M4V:
+    //            stringOutputFileType = AVFileTypeAppleM4V;
+    //            outputExtension = @".m4v";
+    //            break;
+    //        case MPEG4:
+    //        default:
+    //            stringOutputFileType = AVFileTypeMPEG4;
+    //            outputExtension = @".mp4";
+    //            break;
+    //    }
     // check if the video can be saved to photo album before going further
-    if (saveToPhotoAlbum && !UIVideoAtPathIsCompatibleWithSavedPhotosAlbum([inputFileURL path]))
-    {
-        NSString *error = @"Video cannot be saved to photo album";
-        //        [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:error ] callbackId:command.callbackId];
-        return;
-    }
     
     AVURLAsset *avAsset = [AVURLAsset URLAssetWithURL:inputFileURL options:nil];
     
@@ -715,10 +841,6 @@
             NSMutableDictionary *dictionary = [[NSMutableDictionary alloc] init];
             [dictionary setValue: [NSNumber numberWithDouble: progress] forKey: @"progress"];
             
-            //            CDVPluginResult* result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: dictionary];
-            //
-            //            [result setKeepCallbackAsBool:YES];
-            //            [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
             dispatch_semaphore_wait(sessionWaitSemaphore, dispatchTime);
         } while( [encoder status] < AVAssetExportSessionStatusCompleted );
         
@@ -729,29 +851,22 @@
             double progress = 100.00;
             [dictionary setValue: [NSNumber numberWithDouble: progress] forKey: @"progress"];
             
-            //            CDVPluginResult* result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: dictionary];
-            
-            //            [result setKeepCallbackAsBool:YES];
-            //            [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
         }
         
         if (encoder.status == AVAssetExportSessionStatusCompleted)
         {
             NSLog(@"Video export succeeded");
-            if (saveToPhotoAlbum) {
-                UISaveVideoAtPathToSavedPhotosAlbum(outputPath, self, nil, nil);
-            }
-            //            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:outputPath] callbackId:command.callbackId];
+            
         }
         else if (encoder.status == AVAssetExportSessionStatusCancelled)
         {
             NSLog(@"Video export cancelled");
-            //            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Video export cancelled"] callbackId:command.callbackId];
+            
         }
         else
         {
             NSString *error = [NSString stringWithFormat:@"Video export failed with error: %@ (%ld)", encoder.error.localizedDescription, (long)encoder.error.code];
-            //            [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:error] callbackId:command.callbackId];
+            
         }
     }];
 }
