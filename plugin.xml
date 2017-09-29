@@ -28,7 +28,7 @@
 		<pod name="SDWebImage" version="4.1.0"/>
 		<pod name="MRProgress"/>
 		<pod name="Masonry"/>
-		<pod name="CRGradientNavigationBar"/>
+		<pod name="FileMD5Hash"/>
 		<resource-file src="src/ios/PhotoCaptionInputViewPlugin.bundle"/>
 	</platform>
 	<platform name="android">
