@@ -47,7 +47,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import com.esafirm.imagepicker.model.Image;
 import com.facebook.common.executors.CallerThreadExecutor;
 import com.facebook.common.references.CloseableReference;
 import com.facebook.datasource.DataSource;
@@ -76,6 +75,9 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+
+import me.iwf.photopicker.PhotoPicker;
+import me.iwf.photopicker.PhotoPreview;
 
 import static android.view.View.GONE;
 import static com.creedon.cordova.plugin.captioninput.Constants.KEY_CAPTIONS;
@@ -338,24 +340,31 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     @Override
                     public void onClick(View view) {
 
-
-                        ArrayList<Image> preSelectedAssetsImage = new ArrayList<Image>();
-                        for (int i = 0; i < preSelectedAssets.size(); i++) {
-                            Image image = new Image(i, preSelectedAssets.get(i), preSelectedAssets.get(i));
-                            preSelectedAssetsImage.add(image);
-                        }
-                        com.esafirm.imagepicker.features.ImagePicker
-                                .create(PhotoCaptionInputViewActivity.this)
-                                .returnAfterFirst(false)
-//                                .folderMode(true) // folder mode (false by default)
-//                                .folderTitle(getString(fakeR.getId("string", "ALBUM"))) // folder selection title
-                                .multi() // multi mode (default mode)
-                                .limit(maxImages) // max images can be selected (99 by default)
-                                .showCamera(true) // show camera or not (true by default)
-                                .origin(preSelectedAssetsImage)
-//                                .enableLog(false) // disabling log
-                                .theme(fakeR.getId("style", "ImagePickerTheme"))
-                                .start(REQUEST_CODE_PICKER); // start image picker activity with request code
+                        PhotoPicker.builder()
+                                .setPhotoCount(maxImages)
+                                .setGridColumnCount(4)
+                                .setShowCamera(true)
+                                .setPreviewEnabled(false)
+                                .setShowGif(false)
+                                .setSelected(preSelectedAssets)
+                                .start(PhotoCaptionInputViewActivity.this);
+//                        ArrayList<Image> preSelectedAssetsImage = new ArrayList<Image>();
+//                        for (int i = 0; i < preSelectedAssets.size(); i++) {
+//                            Image image = new Image(i, preSelectedAssets.get(i), preSelectedAssets.get(i));
+//                            preSelectedAssetsImage.add(image);
+//                        }
+//                        com.esafirm.imagepicker.features.ImagePicker
+//                                .create(PhotoCaptionInputViewActivity.this)
+//                                .returnAfterFirst(false)
+////                                .folderMode(true) // folder mode (false by default)
+////                                .folderTitle(getString(fakeR.getId("string", "ALBUM"))) // folder selection title
+//                                .multi() // multi mode (default mode)
+//                                .limit(maxImages) // max images can be selected (99 by default)
+//                                .showCamera(true) // show camera or not (true by default)
+//                                .origin(preSelectedAssetsImage)
+////                                .enableLog(false) // disabling log
+//                                .theme(fakeR.getId("style", "ImagePickerTheme"))
+//                                .start(REQUEST_CODE_PICKER); // start image picker activity with request code
                     }
                 });
                 //show image view
@@ -636,21 +645,24 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
-            if (requestCode == REQUEST_CODE_PICKER && resultCode == RESULT_OK && data != null) {
-
-                ArrayList<Image> images = (ArrayList<Image>) com.esafirm.imagepicker.features.ImagePicker.getImages(data);
-                if (kProgressHUD != null) {
-                    kProgressHUD.dismiss();
+            if ((requestCode == PhotoPicker.REQUEST_CODE || requestCode == PhotoPreview.REQUEST_CODE)) {
+                ArrayList<String> photos = null;
+                if (data != null) {
+                    photos = data.getStringArrayListExtra(PhotoPicker.KEY_SELECTED_PHOTOS);
                 }
-
-                ArrayList<String> tempList = new ArrayList<String>();
-
-                Iterator it = images.iterator();
+//                ArrayList<Image> images = (ArrayList<Image>) com.esafirm.imagepicker.features.ImagePicker.getImages(data);
+//                if (kProgressHUD != null) {
+//                    kProgressHUD.dismiss();
+//                }
+//
+//                ArrayList<String> tempList = new ArrayList<String>();
+//
+                Iterator it = photos.iterator();
                 while (it.hasNext()) {
-                    Image image = (Image) it.next();
-                    if (!preSelectedAssets.contains(image.getPath())) {
-                        preSelectedAssets.add(image.getPath());
-                        imageList.add(Uri.fromFile(new File(image.getPath())).toString());
+                    String imagePath = (String) it.next();
+                    if (!preSelectedAssets.contains(imagePath)) {
+                        preSelectedAssets.add(imagePath);
+                        imageList.add(Uri.fromFile(new File(imagePath)).toString());
                         captions.add("");
                     }
                 }

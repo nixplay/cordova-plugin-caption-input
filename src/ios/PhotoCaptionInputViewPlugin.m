@@ -9,9 +9,13 @@
 #import "PhotoCaptionInputViewPlugin.h"
 #import <Cordova/CDVViewController.h>
 #import "MBProgressHUD.h"
+#import "MRProgress.h"
 #import "MWPhotoExt.h"
+#import "MWCommon.h"
 #import "CustomViewController.h"
 #import "SDAVAssetExportSession.h"
+#import "Masonry.h"
+@import Photos;
 #define LIGHT_BLUE_COLOR [UIColor colorWithRed:(99/255.0f)  green:(176/255.0f)  blue:(228.0f/255.0f) alpha:1.0]
 #define BUNDLE_UIIMAGE(imageNames) [UIImage imageNamed:[NSString stringWithFormat:@"%@.bundle/%@", NSStringFromClass([self class]), imageNames]]
 #define BIN_UIIMAGE BUNDLE_UIIMAGE(@"images/bin.png")
@@ -55,7 +59,7 @@
     self.width = [[options objectForKey:@"width"] integerValue];
     self.height = [[options objectForKey:@"height"] integerValue];
     self.quality = [[options objectForKey:@"quality"] integerValue];
-    self.allow_video = true;//[[options objectForKey:@"allow_video" ] boolValue ];
+    self.allow_video = [[options objectForKey:@"allow_video" ] boolValue ];
     //    NSUInteger photoIndex = [[options objectForKey:@"index"] intValue];
     self.preSelectedAssets = [options objectForKey:@"preSelectedAssets"];
     
@@ -152,11 +156,9 @@
     
     [controller.presentingViewController dismissViewControllerAnimated:YES completion:nil];
     
-    NSLog(@"GMImagePicker: User finished picking assets. Number of selected items is: %lu", (unsigned long)photos.count);
-    
     __block NSMutableArray *preSelectedAssets = [[NSMutableArray alloc] init];
     __block NSMutableArray *fileStrings = [[NSMutableArray alloc] init];
-    //    __block NSMutableArray *livePhotoFileStrings = [[NSMutableArray alloc] init];
+    
     
     __block NSMutableArray *invalidImages = [[NSMutableArray alloc] init];
     CGSize targetSize = CGSizeMake(self.width, self.height);
@@ -172,19 +174,19 @@
     requestOptions.networkAccessAllowed = YES;
     
     // this one is key
-    requestOptions.synchronous = true;
+    requestOptions.synchronous = false;
     
     dispatch_group_t dispatchGroup = dispatch_group_create();
-    
-    MBProgressHUD *progressHUD = [MBProgressHUD showHUDAddedTo:self.viewController.view
-                                                      animated:YES];
-    progressHUD.mode = MBProgressHUDModeDeterminateHorizontalBar;
-    progressHUD.backgroundColor = [UIColor colorWithWhite:0.0f alpha:0.3f];
-    [progressHUD.label setText: NSLocalizedString(@"PROCESSING",nil)];
-    [progressHUD showAnimated: YES];
-    
-    dispatch_group_notify(dispatchGroup, dispatch_get_main_queue(), ^{
-        
+    MRProgressOverlayView *progressView = [MRProgressOverlayView new];
+    progressView.mode = MRProgressOverlayViewModeDeterminateCircular;
+    progressView.tintColor = [UIColor darkGrayColor];
+    [progressView show:YES];
+    [controller.view addSubview:progressView];
+    [progressView mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.centerY.equalTo(progressView.superview.mas_centerY);
+        make.centerX.equalTo(progressView.superview.mas_centerX);
+    }];
+    dispatch_group_async(dispatchGroup, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
         PHFetchResult<PHAsset *> * fetchArray = [PHAsset fetchAssetsWithLocalIdentifiers:preselectAssets options:nil];
         __block CGFloat numberOfImage = [fetchArray count];
         [self processAssets:fetchArray
@@ -199,8 +201,8 @@
                   result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: [NSDictionary dictionaryWithObjectsAndKeys: preSelectedAssets, @"preSelectedAssets", fileStrings, @"images", captions, @"captions",  invalidImages, @"invalidImages", _distinationType, KEY_TYPE, nil]];
               }
               dispatch_group_notify(dispatchGroup, dispatch_get_main_queue(), ^{
-                  progressHUD.progress = 1.f;
-                  [progressHUD hideAnimated:YES];
+                  
+                  [progressView dismiss:YES];
                   [self.commandDelegate sendPluginResult:result callbackId:self.callbackId];
                   [controller.presentingViewController dismissViewControllerAnimated:YES completion:nil];
                   [self.viewController dismissViewControllerAnimated:YES completion:nil];
@@ -219,21 +221,20 @@
                   [invalidImages addObject: @""];
               }
               dispatch_async(dispatch_get_main_queue(), ^{
-                  
-                  [progressHUD setProgress:index/numberOfImage];
+                  [progressView setProgress:(CGFloat)index/(CGFloat)numberOfImage];
               });
               
           } errorCallback:^(CDVPluginResult *errorResult) {
               dispatch_group_notify(dispatchGroup, dispatch_get_main_queue(), ^{
+                  [progressView dismiss:YES];
                   [self.commandDelegate sendPluginResult:errorResult callbackId:self.callbackId];
                   [controller.presentingViewController dismissViewControllerAnimated:YES completion:nil];
                   [self.viewController dismissViewControllerAnimated:YES completion:nil];
               });
           }];
         
-        
-        
     });
+    
 }
 
 -(void) processAssets:(PHFetchResult<PHAsset *>*)fetchAssets
@@ -246,14 +247,12 @@
     completedCallback:(void(^)(void))completedCallback
          nextCallback:(void(^)(NSInteger index , NSString* filePath, NSString* localIdentifier, NSString* invalidImage))nextCallback
         errorCallback:(void(^)(CDVPluginResult* errorResult))errorCallback{
-    
     if(index >= [fetchAssets count]){
         completedCallback();
         return;
     }
     
     __block NSInteger internalIndex = index;
-    __block NSData *imgData;
     PHAsset *asset = [fetchAssets objectAtIndex:internalIndex];
     
     NSString *localIdentifier;
@@ -261,169 +260,177 @@
     CDVPluginResult *result = nil;
     if (asset == nil) {
         result = [CDVPluginResult resultWithStatus:CDVCommandStatus_IO_EXCEPTION messageAsString:[err localizedDescription]];
+        errorCallback(result);
     } else if(asset.mediaType == PHAssetMediaTypeImage){
+        localIdentifier = [asset localIdentifier];
+        NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
+        [dateFormatter setDateFormat:@"yyyyMMddHHmmss"];
+        NSString *localizedDateString = [dateFormatter stringFromDate:[NSDate date]];
+        NSString* fileName = [[localIdentifier componentsSeparatedByString:@"/"] objectAtIndex:0] ;
+        NSString *filePath = [NSString stringWithFormat:@"%@/%@-%@.%@", docsPath, fileName, localizedDateString, @"jpg"];
         __block UIImage *image;
         localIdentifier = [asset localIdentifier];
-        NSLog(@"localIdentifier: %@", localIdentifier);
-        NSString* fileName = [[localIdentifier componentsSeparatedByString:@"/"] objectAtIndex:0];
-        NSString *filePath = [NSString stringWithFormat:@"%@/%@.%@", docsPath, fileName, @"jpg"];
-        requestOptions.deliveryMode = PHImageRequestOptionsDeliveryModeFastFormat;
-        
         if([[NSFileManager defaultManager] fileExistsAtPath:filePath]){
-            
-            if (asset == nil) {
-                result = [CDVPluginResult resultWithStatus:CDVCommandStatus_IO_EXCEPTION messageAsString:[err localizedDescription]];
-            } else if(asset.mediaType == PHAssetMediaTypeImage){
-                __block UIImage *image;
-                localIdentifier = [asset localIdentifier];
-                NSLog(@"localIdentifier: %@", localIdentifier);
-                NSString* fileName = [[localIdentifier componentsSeparatedByString:@"/"] objectAtIndex:0];
-                filePath = [NSString stringWithFormat:@"%@/%@.%@", docsPath, fileName, @"jpg"];
-                if([[NSFileManager defaultManager] fileExistsAtPath:filePath]){
-                    //                    [fileStrings addObject:[[NSURL fileURLWithPath:filePath] absoluteString]];
-                    //                    [preSelectedAssets addObject: localIdentifier];
-                    //                    nextCallback();
-                    index++;
-                }else{
-                    [manager requestImageDataForAsset:asset
-                                              options:requestOptions
-                                        resultHandler:^(NSData *imageData,
-                                                        NSString *dataUTI,
-                                                        UIImageOrientation orientation,
-                                                        NSDictionary *info) {
-                                            if([dataUTI isEqualToString:@"public.png"] || [dataUTI isEqualToString:@"public.jpeg"] || [dataUTI isEqualToString:@"public.jpeg-2000"] || [dataUTI isEqualToString:@"public.heic"]) {
+            internalIndex++;
+            nextCallback(internalIndex,[[NSURL fileURLWithPath:filePath] absoluteString], localIdentifier, nil);
+            [self processAssets:fetchAssets
+                          index:internalIndex
+                       docsPath:docsPath
+                     targetSize:targetSize
+                        manager:manager
+                 requestOptions:requestOptions
+                  startEndTimes:nil
+              completedCallback:completedCallback nextCallback:nextCallback errorCallback:errorCallback];
+        }else{
+            [manager requestImageDataForAsset:asset
+                                      options:requestOptions
+                                resultHandler:^(NSData *imageData,
+                                                NSString *dataUTI,
+                                                UIImageOrientation orientation,
+                                                NSDictionary *info) {
+                                    if([dataUTI isEqualToString:@"public.png"] || [dataUTI isEqualToString:@"public.jpeg"] || [dataUTI isEqualToString:@"public.jpeg-2000"] || [dataUTI isEqualToString:@"public.heic"]) {
+                                        
+                                        
+                                        if (imageData != nil) {
+                                            
+                                            @autoreleasepool {
+                                                NSData* data = nil;
+                                                if (self.width == 0 && self.height == 0) {
+                                                    // no scaling required
+                                                    if (self.quality == 100) {
+                                                        data = [imageData copy];
+                                                    } else {
+                                                        image = [UIImage imageWithData:imageData];
+                                                        // resample first
+                                                        data = UIImageJPEGRepresentation(image, self.quality/100.0f);
+                                                    }
+                                                } else {
+                                                    image = [UIImage imageWithData:imageData];
+                                                    // scale
+                                                    UIImage* scaledImage = [self imageByScalingNotCroppingForSize:image toSize:targetSize];
+                                                    data = UIImageJPEGRepresentation(scaledImage, self.quality/100.0f);
+                                                }
                                                 
-                                                imgData = [imageData copy];
-                                                NSString* fullFilePath = [info objectForKey:@"PHImageFileURLKey"];
-                                                NSLog(@"fullFilePath: %@: " , fullFilePath);
+                                                NSError *err;
+                                                if (![data writeToFile:filePath options:NSAtomicWrite error:&err] ) {
+                                                    CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_IO_EXCEPTION messageAsString:[err localizedDescription]];
+                                                    errorCallback(result);
+                                                } else {
+                                                    internalIndex++;
+                                                    nextCallback(internalIndex,[[NSURL fileURLWithPath:filePath] absoluteString], localIdentifier, nil);
+                                                    [self processAssets:fetchAssets
+                                                                  index:internalIndex
+                                                               docsPath:docsPath
+                                                             targetSize:targetSize
+                                                                manager:manager
+                                                         requestOptions:requestOptions
+                                                          startEndTimes:nil
+                                                      completedCallback:completedCallback nextCallback:nextCallback errorCallback:errorCallback];
+                                                }
                                                 
-                                            } else {
-                                                imgData = nil;
-                                                //                                                [invalidImages addObject: localIdentifier];
-                                                //                                                index++;
-                                                internalIndex ++;
-                                                nextCallback(internalIndex,nil, nil, localIdentifier);
                                             }
-                                        }];
-                    
-                    
-                    requestOptions.deliveryMode = PHImageRequestOptionsDeliveryModeFastFormat;
-                    
-                    if (imgData != nil) {
-                        requestOptions.deliveryMode = PHImageRequestOptionsDeliveryModeHighQualityFormat;
-                        @autoreleasepool {
-                            NSData* data = nil;
-                            if (self.width == 0 && self.height == 0) {
-                                // no scaling required
-                                if (self.quality == 100) {
-                                    data = [imgData copy];
-                                } else {
-                                    image = [UIImage imageWithData:imgData];
-                                    // resample first
-                                    data = UIImageJPEGRepresentation(image, self.quality/100.0f);
-                                }
-                            } else {
-                                image = [UIImage imageWithData:imgData];
-                                // scale
-                                UIImage* scaledImage = [self imageByScalingNotCroppingForSize:image toSize:targetSize];
-                                data = UIImageJPEGRepresentation(scaledImage, self.quality/100.0f);
-                            }
-                            
-                            if (![data writeToFile:filePath options:NSAtomicWrite error:&err] ) {
-                                result = [CDVPluginResult resultWithStatus:CDVCommandStatus_IO_EXCEPTION messageAsString:[err localizedDescription]];
-                                //                                break;
-                            } else {
-                                //                                [fileStrings addObject:[[NSURL fileURLWithPath:filePath] absoluteString]];
-                                //                                [preSelectedAssets addObject: localIdentifier];
-                                internalIndex++;
-                                nextCallback(internalIndex,[[NSURL fileURLWithPath:filePath] absoluteString], localIdentifier, nil);
-                            }
-                            data = nil;
-                        }
-                        
-                    }else{
-                        result = [CDVPluginResult resultWithStatus:CDVCommandStatus_IO_EXCEPTION messageAsString:[err localizedDescription]];
-                    }
-                    index++;
-                }
-                
-            } else if(asset.mediaType == PHAssetMediaTypeVideo){
-                localIdentifier = [asset localIdentifier];
-                NSLog(@"localIdentifier: %@", localIdentifier);
-                CGFloat startTime = [[[startEndTimes objectAtIndex:internalIndex] valueForKey:@"startTime"] floatValue];
-                CGFloat endTime = [[[startEndTimes objectAtIndex:internalIndex] valueForKey:@"endTime"] floatValue];
-                NSString* fileName = [[localIdentifier componentsSeparatedByString:@"/"] objectAtIndex:0];
-                filePath = [NSString stringWithFormat:@"%@/%@.%@", docsPath, fileName, @"jpg"];
-                
-                if([self.exportSession status] != AVAssetExportSessionStatusExporting){
-                    PHVideoRequestOptions *options = [PHVideoRequestOptions new];
-                    options.networkAccessAllowed = YES;
-                    
-                    [manager requestAVAssetForVideo:asset options:options resultHandler:^(AVAsset * _Nullable asset, AVAudioMix * _Nullable audioMix, NSDictionary * _Nullable info) {
-                        if ([asset isKindOfClass:[AVURLAsset class]]) {
-                            NSArray *compatiblePresets = [AVAssetExportSession exportPresetsCompatibleWithAsset:asset];
-                            if ([compatiblePresets containsObject:AVAssetExportPresetMediumQuality]) {
-                                
-                                self.exportSession = [[AVAssetExportSession alloc]
-                                                      initWithAsset:asset presetName:AVAssetExportPresetPassthrough];
-                                // Implementation continues.
-                                
-                                NSURL *furl = [NSURL fileURLWithPath:filePath];
-                                
-                                self.exportSession.outputURL = furl;
-                                self.exportSession.outputFileType = AVFileTypeQuickTimeMovie;
-                                
-                                CMTime start = CMTimeMakeWithSeconds(startTime, asset.duration.timescale);
-                                CMTime duration = CMTimeMakeWithSeconds(endTime - startTime, asset.duration.timescale);
-                                CMTimeRange range = CMTimeRangeMake(start, duration);
-                                self.exportSession.timeRange = range;
-                                
-                                [self.exportSession exportAsynchronouslyWithCompletionHandler:^{
-                                    
-                                    switch ([self.exportSession status]) {
-                                        case AVAssetExportSessionStatusFailed:
                                             
-                                            NSLog(@"Export failed: %@", [[self.exportSession error] localizedDescription]);
-                                            internalIndex ++;
-                                            nextCallback(internalIndex,nil, nil, localIdentifier);
-                                            break;
-                                        case AVAssetExportSessionStatusCancelled:
-                                            
-                                            NSLog(@"Export canceled");
-                                            internalIndex ++;
-                                            nextCallback(internalIndex,nil, nil, localIdentifier);
-                                            break;
-                                        default:
-                                            NSLog(@"NONE");
-                                            dispatch_async(dispatch_get_main_queue(), ^{
-                                                
-                                                //                                                NSURL *movieUrl = [NSURL fileURLWithPath:filePath];
-                                                internalIndex++;
-                                                nextCallback(internalIndex,[[NSURL fileURLWithPath:filePath] absoluteString], localIdentifier, nil);
-                                            });
-                                            
-                                            break;
+                                        }else{
+                                            CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_IO_EXCEPTION messageAsString:[err localizedDescription]];
+                                            errorCallback(result);
+                                        }
+                                        
+                                    } else {
+                                        
+                                        internalIndex ++;
+                                        nextCallback(internalIndex,nil, nil, localIdentifier);
+                                        [self processAssets:fetchAssets
+                                                      index:internalIndex
+                                                   docsPath:docsPath
+                                                 targetSize:targetSize
+                                                    manager:manager
+                                             requestOptions:requestOptions
+                                              startEndTimes:nil
+                                          completedCallback:completedCallback nextCallback:nextCallback errorCallback:errorCallback];
                                     }
                                 }];
-                                
-                            }
-                        }
-                    }];
-                }
-                
-            }
+            
             
         }
+    } else if(asset.mediaType == PHAssetMediaTypeVideo){
+        localIdentifier = [asset localIdentifier];
+        NSLog(@"localIdentifier: %@", localIdentifier);
+        CGFloat startTime = [[[startEndTimes objectAtIndex:internalIndex] valueForKey:@"startTime"] floatValue];
+        CGFloat endTime = [[[startEndTimes objectAtIndex:internalIndex] valueForKey:@"endTime"] floatValue];
+        NSString* fileName = [[localIdentifier componentsSeparatedByString:@"/"] objectAtIndex:0];
+        __block NSString *filePath = [NSString stringWithFormat:@"%@/%@.%@", docsPath, fileName, @"jpg"];
+        
+        if([self.exportSession status] != AVAssetExportSessionStatusExporting){
+            PHVideoRequestOptions *options = [PHVideoRequestOptions new];
+            options.networkAccessAllowed = YES;
+            
+            [manager requestAVAssetForVideo:asset options:options resultHandler:^(AVAsset * _Nullable asset, AVAudioMix * _Nullable audioMix, NSDictionary * _Nullable info) {
+                if ([asset isKindOfClass:[AVURLAsset class]]) {
+                    NSArray *compatiblePresets = [AVAssetExportSession exportPresetsCompatibleWithAsset:asset];
+                    if ([compatiblePresets containsObject:AVAssetExportPresetMediumQuality]) {
+                        
+                        self.exportSession = [[AVAssetExportSession alloc]
+                                              initWithAsset:asset presetName:AVAssetExportPresetPassthrough];
+                        // Implementation continues.
+                        
+                        NSURL *furl = [NSURL fileURLWithPath:filePath];
+                        
+                        self.exportSession.outputURL = furl;
+                        self.exportSession.outputFileType = AVFileTypeQuickTimeMovie;
+                        
+                        CMTime start = CMTimeMakeWithSeconds(startTime, asset.duration.timescale);
+                        CMTime duration = CMTimeMakeWithSeconds(endTime - startTime, asset.duration.timescale);
+                        CMTimeRange range = CMTimeRangeMake(start, duration);
+                        self.exportSession.timeRange = range;
+                        
+                        [self.exportSession exportAsynchronouslyWithCompletionHandler:^{
+                            
+                            switch ([self.exportSession status]) {
+                                case AVAssetExportSessionStatusFailed:
+                                    
+                                    NSLog(@"Export failed: %@", [[self.exportSession error] localizedDescription]);
+                                    internalIndex ++;
+                                    nextCallback(internalIndex,nil, nil, localIdentifier);
+                                    break;
+                                case AVAssetExportSessionStatusCancelled:
+                                    
+                                    NSLog(@"Export canceled");
+                                    internalIndex ++;
+                                    nextCallback(internalIndex,nil, nil, localIdentifier);
+                                    break;
+                                default:
+                                    NSLog(@"NONE");
+                                    internalIndex++;
+                                    nextCallback(internalIndex,[[NSURL fileURLWithPath:filePath] absoluteString], localIdentifier, nil);
+                                    
+                                    break;
+                            }
+                            [self processAssets:fetchAssets
+                                          index:internalIndex
+                                       docsPath:docsPath
+                                     targetSize:targetSize
+                                        manager:manager
+                                 requestOptions:requestOptions
+                                  startEndTimes:nil
+                              completedCallback:completedCallback nextCallback:nextCallback errorCallback:errorCallback];
+                        }];
+                        
+                    }
+                }
+            }];
+        }
+        
     }
     
 }
+
 
 - (NSMutableArray*)photoBrowser:(MWPhotoBrowser *)photoBrowser buildToolbarItems:(UIToolbar*)toolBar{
     NSMutableArray *items = [[NSMutableArray alloc] init];
     
     UIBarButtonItem *flexSpace = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:self action:nil];
     [items addObject:flexSpace];
-    float margin = 1.0f;
+    float margin = 0.0f;
     
     
     
@@ -432,8 +439,8 @@
              forToolbarPosition:UIToolbarPositionAny
                      barMetrics:UIBarMetricsDefault];
     
-    [toolBar setBackgroundColor:[UIColor blackColor]];
-    
+    [toolBar setBackgroundColor:[UIColor clearColor]];
+    toolBar.clipsToBounds = YES;
     for (UIView *subView in [toolBar subviews]) {
         if ([subView isKindOfClass:[UIImageView class]]) {
             // Hide the hairline border
@@ -458,17 +465,16 @@
     }else{
         
         [_buttonOptions enumerateObjectsUsingBlock:^(NSDictionary *obj, NSUInteger idx, BOOL * _Nonnull stop) {
-            //            float buttonWidth = (self.viewController.view.frame.size.width *.49)-5;
-            //            if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
-            float  buttonWidth = (self.viewController.view.frame.size.width *.40);
-            //            }
+            
+            CGFloat  buttonWidth = (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"11.0")) ? (self.viewController.view.frame.size.width *.45)-10 : (self.viewController.view.frame.size.width *.5) - 10;
+            
             NSString *labelText = [obj valueForKey:KEY_LABEL];
             if (idx ==0 ) {
                 UIButton *button =  [UIButton buttonWithType:UIButtonTypeCustom];
                 [button addTarget:self action:@selector(onSendPressed:) forControlEvents:UIControlEventTouchUpInside];
                 CGRect newFrame = CGRectMake(0,0,
                                              buttonWidth,
-                                             toolBar.frame.size.height - margin*2 );
+                                             44 );
                 [button setFrame:newFrame];
                 [button setBackgroundColor:LIGHT_BLUE_COLOR];
                 button.layer.cornerRadius = 2; // this value vary as per your desire
@@ -484,7 +490,7 @@
                 
                 CGRect newFrame = CGRectMake(0,0,
                                              buttonWidth,
-                                             toolBar.frame.size.height - margin*2 );
+                                             44 );
                 UIButton *button = [[UIButton alloc] initWithFrame: newFrame];
                 [button setBackgroundColor:LIGHT_BLUE_COLOR];
                 button.layer.cornerRadius = 2; // this value vary as per your desire
@@ -498,11 +504,11 @@
             }
             if(idx != [_buttonOptions count]-1){
                 UIBarButtonItem *fixedSpace = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFixedSpace target:self action:nil];
-                //                if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad) {
-                fixedSpace.width = 1;
-                //                }else{
-                //                    fixedSpace.width = -8;
-                //                }
+                if(SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"11.0")){
+                    fixedSpace.width = 1;
+                }else{
+                    fixedSpace.width = -8;
+                }
                 [items addObject:fixedSpace];
                 
             }
