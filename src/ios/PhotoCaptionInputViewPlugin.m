@@ -258,14 +258,14 @@
     NSString *localIdentifier;
     NSError * err;
     CDVPluginResult *result = nil;
+    NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
+    [dateFormatter setDateFormat:@"yyyyMMddHHmmss"];
+    NSString *localizedDateString = [dateFormatter stringFromDate:[NSDate date]];
     if (asset == nil) {
         result = [CDVPluginResult resultWithStatus:CDVCommandStatus_IO_EXCEPTION messageAsString:[err localizedDescription]];
         errorCallback(result);
     } else if(asset.mediaType == PHAssetMediaTypeImage){
         localIdentifier = [asset localIdentifier];
-        NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
-        [dateFormatter setDateFormat:@"yyyyMMddHHmmss"];
-        NSString *localizedDateString = [dateFormatter stringFromDate:[NSDate date]];
         NSString* fileName = [[localIdentifier componentsSeparatedByString:@"/"] objectAtIndex:0] ;
         NSString *filePath = [NSString stringWithFormat:@"%@/%@-%@.%@", docsPath, fileName, localizedDateString, @"jpg"];
         __block UIImage *image;
@@ -358,7 +358,7 @@
         CGFloat startTime = [[[startEndTimes objectAtIndex:internalIndex] valueForKey:@"startTime"] floatValue];
         CGFloat endTime = [[[startEndTimes objectAtIndex:internalIndex] valueForKey:@"endTime"] floatValue];
         NSString* fileName = [[localIdentifier componentsSeparatedByString:@"/"] objectAtIndex:0];
-        __block NSString *filePath = [NSString stringWithFormat:@"%@/%@.%@", docsPath, fileName, @"jpg"];
+        __block NSString *filePath = [NSString stringWithFormat:@"%@/%@-%@.%@", docsPath, fileName, localizedDateString, @"mov"];
         
         if([self.exportSession status] != AVAssetExportSessionStatusExporting){
             PHVideoRequestOptions *options = [PHVideoRequestOptions new];
