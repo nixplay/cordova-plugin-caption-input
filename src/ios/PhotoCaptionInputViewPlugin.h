@@ -9,6 +9,7 @@
 #import <Foundation/Foundation.h>
 #import <Cordova/CDVPlugin.h>
 #import "PhotoCaptionInputViewController.h"
+#import "SDAVAssetExportSession.h"
 @interface PhotoCaptionInputViewPlugin : CDVPlugin <PhotoCaptionInputViewDelegate> {
 
     NSMutableDictionary* callbackIds;
@@ -31,7 +32,8 @@
 @property (nonatomic, assign) NSInteger outputType;
 @property (nonatomic, assign) NSInteger maximumImagesCount;
 @property (nonatomic, assign) BOOL allow_video;
-@property (nonatomic, strong) AVAssetExportSession* exportSession;
+@property (nonatomic, assign) AVAssetExportSessionStatus status;
+//@property (nonatomic, strong) SDAVAssetExportSession* exportSession;
 @property (nonatomic,assign) PhotoCaptionInputViewController* photoCaptionInputViewController;
 - (void)showCaptionInput:(CDVInvokedUrlCommand*)command ;
 
