@@ -60,7 +60,7 @@
     self.width = [[options objectForKey:@"width"] integerValue];
     self.height = [[options objectForKey:@"height"] integerValue];
     self.quality = [[options objectForKey:@"quality"] integerValue];
-    self.allow_video = YES;// [[options objectForKey:@"allow_video" ] boolValue ];
+    self.allow_video = [[options objectForKey:@"allow_video" ] boolValue ];
     //    NSUInteger photoIndex = [[options objectForKey:@"index"] intValue];
     self.preSelectedAssets = [options objectForKey:@"preSelectedAssets"];
     
