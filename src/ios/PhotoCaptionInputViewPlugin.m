@@ -396,7 +396,12 @@
                     NSURL *furl = [NSURL fileURLWithPath:filePath];
                     CMTime start = CMTimeMakeWithSeconds(startTime, avasset.duration.timescale);
                     CMTime tempDuration = CMTimeMakeWithSeconds(endTime - startTime, avasset.duration.timescale);
-                    CMTime duration = (CMTimeGetSeconds(tempDuration) <= 0 || CMTimeGetSeconds(tempDuration) > 15) ? CMTimeMake(15, avasset.duration.timescale) : tempDuration;
+                    float tempDurationSecond = CMTimeGetSeconds(tempDuration);
+                    float assetDuration = CMTimeGetSeconds(avasset.duration);
+                    CMTime fifteen = CMTimeMakeWithSeconds( 15, avasset.duration.timescale);
+                    CMTime duration = (tempDurationSecond > 1 && tempDurationSecond < 15) ? tempDuration : (assetDuration < 15 ) ? avasset.duration : fifteen;
+                    
+                    
                     CMTimeRange range = CMTimeRangeMake(start, duration);
                     NSLog(@"start = %f duration= %f", CMTimeGetSeconds(start),CMTimeGetSeconds(duration));
 //                    float width = 1280;
