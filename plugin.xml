@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<plugin id="cordova-plugin-caption-input" version="1.3.6" xmlns="http://cordova.apache.org/ns/plugins/1.0">
+<plugin id="cordova-plugin-caption-input" version="1.3.7" xmlns="http://cordova.apache.org/ns/plugins/1.0">
 	<!-- pre add gradle dependencies -->
 	<name>PhotoCaptionInputViewPlugin</name>
 	<author>James Kong</author>
@@ -17,7 +17,7 @@
 		<header-file src="src/ios/PhotoCaptionInputViewPlugin.h"/>
 		<source-file src="src/ios/PhotoCaptionInputViewPlugin.m"/>
 		<pods-config ios-min-version="9.0" use-frameworks="true"></pods-config>
-		<pod name="MWPhotoBrowser" git="https://github.com/nixplay/MWPhotoBrowser"  tag="2.1.26" />
+		<pod name="MWPhotoBrowser" git="https://github.com/nixplay/MWPhotoBrowser"  tag="2.1.27" />
 		<pod name="PhotoCaptionInputView" git="https://github.com/nixplay/PhotoCaptionInputView.git" tag="0.5.2" />
 		<pod name="GMImagePicker" git="https://github.com/nixplay/GMImagePicker.git" tag="0.1.3"/>
 		<pod name="MRProgress"/>
