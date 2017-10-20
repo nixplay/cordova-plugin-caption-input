@@ -376,6 +376,10 @@
         NSLog(@"localIdentifier: %@", localIdentifier);
         CGFloat startTime = [[[startEndTimes objectAtIndex:internalIndex] valueForKey:@"startTime"] floatValue];
         CGFloat endTime = [[[startEndTimes objectAtIndex:internalIndex] valueForKey:@"endTime"] floatValue];
+        __block NSString *edited = @"false";
+        if([[startEndTimes objectAtIndex:internalIndex] valueForKey:@"auto"] != nil){
+            edited = @"auto";
+        }
         NSString* fileName = [[localIdentifier componentsSeparatedByString:@"/"] objectAtIndex:0];
         NSString* outputExtension = @".mp4";
         __block NSString *filePath = [NSString stringWithFormat:@"%@/%@.%@", docsPath, fileName, @"mp4"];
@@ -404,6 +408,9 @@
                     CMTime fifteen = CMTimeMakeWithSeconds( DEFUALT_VIDEO_LENGTH, avasset.duration.timescale);
                     CMTime duration = (tempDurationSecond > 1 && tempDurationSecond < DEFUALT_VIDEO_LENGTH) ? tempDuration : (assetDuration < DEFUALT_VIDEO_LENGTH ) ? avasset.duration : fifteen;
                     
+                    if(![edited isEqualToString:@"auto"]){
+                        edited = (CMTimeGetSeconds(start)==0 && CMTimeGetSeconds(duration)==DEFUALT_VIDEO_LENGTH) ? @"false" : @"true";
+                    }
                     
                     CMTimeRange range = CMTimeRangeMake(start, duration);
                     NSLog(@"start = %f duration= %f", CMTimeGetSeconds(start),CMTimeGetSeconds(duration));
@@ -422,7 +429,7 @@
                                                       @"width": @((int)mediaSize.width),
                                                       @"height":@((int)mediaSize.height),
                                                       @"originalDuration":@((int)(CMTimeGetSeconds(avasset.duration)*1000)),
-                                                      @"edited":(CMTimeGetSeconds(start)==0 && CMTimeGetSeconds(duration)==DEFUALT_VIDEO_LENGTH) ? @"false" : @"true"
+                                                      @"edited":edited
                                                       };
                     
                     AVAssetExportSession *exportSession = [[AVAssetExportSession alloc] initWithAsset:avasset presetName:AVAssetExportPresetMediumQuality];
