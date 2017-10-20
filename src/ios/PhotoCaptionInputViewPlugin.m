@@ -157,6 +157,7 @@
     [controller tilePages];
     __block NSMutableArray *preSelectedAssets = [[NSMutableArray alloc] init];
     __block NSMutableArray *fileStrings = [[NSMutableArray alloc] init];
+    __block NSMutableArray *metaDatas = [[NSMutableArray alloc] init];
     
     
     __block NSMutableArray *invalidImages = [[NSMutableArray alloc] init];
@@ -204,7 +205,7 @@
           completedCallback:^() {
               controller.view.userInteractionEnabled = YES;
               if (nil == result) {
-                  result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: [NSDictionary dictionaryWithObjectsAndKeys: preSelectedAssets, @"preSelectedAssets", fileStrings, @"images", captions, @"captions",  invalidImages, @"invalidImages", _destinationType, KEY_TYPE, nil]];
+                  result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: [NSDictionary dictionaryWithObjectsAndKeys: preSelectedAssets, @"preSelectedAssets", fileStrings, @"images", captions, @"captions",  invalidImages, @"invalidImages", metaDatas, @"metaDatas", _destinationType, KEY_TYPE, nil]];
               }
               dispatch_group_notify(dispatchGroup, dispatch_get_main_queue(), ^{
                   
@@ -227,6 +228,8 @@
                   [preSelectedAssets addObject: localIdentifier];
                   [invalidImages addObject: @""];
               }
+              [metaDatas addObject:(metadata == nil)?@{}:metadata];
+              
               dispatch_async(dispatch_get_main_queue(), ^{
 //                  [progressView setProgress:(CGFloat)index/(CGFloat)numberOfImage];
                   hud.progress = (CGFloat)index/(CGFloat)numberOfImage;
@@ -415,12 +418,11 @@
 //                    @"edited":edited
                     
                     __block NSDictionary *metaDic = @{
-                                                      @((int)((CMTimeGetSeconds(duration)*1000))) : @"duration",
-                                                      @((int)mediaSize.width): @"width",
-                                                      @((int)mediaSize.height): @"height",
-                                                      @((int)(CMTimeGetSeconds(avasset.duration)*1000)): @"originalDuration",
-                                                      (CMTimeGetSeconds(start)==0 && CMTimeGetSeconds(duration)==DEFUALT_VIDEO_LENGTH) ? @"false" : @"true" : @"edited"
-                                                      
+                                                      @"duration": @((int)((CMTimeGetSeconds(duration)*1000))),
+                                                      @"width": @((int)mediaSize.width),
+                                                      @"height":@((int)mediaSize.height),
+                                                      @"originalDuration":@((int)(CMTimeGetSeconds(avasset.duration)*1000)),
+                                                      @"edited":(CMTimeGetSeconds(start)==0 && CMTimeGetSeconds(duration)==DEFUALT_VIDEO_LENGTH) ? @"false" : @"true"
                                                       };
                     
                     AVAssetExportSession *exportSession = [[AVAssetExportSession alloc] initWithAsset:avasset presetName:AVAssetExportPresetMediumQuality];
