@@ -28,7 +28,7 @@
 #define KEY_PLAYLIST @"playlist"
 #define KEY_ALBUM @"album"
 #define TEXT_SIZE 16
-
+#define DEFUALT_VIDEO_LENGTH 15
 @implementation PhotoCaptionInputViewPlugin
 
 @synthesize callbackId;
@@ -37,7 +37,7 @@
 @synthesize thumbnails = _thumbnails;
 @synthesize photoCaptionInputViewController = _photoCaptionInputViewController;
 @synthesize buttonOptions = _buttonOptions;
-@synthesize distinationType = _distinationType;
+@synthesize destinationType = _destinationType;
 - (NSMutableDictionary*)callbackIds {
     if(_callbackIds == nil) {
         _callbackIds = [[NSMutableDictionary alloc] init];
@@ -68,7 +68,7 @@
     NSArray *argfriends = [options objectForKey:@"friends"];
     
     
-    _distinationType = @"";
+    _destinationType = @"";
     if(![[argfriends class] isEqual:[NSNull class]]){
         self.friends = argfriends;
     }else{
@@ -128,7 +128,7 @@
         
         if([[obj valueForKey:KEY_LABEL] isEqualToString:button.titleLabel.text]){
             
-            _distinationType = [obj valueForKey:KEY_TYPE];
+            _destinationType = [obj valueForKey:KEY_TYPE];
         }
     }];
     [_photoCaptionInputViewController getPhotosCaptions];
@@ -204,12 +204,12 @@
           completedCallback:^() {
               controller.view.userInteractionEnabled = YES;
               if (nil == result) {
-                  result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: [NSDictionary dictionaryWithObjectsAndKeys: preSelectedAssets, @"preSelectedAssets", fileStrings, @"images", captions, @"captions",  invalidImages, @"invalidImages", _distinationType, KEY_TYPE, nil]];
+                  result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: [NSDictionary dictionaryWithObjectsAndKeys: preSelectedAssets, @"preSelectedAssets", fileStrings, @"images", captions, @"captions",  invalidImages, @"invalidImages", _destinationType, KEY_TYPE, nil]];
               }
               dispatch_group_notify(dispatchGroup, dispatch_get_main_queue(), ^{
                   
 //                  [progressView dismiss:YES];
-                  [hud hide:YES];
+                  [hud hideAnimated:YES];
                   [self.commandDelegate sendPluginResult:result callbackId:self.callbackId];
                   [controller.presentingViewController dismissViewControllerAnimated:YES completion:nil];
                   [self.viewController dismissViewControllerAnimated:YES completion:nil];
@@ -217,7 +217,7 @@
                   
               });
               
-          } nextCallback:^(NSInteger index, NSString *filePath, NSString *localIdentifier, NSString *invalidImage) {
+          } nextCallback:^(NSInteger index, NSString *filePath, NSString *localIdentifier, NSString *_Nullable invalidImage, NSDictionary * _Nullable metadata) {
               if(invalidImage != nil){
                   [fileStrings addObject:@""];
                   [preSelectedAssets addObject: @""];
@@ -242,7 +242,7 @@
           } errorCallback:^(CDVPluginResult *errorResult) {
               dispatch_group_notify(dispatchGroup, dispatch_get_main_queue(), ^{
 //                  [progressView dismiss:YES];
-                  [hud hide:YES];
+                  [hud hideAnimated:YES];
                   [self.commandDelegate sendPluginResult:errorResult callbackId:self.callbackId];
                   [controller.presentingViewController dismissViewControllerAnimated:YES completion:nil];
                   [self.viewController dismissViewControllerAnimated:YES completion:nil];
@@ -261,7 +261,7 @@
        requestOptions:(PHImageRequestOptions *)requestOptions
         startEndTimes:(NSArray*)startEndTimes
     completedCallback:(void(^)(void))completedCallback
-         nextCallback:(void(^)(NSInteger index , NSString* filePath, NSString* localIdentifier, NSString* invalidImage))nextCallback
+         nextCallback:(void(^)(NSInteger index , NSString* filePath, NSString* localIdentifier, NSString* _Nullable invalidImage, NSDictionary *_Nullable metadata))nextCallback
      progressCallback:(void(^)(NSInteger index , CGFloat progress))progressCallback
         errorCallback:(void(^)(CDVPluginResult* errorResult))errorCallback{
     if(index >= [fetchAssets count]){
@@ -287,7 +287,7 @@
         localIdentifier = [asset localIdentifier];
         if([[NSFileManager defaultManager] fileExistsAtPath:filePath]){
             internalIndex++;
-            nextCallback(internalIndex,[[NSURL fileURLWithPath:filePath] absoluteString], localIdentifier, nil);
+            nextCallback(internalIndex,[[NSURL fileURLWithPath:filePath] absoluteString], localIdentifier, nil, nil);
             [self processAssets:fetchAssets
                           index:internalIndex
                        docsPath:docsPath
@@ -333,7 +333,7 @@
                                                 } else {
                                                     ;
                                                     internalIndex++;
-                                                    nextCallback(internalIndex,[[NSURL fileURLWithPath:[self getMD5FileString:filePath docPath:docsPath subtype:@".jpg"]] absoluteString], localIdentifier, nil);
+                                                    nextCallback(internalIndex,[[NSURL fileURLWithPath:[self getMD5FileString:filePath docPath:docsPath subtype:@".jpg"]] absoluteString], localIdentifier, nil, nil);
                                                     [self processAssets:fetchAssets
                                                                   index:internalIndex
                                                                docsPath:docsPath
@@ -354,7 +354,7 @@
                                     } else {
                                         
                                         internalIndex ++;
-                                        nextCallback(internalIndex,nil, nil, localIdentifier);
+                                        nextCallback(internalIndex,nil, nil, localIdentifier, nil);
                                         [self processAssets:fetchAssets
                                                       index:internalIndex
                                                    docsPath:docsPath
@@ -398,17 +398,31 @@
                     CMTime tempDuration = CMTimeMakeWithSeconds(endTime - startTime, avasset.duration.timescale);
                     float tempDurationSecond = CMTimeGetSeconds(tempDuration);
                     float assetDuration = CMTimeGetSeconds(avasset.duration);
-                    CMTime fifteen = CMTimeMakeWithSeconds( 15, avasset.duration.timescale);
-                    CMTime duration = (tempDurationSecond > 1 && tempDurationSecond < 15) ? tempDuration : (assetDuration < 15 ) ? avasset.duration : fifteen;
+                    CMTime fifteen = CMTimeMakeWithSeconds( DEFUALT_VIDEO_LENGTH, avasset.duration.timescale);
+                    CMTime duration = (tempDurationSecond > 1 && tempDurationSecond < DEFUALT_VIDEO_LENGTH) ? tempDuration : (assetDuration < DEFUALT_VIDEO_LENGTH ) ? avasset.duration : fifteen;
                     
                     
                     CMTimeRange range = CMTimeRangeMake(start, duration);
                     NSLog(@"start = %f duration= %f", CMTimeGetSeconds(start),CMTimeGetSeconds(duration));
-//                    float width = 1280;
-//                    float height = 1280;
                     NSArray *tracks = [avasset tracksWithMediaType:AVMediaTypeVideo];
                     AVAssetTrack *track = [tracks objectAtIndex:0];
                     CGSize mediaSize = track.naturalSize;
+
+//                    @"duration": duration,
+//                    @"width": width,
+//                    @"height": height,
+//                    @"originalDuration": originalDuration,
+//                    @"edited":edited
+                    
+                    __block NSDictionary *metaDic = @{
+                                                      @((int)((CMTimeGetSeconds(duration)*1000))) : @"duration",
+                                                      @((int)mediaSize.width): @"width",
+                                                      @((int)mediaSize.height): @"height",
+                                                      @((int)(CMTimeGetSeconds(avasset.duration)*1000)): @"originalDuration",
+                                                      (CMTimeGetSeconds(start)==0 && CMTimeGetSeconds(duration)==DEFUALT_VIDEO_LENGTH) ? @"false" : @"true" : @"edited"
+                                                      
+                                                      };
+                    
                     AVAssetExportSession *exportSession = [[AVAssetExportSession alloc] initWithAsset:avasset presetName:AVAssetExportPresetMediumQuality];
                     exportSession.outputURL = furl;
                 
@@ -441,7 +455,7 @@
                                 NSLog(@"Export failed: %@", [[exportSession error] localizedDescription]);
                                 
                                 internalIndex ++;
-                                nextCallback(internalIndex,nil, nil, localIdentifier);
+                                nextCallback(internalIndex,nil, nil, localIdentifier, nil);
                             {
                                 dispatch_group_async(dispatch_group_create(), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
                                     [self processAssets:fetchAssets
@@ -460,7 +474,7 @@
                                 NSLog(@"Export canceled %@", [[exportSession error] localizedDescription]);
                                 
                                 internalIndex ++;
-                                nextCallback(internalIndex,nil, nil, localIdentifier);
+                                nextCallback(internalIndex,nil, nil, localIdentifier, nil);
                             {
                                 dispatch_group_async(dispatch_group_create(), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
                                     [self processAssets:fetchAssets
@@ -484,7 +498,7 @@
                                 
                                 NSLog(@"Export unknown %@", [[exportSession error] localizedDescription]);
                                 internalIndex ++;
-                                nextCallback(internalIndex,nil, nil, localIdentifier);
+                                nextCallback(internalIndex,nil, nil, localIdentifier, nil);
                                 
                             {
                                 dispatch_group_async(dispatch_group_create(), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
@@ -513,7 +527,7 @@
                                             if (![binaryImageData writeToFile:thumbnailPath options:NSAtomicWrite error:&err] ) {
                                                 NSLog(@"Error: %@", err);
                                                 internalIndex ++;
-                                                nextCallback(internalIndex,nil, nil, localIdentifier);
+                                                nextCallback(internalIndex,nil, nil, localIdentifier, nil);
                                                 dispatch_group_async(dispatch_group_create(), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
                                                     [self processAssets:fetchAssets
                                                                   index:internalIndex
@@ -534,10 +548,10 @@
                                                             if (![binaryImageData writeToFile:previewPath options:NSAtomicWrite error:&err] ) {
                                                                 NSLog(@"Error: %@", err);
                                                                 internalIndex ++;
-                                                                nextCallback(internalIndex,nil, nil, localIdentifier);
+                                                                nextCallback(internalIndex,nil, nil, localIdentifier, nil);
                                                             } else {
                                                                 internalIndex++;
-                                                                nextCallback(internalIndex,[[NSURL fileURLWithPath:exportFileName] absoluteString], localIdentifier, nil);
+                                                                nextCallback(internalIndex,[[NSURL fileURLWithPath:exportFileName] absoluteString], localIdentifier, nil, metaDic);
                                                             }
                                                             dispatch_group_async(dispatch_group_create(), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
                                                                 [self processAssets:fetchAssets
@@ -1118,7 +1132,7 @@
         else
         {
             NSString *error = [NSString stringWithFormat:@"Video export failed with error: %@ (%ld)", encoder.error.localizedDescription, (long)encoder.error.code];
-            
+            NSLog(@"%@",error);
         }
     }];
 }

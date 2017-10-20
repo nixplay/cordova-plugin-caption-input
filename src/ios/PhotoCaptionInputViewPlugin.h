@@ -24,7 +24,7 @@
 @property (nonatomic, retain) NSArray *friends;
 @property (nonatomic, retain) NSMutableDictionary *selected_photos;
 @property (nonatomic, retain) NSMutableArray *buttonOptions;
-@property (nonatomic, retain) NSString *distinationType;
+@property (nonatomic, retain) NSString *destinationType;
 @property (nonatomic, assign) NSArray *preSelectedAssets;
 @property (nonatomic, assign) NSInteger width;
 @property (nonatomic, assign) NSInteger height;
