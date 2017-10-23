@@ -203,7 +203,6 @@
              requestOptions:requestOptions
               startEndTimes:startEndTimes
           completedCallback:^() {
-              controller.view.userInteractionEnabled = YES;
               if (nil == result) {
                   result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: [NSDictionary dictionaryWithObjectsAndKeys: preSelectedAssets, @"preSelectedAssets", fileStrings, @"images", captions, @"captions",  invalidImages, @"invalidImages", metaDatas, @"metaDatas", _destinationType, KEY_TYPE, nil]];
               }
@@ -432,9 +431,8 @@
                                                       @"edited":edited
                                                       };
                     
-                    AVAssetExportSession *exportSession = [[AVAssetExportSession alloc] initWithAsset:avasset presetName:AVAssetExportPresetMediumQuality];
+                    AVAssetExportSession *exportSession = [[AVAssetExportSession alloc] initWithAsset:avasset presetName:AVAssetExportPreset1280x720];
                     exportSession.outputURL = furl;
-                
                     exportSession.outputFileType=AVFileTypeQuickTimeMovie;
                     exportSession.timeRange = range;
                     exportSession.shouldOptimizeForNetworkUse = NO;
