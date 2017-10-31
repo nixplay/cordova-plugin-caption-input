@@ -573,7 +573,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     recyclerViewAdapter.swap(clonedPoster2);
                     linearLayoutManager.scrollToPositionWithOffset(currentPosition, -1);
                     setActionBarTitle(imageList, currentPosition);
+                    mEditText.setText(captions.get(currentPosition));
                 }
+
             } else {
                 finishActivity(RESULT_CANCELED);
                 return false;
