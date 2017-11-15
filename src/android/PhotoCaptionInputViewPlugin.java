@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Bundle;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
@@ -21,6 +22,7 @@ public class PhotoCaptionInputViewPlugin extends CordovaPlugin {
 
     private CallbackContext callbackContext;
     private int maxImages;
+    private String options;
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
@@ -33,7 +35,7 @@ public class PhotoCaptionInputViewPlugin extends CordovaPlugin {
         return false;
     }
 
-    private void showCaptionInput(JSONObject options, CallbackContext callbackContext) throws JSONException {
+    private void showCaptionInput(JSONObject jsonoptions, CallbackContext callbackContext) throws JSONException {
         if (options != null && options.length() > 0) {
             ActivityManager.MemoryInfo mi = new ActivityManager.MemoryInfo();
             ActivityManager activityManager = (ActivityManager) this.cordova.getActivity().getApplicationContext().getSystemService(Context.ACTIVITY_SERVICE);
@@ -42,12 +44,13 @@ public class PhotoCaptionInputViewPlugin extends CordovaPlugin {
             System.out.println("[NIX] totalMegs: " + totalMegs);
 
             Intent intent = new Intent(cordova.getActivity(), PhotoCaptionInputViewActivity.class);
-            if (options.has("maximumImagesCount")) {
+            if (jsonoptions.has("maximumImagesCount")) {
 
-                this.maxImages = options.getInt("maximumImagesCount");
+                this.maxImages = jsonoptions.getInt("maximumImagesCount");
             } else {
                 this.maxImages = 100;
             }
+            this.options = jsonoptions.toString();
             intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
             intent.putExtra("options", options.toString());
             intent.putExtra("MAX_IMAGES", this.maxImages);
@@ -89,5 +92,22 @@ public class PhotoCaptionInputViewPlugin extends CordovaPlugin {
             callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.INVALID_ACTION));
         }
 
+    }
+
+    public Bundle onSaveInstanceState() {
+        Bundle state = new Bundle();
+
+        state.putInt("maxImages", this.maxImages);
+        state.putString("options", this.options);
+
+        return state;
+    }
+
+    public void onRestoreStateForActivityResult(Bundle state, CallbackContext callbackContext) {
+        this.maxImages = state.getInt("maxImages");
+        this.options = state.getString("options");
+
+
+        this.callbackContext = callbackContext;
     }
 }
