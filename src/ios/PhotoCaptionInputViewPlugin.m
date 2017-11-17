@@ -16,6 +16,7 @@
 
 #import "Masonry.h"
 #import "FileHash.h"
+#import "AVAsset+VideoOrientation.h"
 @import Photos;
 #define LIGHT_BLUE_COLOR [UIColor colorWithRed:(99/255.0f)  green:(176/255.0f)  blue:(228.0f/255.0f) alpha:1.0]
 #define BUNDLE_UIIMAGE(imageNames) [UIImage imageNamed:[NSString stringWithFormat:@"%@.bundle/%@", NSStringFromClass([self class]), imageNames]]
@@ -417,6 +418,7 @@
                     AVAssetTrack *track = [tracks objectAtIndex:0];
                     CGSize mediaSize = track.naturalSize;
 
+                    
 //                    @"duration": duration,
 //                    @"width": width,
 //                    @"height": height,
@@ -430,21 +432,30 @@
                                                       @"originalDuration":@((int)(CMTimeGetSeconds(avasset.duration)*1000)),
                                                       @"edited":edited
                                                       };
+                    CGFloat scale  = mediaSize.width > mediaSize.height ? 1280.0f/mediaSize.width : 1280.0f/mediaSize.height;
+                    scale = scale > 1.0 ? 1.0 : scale;
+                    
+                    LBVideoOrientation orientation = [avasset videoOrientation];
+                    CGSize mediaResize = (orientation == LBVideoOrientationUp || orientation == LBVideoOrientationDown ) ?
+                    (mediaSize.width > mediaSize.height ?
+                     CGSizeMake(mediaSize.height*scale, mediaSize.width*scale) :
+                     CGSizeMake(mediaSize.width*scale, mediaSize.height*scale)) :
+                    CGSizeMake(mediaSize.width*scale, mediaSize.height*scale);
                     
                     SDAVAssetExportSession *exportSession = [[SDAVAssetExportSession alloc] initWithAsset:avasset ];
 //                    exportSession.outputURL = furl;
-//                    exportSession.videoComposition = videoComposition;
 //                    exportSession.outputFileType=AVFileTypeQuickTimeMovie;
 //                    exportSession.timeRange = range;
-//                    exportSession.shouldOptimizeForNetworkUse = NO;
+                    exportSession.shouldOptimizeForNetworkUse = YES;
                     exportSession.outputFileType = AVFileTypeMPEG4;
                     exportSession.outputURL = furl;
                     exportSession.timeRange = range;
+                    exportSession.shouldOptimizeForNetworkUse = YES;
                     exportSession.videoSettings = @
                     {
                     AVVideoCodecKey: AVVideoCodecH264,
-                    AVVideoWidthKey: @1280,
-                    AVVideoHeightKey: @720,
+                    AVVideoWidthKey: @(mediaResize.width),
+                    AVVideoHeightKey: @(mediaResize.height),
                     AVVideoCompressionPropertiesKey: @
                         {
                         AVVideoAverageBitRateKey: @5000000,
