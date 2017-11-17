@@ -431,12 +431,34 @@
                                                       @"edited":edited
                                                       };
                     
-                    AVAssetExportSession *exportSession = [[AVAssetExportSession alloc] initWithAsset:avasset presetName:AVAssetExportPreset1280x720];
+                    SDAVAssetExportSession *exportSession = [[SDAVAssetExportSession alloc] initWithAsset:avasset ];
+//                    exportSession.outputURL = furl;
+//                    exportSession.videoComposition = videoComposition;
+//                    exportSession.outputFileType=AVFileTypeQuickTimeMovie;
+//                    exportSession.timeRange = range;
+//                    exportSession.shouldOptimizeForNetworkUse = NO;
+                    exportSession.outputFileType = AVFileTypeMPEG4;
                     exportSession.outputURL = furl;
-                    exportSession.outputFileType=AVFileTypeQuickTimeMovie;
                     exportSession.timeRange = range;
-                    exportSession.shouldOptimizeForNetworkUse = NO;
-                    
+                    exportSession.videoSettings = @
+                    {
+                    AVVideoCodecKey: AVVideoCodecH264,
+                    AVVideoWidthKey: @1280,
+                    AVVideoHeightKey: @720,
+                    AVVideoCompressionPropertiesKey: @
+                        {
+                        AVVideoAverageBitRateKey: @5000000,
+                        AVVideoProfileLevelKey: AVVideoProfileLevelH264High40,
+                        },
+                    };
+                    exportSession.audioSettings = @
+                    {
+                    AVFormatIDKey: @(kAudioFormatMPEG4AAC),
+                    AVNumberOfChannelsKey: @2,
+                    AVSampleRateKey: @44100,
+                    AVEncoderBitRateKey: @128000,
+                    };
+
                     dispatch_semaphore_t sessionWaitSemaphore = dispatch_semaphore_create(0);
                     
                     void (^completionHandler)(void) = ^(void)
