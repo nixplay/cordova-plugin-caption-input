@@ -558,58 +558,58 @@
                                 NSLog(@"AVAssetExportSessionStatusCompleted");
                                 
                                 __block NSString *exportFileName = [self getMD5FileString:filePath  docPath:docsPath subtype:outputExtension];
-                                [manager requestImageForAsset:asset targetSize:CGSizeMake(512, 512) contentMode:PHImageContentModeAspectFill options:requestOptions resultHandler:^(UIImage * _Nullable thumbnailResult, NSDictionary * _Nullable info) {
-                                    @autoreleasepool {
-                                        if(thumbnailResult != nil){
-                                            NSString *thumbnailPath = [exportFileName stringByReplacingOccurrencesOfString:outputExtension withString:@"-thumbnail.jpg"];
-                                            NSData * binaryImageData = UIImageJPEGRepresentation(thumbnailResult, self.quality/100.0f);
-                                            NSError *err;
-                                            if (![binaryImageData writeToFile:thumbnailPath options:NSAtomicWrite error:&err] ) {
-                                                NSLog(@"Error: %@", err);
-                                                internalIndex ++;
-                                                nextCallback(internalIndex,nil, nil, localIdentifier, nil);
-                                                dispatch_group_async(dispatch_group_create(), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-                                                    [self processAssets:fetchAssets
-                                                                  index:internalIndex
-                                                               docsPath:docsPath
-                                                             targetSize:targetSize
-                                                                manager:manager
-                                                         requestOptions:requestOptions
-                                                          startEndTimes:nil
-                                                      completedCallback:completedCallback nextCallback:nextCallback progressCallback:progressCallback errorCallback:errorCallback];
-                                                });
-                                            } else {
-                                                [manager requestImageForAsset:asset targetSize:CGSizeMake(asset.pixelWidth, asset.pixelHeight) contentMode:PHImageContentModeDefault options:requestOptions resultHandler:^(UIImage * _Nullable previewResult, NSDictionary * _Nullable info) {
-                                                    @autoreleasepool {
-                                                        if(previewResult != nil){
-                                                            NSString *previewPath = [exportFileName stringByReplacingOccurrencesOfString:outputExtension withString:@"-preview.jpg"];
-                                                            NSData * binaryImageData = UIImageJPEGRepresentation(previewResult, self.quality/100.0f);
-                                                            NSError *err;
-                                                            if (![binaryImageData writeToFile:previewPath options:NSAtomicWrite error:&err] ) {
-                                                                NSLog(@"Error: %@", err);
-                                                                internalIndex ++;
-                                                                nextCallback(internalIndex,nil, nil, localIdentifier, nil);
-                                                            } else {
-                                                                internalIndex++;
-                                                                nextCallback(internalIndex,[[NSURL fileURLWithPath:exportFileName] absoluteString], localIdentifier, nil, metaDic);
-                                                            }
-                                                            dispatch_group_async(dispatch_group_create(), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-                                                                [self processAssets:fetchAssets
-                                                                              index:internalIndex
-                                                                           docsPath:docsPath
-                                                                         targetSize:targetSize
-                                                                            manager:manager
-                                                                     requestOptions:requestOptions
-                                                                      startEndTimes:nil
-                                                                  completedCallback:completedCallback nextCallback:nextCallback progressCallback:progressCallback errorCallback:errorCallback];
-                                                            });
-                                                        }
-                                                    }
-                                                }];
-                                            }
-                                        }
+                                AVAssetImageGenerator *imageGenerator = [AVAssetImageGenerator assetImageGeneratorWithAsset:avasset];
+                                imageGenerator.appliesPreferredTrackTransform = YES;
+                                imageGenerator.maximumSize = mediaResize;
+                                // First image
+                                NSError *error;
+                                CMTime actualTime;
+                                
+                                CGImageRef previewCGImage = [imageGenerator copyCGImageAtTime:start actualTime:&actualTime error:&error];
+                                UIImage *previewResult = [[UIImage alloc] initWithCGImage:previewCGImage scale:1.0 orientation:UIImageOrientationUp];
+                                CGImageRelease(previewCGImage);
+                                UIImage *thumbnailResult = [self imageByScalingNotCroppingForSize:previewResult toSize:CGSizeMake(512, 512)];
+                                NSString *thumbnailPath = [exportFileName stringByReplacingOccurrencesOfString:outputExtension withString:@"-thumbnail.jpg"];
+                                NSData * binaryImageData = UIImageJPEGRepresentation(thumbnailResult, self.quality/100.0f);
+                                NSError *err;
+                                if (![binaryImageData writeToFile:thumbnailPath options:NSAtomicWrite error:&err] ) {
+                                    NSLog(@"Error: %@", err);
+                                    internalIndex ++;
+                                    nextCallback(internalIndex,nil, nil, localIdentifier, nil);
+                                    dispatch_group_async(dispatch_group_create(), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
+                                        [self processAssets:fetchAssets
+                                                      index:internalIndex
+                                                   docsPath:docsPath
+                                                 targetSize:targetSize
+                                                    manager:manager
+                                             requestOptions:requestOptions
+                                              startEndTimes:nil
+                                          completedCallback:completedCallback nextCallback:nextCallback progressCallback:progressCallback errorCallback:errorCallback];
+                                    });
+                                }else{
+                                    NSString *previewPath = [exportFileName stringByReplacingOccurrencesOfString:outputExtension withString:@"-preview.jpg"];
+                                    NSData * binaryImageData = UIImageJPEGRepresentation(previewResult, self.quality/100.0f);
+                                    NSError *err;
+                                    if (![binaryImageData writeToFile:previewPath options:NSAtomicWrite error:&err] ) {
+                                        NSLog(@"Error: %@", err);
+                                        internalIndex ++;
+                                        nextCallback(internalIndex,nil, nil, localIdentifier, nil);
+                                    } else {
+                                        internalIndex++;
+                                        nextCallback(internalIndex,[[NSURL fileURLWithPath:exportFileName] absoluteString], localIdentifier, nil, metaDic);
                                     }
-                                }];
+                                    dispatch_group_async(dispatch_group_create(), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
+                                        [self processAssets:fetchAssets
+                                                      index:internalIndex
+                                                   docsPath:docsPath
+                                                 targetSize:targetSize
+                                                    manager:manager
+                                             requestOptions:requestOptions
+                                              startEndTimes:nil
+                                          completedCallback:completedCallback nextCallback:nextCallback progressCallback:progressCallback errorCallback:errorCallback];
+                                    });
+                                }
+
                                 
                                 
                                 
