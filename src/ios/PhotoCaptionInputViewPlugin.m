@@ -29,7 +29,7 @@
 #define KEY_PLAYLIST @"playlist"
 #define KEY_ALBUM @"album"
 #define TEXT_SIZE 16
-#define DEFUALT_VIDEO_LENGTH 15
+#define DEFAULT_VIDEO_LENGTH 15
 @implementation PhotoCaptionInputViewPlugin
 
 @synthesize callbackId;
@@ -39,6 +39,7 @@
 @synthesize photoCaptionInputViewController = _photoCaptionInputViewController;
 @synthesize buttonOptions = _buttonOptions;
 @synthesize destinationType = _destinationType;
+@synthesize exportSession = _exportSession;
 - (NSMutableDictionary*)callbackIds {
     if(_callbackIds == nil) {
         _callbackIds = [[NSMutableDictionary alloc] init];
@@ -150,7 +151,9 @@
     
     NSLog(@"PhotoCaptionInputView: User pressed cancel button");
     
-    
+    if(self.exportSession){
+        [self.exportSession cancelExport];
+    }
     [controller dismissViewControllerAnimated:YES completion:nil];
     
 }
@@ -405,11 +408,11 @@
                     CMTime tempDuration = CMTimeMakeWithSeconds(endTime - startTime, avasset.duration.timescale);
                     float tempDurationSecond = CMTimeGetSeconds(tempDuration);
                     float assetDuration = CMTimeGetSeconds(avasset.duration);
-                    CMTime fifteen = CMTimeMakeWithSeconds( DEFUALT_VIDEO_LENGTH, avasset.duration.timescale);
-                    CMTime duration = (tempDurationSecond > 1 && tempDurationSecond < DEFUALT_VIDEO_LENGTH) ? tempDuration : (assetDuration < DEFUALT_VIDEO_LENGTH ) ? avasset.duration : fifteen;
+                    CMTime fifteen = CMTimeMakeWithSeconds( DEFAULT_VIDEO_LENGTH, avasset.duration.timescale);
+                    CMTime duration = (tempDurationSecond > 1 && tempDurationSecond < DEFAULT_VIDEO_LENGTH) ? tempDuration : (assetDuration < DEFAULT_VIDEO_LENGTH ) ? avasset.duration : fifteen;
                     
                     if(![edited isEqualToString:@"auto"]){
-                        edited = (CMTimeGetSeconds(start)==0 && CMTimeGetSeconds(duration)==DEFUALT_VIDEO_LENGTH) ? @"false" : @"true";
+                        edited = (CMTimeGetSeconds(start)==0 && CMTimeGetSeconds(duration)==DEFAULT_VIDEO_LENGTH) ? @"false" : @"true";
                     }
                     
                     CMTimeRange range = CMTimeRangeMake(start, duration);
@@ -476,6 +479,8 @@
                     {
                         dispatch_semaphore_signal(sessionWaitSemaphore);
                     };
+                    
+                    _exportSession = exportSession;
                     
                     // do it
                     [self.commandDelegate runInBackground:^{
