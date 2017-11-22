@@ -445,16 +445,16 @@
                      CGSizeMake(mediaSize.width*scale, mediaSize.height*scale)) :
                     CGSizeMake(mediaSize.width*scale, mediaSize.height*scale);
                     
-                    SDAVAssetExportSession *exportSession = [[SDAVAssetExportSession alloc] initWithAsset:avasset ];
+                    _exportSession = [[SDAVAssetExportSession alloc] initWithAsset:avasset ];
 //                    exportSession.outputURL = furl;
 //                    exportSession.outputFileType=AVFileTypeQuickTimeMovie;
 //                    exportSession.timeRange = range;
-                    exportSession.shouldOptimizeForNetworkUse = YES;
-                    exportSession.outputFileType = AVFileTypeMPEG4;
-                    exportSession.outputURL = furl;
-                    exportSession.timeRange = range;
-                    exportSession.shouldOptimizeForNetworkUse = YES;
-                    exportSession.videoSettings = @
+                    _exportSession.shouldOptimizeForNetworkUse = YES;
+                    _exportSession.outputFileType = AVFileTypeMPEG4;
+                    _exportSession.outputURL = furl;
+                    _exportSession.timeRange = range;
+                    _exportSession.shouldOptimizeForNetworkUse = YES;
+                    _exportSession.videoSettings = @
                     {
                     AVVideoCodecKey: AVVideoCodecH264,
                     AVVideoWidthKey: @(mediaResize.width),
@@ -465,7 +465,7 @@
                         AVVideoProfileLevelKey: AVVideoProfileLevelH264High40,
                         },
                     };
-                    exportSession.audioSettings = @
+                    _exportSession.audioSettings = @
                     {
                     AVFormatIDKey: @(kAudioFormatMPEG4AAC),
                     AVNumberOfChannelsKey: @2,
@@ -480,24 +480,24 @@
                         dispatch_semaphore_signal(sessionWaitSemaphore);
                     };
                     
-                    _exportSession = exportSession;
+                    
                     
                     // do it
                     [self.commandDelegate runInBackground:^{
-                        [exportSession exportAsynchronouslyWithCompletionHandler:completionHandler];
+                        [_exportSession exportAsynchronouslyWithCompletionHandler:completionHandler];
                         do {
                             dispatch_time_t dispatchTime = DISPATCH_TIME_FOREVER;  // if we dont want progress, we will wait until it finishes.
                             dispatchTime = getDispatchTimeFromSeconds((float)1.0);
-                            double progress = [exportSession progress] * 100;
+                            double progress = [_exportSession progress] * 100;
                             
                             progressCallback(internalIndex, progress);
                             dispatch_semaphore_wait(sessionWaitSemaphore, dispatchTime);
-                        } while( [exportSession status] < AVAssetExportSessionStatusCompleted );
+                        } while( [_exportSession status] < AVAssetExportSessionStatusCompleted );
                         
-                        switch ([exportSession status]) {
+                        switch ([_exportSession status]) {
                             case AVAssetExportSessionStatusFailed:
                                 
-                                NSLog(@"Export failed: %@", [[exportSession error] localizedDescription]);
+                                NSLog(@"Export failed: %@", [[_exportSession error] localizedDescription]);
                                 
                                 internalIndex ++;
                                 nextCallback(internalIndex,nil, nil, localIdentifier, nil);
@@ -515,23 +515,25 @@
                             }
                                 break;
                             case AVAssetExportSessionStatusCancelled:
-                                
-                                NSLog(@"Export canceled %@", [[exportSession error] localizedDescription]);
-                                
-                                internalIndex ++;
-                                nextCallback(internalIndex,nil, nil, localIdentifier, nil);
                             {
-                                dispatch_group_async(dispatch_group_create(), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-                                    [self processAssets:fetchAssets
-                                                  index:internalIndex
-                                               docsPath:docsPath
-                                             targetSize:targetSize
-                                                manager:manager
-                                         requestOptions:requestOptions
-                                          startEndTimes:nil
-                                      completedCallback:completedCallback nextCallback:nextCallback progressCallback:progressCallback errorCallback:errorCallback];
-                                });
+                                CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_IO_EXCEPTION messageAsString:@"User cancelled"];
+                                NSLog(@"Export canceled %@", [[_exportSession error] localizedDescription]);
+                                errorCallback(result);
                             }
+//                                internalIndex ++;
+//                                nextCallback(internalIndex,nil, nil, localIdentifier, nil);
+//                            {
+//                                dispatch_group_async(dispatch_group_create(), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
+//                                    [self processAssets:fetchAssets
+//                                                  index:internalIndex
+//                                               docsPath:docsPath
+//                                             targetSize:targetSize
+//                                                manager:manager
+//                                         requestOptions:requestOptions
+//                                          startEndTimes:nil
+//                                      completedCallback:completedCallback nextCallback:nextCallback progressCallback:progressCallback errorCallback:errorCallback];
+//                                });
+//                            }
                                 break;
                             case AVAssetExportSessionStatusWaiting:
                                 NSLog(@"Export waiting");
@@ -541,7 +543,7 @@
                                 break;
                             case AVAssetExportSessionStatusUnknown:
                                 
-                                NSLog(@"Export unknown %@", [[exportSession error] localizedDescription]);
+                                NSLog(@"Export unknown %@", [[_exportSession error] localizedDescription]);
                                 internalIndex ++;
                                 nextCallback(internalIndex,nil, nil, localIdentifier, nil);
                                 
