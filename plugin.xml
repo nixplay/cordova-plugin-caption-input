@@ -29,6 +29,7 @@
 		<pod name="SDAVAssetExportSession" git="https://github.com/rs/SDAVAssetExportSession" branch="master"/>
 		<pod name="ICGVideoTrimmer" git="https://github.com/nixplay/ICGVideoTrimmer.git" branch="develop"/>
 		<pod name="SDWebImage" version="4.2.2"/>
+		<pod name="PopupDialog" version="0.6.1"/>
 		<pod name="MRProgress"/>
 		<pod name="Masonry"/>
 		<pod name="FileMD5Hash"/>
