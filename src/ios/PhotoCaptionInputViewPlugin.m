@@ -402,13 +402,15 @@
                     NSLog(@"The asset is readable, ok.");
                 }
                 if ([avasset isKindOfClass:[AVURLAsset class]] && [compatiblePresets containsObject:AVAssetExportPresetMediumQuality]) {
-                    
+                    CMTimeScale timeScale = avasset.duration.timescale;
+                    CMTimeScale lowtiemScale = 24;
+                    timeScale = lowtiemScale;
                     NSURL *furl = [NSURL fileURLWithPath:filePath];
-                    CMTime start = CMTimeMakeWithSeconds(startTime, avasset.duration.timescale);
-                    CMTime tempDuration = CMTimeMakeWithSeconds(endTime - startTime, avasset.duration.timescale);
+                    CMTime start = CMTimeMakeWithSeconds(startTime, timeScale);
+                    CMTime tempDuration = CMTimeMakeWithSeconds(endTime - startTime, timeScale);
                     float tempDurationSecond = CMTimeGetSeconds(tempDuration);
                     float assetDuration = CMTimeGetSeconds(avasset.duration);
-                    CMTime fifteen = CMTimeMakeWithSeconds( DEFAULT_VIDEO_LENGTH, avasset.duration.timescale);
+                    CMTime fifteen = CMTimeMakeWithSeconds( DEFAULT_VIDEO_LENGTH, timeScale);
                     CMTime duration = (tempDurationSecond > 1 && tempDurationSecond < DEFAULT_VIDEO_LENGTH) ? tempDuration : (assetDuration < DEFAULT_VIDEO_LENGTH ) ? avasset.duration : fifteen;
                     
                     if(![edited isEqualToString:@"auto"]){
@@ -462,7 +464,8 @@
                     AVVideoCompressionPropertiesKey: @
                         {
                         AVVideoAverageBitRateKey: @5000000,
-                        AVVideoProfileLevelKey: AVVideoProfileLevelH264High40,
+                        AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
+                        AVVideoAverageNonDroppableFrameRateKey:@(24),
                         },
                     };
                     _exportSession.audioSettings = @
