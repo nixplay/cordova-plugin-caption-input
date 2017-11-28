@@ -441,11 +441,10 @@
                     scale = scale > 1.0 ? 1.0 : scale;
                     
                     LBVideoOrientation orientation = [avasset videoOrientation];
+                    float letterBoxWidth = 20;
                     CGSize mediaResize = (orientation == LBVideoOrientationUp || orientation == LBVideoOrientationDown ) ?
-                    (mediaSize.width > mediaSize.height ?
-                     CGSizeMake(mediaSize.height*scale, mediaSize.width*scale) :
-                     CGSizeMake(mediaSize.width*scale, mediaSize.height*scale)) :
-                    CGSizeMake(mediaSize.width*scale, mediaSize.height*scale);
+                    (mediaSize.width > mediaSize.height ? CGSizeMake(mediaSize.height*scale+letterBoxWidth, mediaSize.width*scale) : CGSizeMake(mediaSize.width*scale+letterBoxWidth, mediaSize.height*scale))
+                    : CGSizeMake(mediaSize.width*scale, mediaSize.height*scale);
                     
                     _exportSession = [[SDAVAssetExportSession alloc] initWithAsset:avasset ];
 //                    exportSession.outputURL = furl;
