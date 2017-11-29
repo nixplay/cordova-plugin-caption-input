@@ -303,18 +303,33 @@
                   startEndTimes:nil
               completedCallback:completedCallback nextCallback:nextCallback progressCallback:progressCallback errorCallback:errorCallback];
         }else{
+            
+            
             [manager requestImageDataForAsset:asset
                                       options:requestOptions
                                 resultHandler:^(NSData *imageData,
                                                 NSString *dataUTI,
                                                 UIImageOrientation orientation,
                                                 NSDictionary *info) {
+                                    NSLog(@"info %@", info);
+                                    
+                                    NSLog(@"ExifData %@", [self getExifDataFromImageData:imageData]);
                                     if([dataUTI isEqualToString:@"public.png"] || [dataUTI isEqualToString:@"public.jpeg"] || [dataUTI isEqualToString:@"public.jpeg-2000"] || [dataUTI isEqualToString:@"public.heic"]) {
                                         
                                         
                                         if (imageData != nil) {
                                             
                                             @autoreleasepool {
+                                                // Save off the properties
+                                                
+                                                CGImageSourceRef imageSource = CGImageSourceCreateWithData((__bridge CFDataRef) imageData, NULL);
+                                                
+                                                
+                                                
+                                                NSMutableDictionary *imageMetadata = [(NSDictionary *) CFBridgingRelease(CGImageSourceCopyPropertiesAtIndex(imageSource, 0, NULL)) mutableCopy];
+                                                CFRelease(imageSource);
+                                                
+                                                
                                                 NSData* data = nil;
                                                 if (self.width == 0 && self.height == 0) {
                                                     // no scaling required
@@ -323,13 +338,17 @@
                                                     } else {
                                                         image = [UIImage imageWithData:imageData];
                                                         // resample first
-                                                        data = UIImageJPEGRepresentation(image, self.quality/100.0f);
+
+                                                        data = (imageMetadata != NULL)? [self writeMetadataIntoImageData:UIImageJPEGRepresentation(image, self.quality/100.0f) metadata: [[NSMutableDictionary alloc]initWithDictionary:imageMetadata]] : UIImageJPEGRepresentation(image, self.quality/100.0f) ;
+
                                                     }
                                                 } else {
                                                     image = [UIImage imageWithData:imageData];
                                                     // scale
                                                     UIImage* scaledImage = [self imageByScalingNotCroppingForSize:image toSize:targetSize];
-                                                    data = UIImageJPEGRepresentation(scaledImage, self.quality/100.0f);
+
+                                                    data = (imageMetadata != NULL)? [self writeMetadataIntoImageData:UIImageJPEGRepresentation(image, self.quality/100.0f) metadata: [[NSMutableDictionary alloc]initWithDictionary:imageMetadata]] : UIImageJPEGRepresentation(scaledImage, self.quality/100.0f) ;
+
                                                 }
                                                 
                                                 NSError *err;
@@ -1015,6 +1034,7 @@
 }
 
 
+
 - (void) transcodeVideo:(NSDictionary*)command
 {
     NSDictionary* options = command;
@@ -1218,5 +1238,72 @@ static dispatch_time_t getDispatchTimeFromSeconds(float seconds) {
     dispatch_time_t waitTime = dispatch_time( DISPATCH_TIME_NOW, 1000000LL * milliseconds );
     return waitTime;
 }
+
+-(NSDictionary*)getExifDataFromImageData:(NSData*) imageData
+{
+    @try {
+        
+        CGImageSourceRef imageSource = CGImageSourceCreateWithData((__bridge CFDataRef)imageData, nil);
+        if (imageSource != NULL)
+        {
+            NSDictionary *metaoptions = @{(NSString *)kCGImageSourceShouldCache : [NSNumber numberWithBool:NO]};
+            
+            CFDictionaryRef imageProperties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, (__bridge CFDictionaryRef)metaoptions);
+            NSDictionary *myMetadata = [NSDictionary dictionaryWithDictionary:(__bridge NSDictionary *)imageProperties];
+            
+            CFRelease(imageProperties);
+            CFRelease(imageSource);
+            
+            return myMetadata;
+            
+        }
+    }@catch(NSException *exception){
+        NSLog(@"Error: %@",exception);
+    }
+    return NULL;
+}
+// Newly implemented method. saveImage is not working
+- (BOOL) writeImage:(UIImage *)img withOptions:(NSDictionary *) options {
+    NSString *fullFilePath =  [options objectForKey:@"fullFilePath"];
+    NSInteger quality = [[options objectForKey:@"quality"] integerValue];
+    NSDictionary *meta = [options objectForKey:@"meta"] ;
+    
+    NSData *data = (meta != NULL)? [self writeMetadataIntoImageData:UIImageJPEGRepresentation(img, quality/100.0f) metadata: [[NSMutableDictionary alloc]initWithDictionary:meta]] : UIImageJPEGRepresentation(img, quality/100.0f) ;
+    NSError* err = nil;
+    if (![data writeToFile:fullFilePath options:NSAtomicWrite error:&err]) {
+        return NO;
+    } else {
+        return YES;
+    }
+    
+}
+
+
+//http://stackoverflow.com/questions/9006759/how-to-write-exif-metadata-to-an-image-not-the-camera-roll-just-a-uiimage-or-j
+-(NSData *)writeMetadataIntoImageData:(NSData *)imageData metadata:(NSMutableDictionary *)metadata {
+    // create an imagesourceref
+    CGImageSourceRef source = CGImageSourceCreateWithData((__bridge CFDataRef) imageData, NULL);
+    
+    // this is the type of image (e.g., public.jpeg)
+    CFStringRef UTI = CGImageSourceGetType(source);
+    
+    // create a new data object and write the new image into it
+    NSMutableData *dest_data = [NSMutableData data];
+    CGImageDestinationRef destination = CGImageDestinationCreateWithData((__bridge CFMutableDataRef)dest_data, UTI, 1, NULL);
+    if (!destination) {
+        NSLog(@"Error: Could not create image destination");
+    }
+    // add the image contained in the image source to the destination, overidding the old metadata with our modified metadata
+    CGImageDestinationAddImageFromSource(destination, source, 0, (__bridge CFDictionaryRef) metadata);
+    BOOL success = NO;
+    success = CGImageDestinationFinalize(destination);
+    if (!success) {
+        NSLog(@"Error: Could not create data from image destination");
+    }
+    CFRelease(destination);
+    CFRelease(source);
+    return dest_data;
+}
+
 @end
 
