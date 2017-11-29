@@ -45,7 +45,7 @@
 - (void)showCaptionInput:(CDVInvokedUrlCommand*)command {
 #ifdef DEBUG
     NSLog(@"showCaptionInput:%@", command.arguments);
-#ENDIF
+#endif
     self.callbackId = command.callbackId;
     [self.callbackIds setValue:command.callbackId forKey:@"showGallery"];
 
