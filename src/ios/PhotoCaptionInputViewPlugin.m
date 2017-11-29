@@ -43,7 +43,9 @@
 }
 
 - (void)showCaptionInput:(CDVInvokedUrlCommand*)command {
+#ifdef DEBUG
     NSLog(@"showCaptionInput:%@", command.arguments);
+#ENDIF
     self.callbackId = command.callbackId;
     [self.callbackIds setValue:command.callbackId forKey:@"showGallery"];
 
@@ -77,8 +79,9 @@
     if(![[buttonOptions class] isEqual:[NSNull class]]){
         _buttonOptions = [NSMutableArray arrayWithArray:buttonOptions];
     }
-
+#ifdef DEBUG
     NSLog(@"data %@",data);
+#endif
     UIScreen *screen = [UIScreen mainScreen];
     CGFloat scale = screen.scale;
     // Sizing is very rough... more thought required in a real implementation
@@ -134,15 +137,16 @@
 -(void) dismissPhotoCaptionInputView:(PhotoCaptionInputViewController*)controller{
     CDVPluginResult* pluginResult = nil;
     NSString *message = [NSString stringWithFormat:@"No Result in PhotoCaptionInputViewPlugin (%@) ", NSLocalizedString(@"USER_CANCELLED", nil)];
+#ifdef DEBUG
     NSLog(@"%@", message);
-
+#endif
 
 
     pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[NSDictionary new]];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:self.callbackId];
-
+#ifdef DEBUG
     NSLog(@"PhotoCaptionInputView: User pressed cancel button");
-
+#endif
 
     [controller dismissViewControllerAnimated:YES completion:nil];
 
@@ -285,9 +289,11 @@
                                                 NSString *dataUTI,
                                                 UIImageOrientation orientation,
                                                 NSDictionary *info) {
+#ifdef DEBUG
                                     NSLog(@"info %@", info);
                                     
                                     NSLog(@"ExifData %@", [self getExifDataFromImageData:imageData]);
+#endif
                                     if([dataUTI isEqualToString:@"public.png"] || [dataUTI isEqualToString:@"public.jpeg"] || [dataUTI isEqualToString:@"public.jpeg-2000"] || [dataUTI isEqualToString:@"public.heic"]) {
 
 
@@ -509,7 +515,9 @@
 
     newImage = UIGraphicsGetImageFromCurrentImageContext();
     if (newImage == nil) {
+#ifdef DEBUG
         NSLog(@"could not scale image");
+#endif
     }
 
     // pop the context to get back to the default
@@ -552,7 +560,9 @@
             
         }
     }@catch(NSException *exception){
+#ifdef DEBUG
         NSLog(@"Error: %@",exception);
+#endif
     }
     return NULL;
 }
@@ -585,14 +595,18 @@
     NSMutableData *dest_data = [NSMutableData data];
     CGImageDestinationRef destination = CGImageDestinationCreateWithData((__bridge CFMutableDataRef)dest_data, UTI, 1, NULL);
     if (!destination) {
+#ifdef DEBUG
         NSLog(@"Error: Could not create image destination");
+#endif
     }
     // add the image contained in the image source to the destination, overidding the old metadata with our modified metadata
     CGImageDestinationAddImageFromSource(destination, source, 0, (__bridge CFDictionaryRef) metadata);
     BOOL success = NO;
     success = CGImageDestinationFinalize(destination);
     if (!success) {
+#ifdef DEBUG
         NSLog(@"Error: Could not create data from image destination");
+#endif
     }
     CFRelease(destination);
     CFRelease(source);
