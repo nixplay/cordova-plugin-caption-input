@@ -431,7 +431,7 @@
                 if ([avasset isReadable]) {
                     NSLog(@"The asset is readable, ok.");
                 }
-                if ([avasset isKindOfClass:[AVURLAsset class]] && [compatiblePresets containsObject:AVAssetExportPresetMediumQuality]) {
+                {
                     CMTimeScale timeScale = avasset.duration.timescale;
                     CMTimeScale lowtiemScale = 24;
                     timeScale = lowtiemScale;
