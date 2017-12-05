@@ -36,7 +36,7 @@ public class PhotoCaptionInputViewPlugin extends CordovaPlugin {
     }
 
     private void showCaptionInput(JSONObject jsonoptions, CallbackContext callbackContext) throws JSONException {
-        if (options != null && options.length() > 0) {
+        if (jsonoptions != null && jsonoptions.length() > 0) {
             ActivityManager.MemoryInfo mi = new ActivityManager.MemoryInfo();
             ActivityManager activityManager = (ActivityManager) this.cordova.getActivity().getApplicationContext().getSystemService(Context.ACTIVITY_SERVICE);
             activityManager.getMemoryInfo(mi);
