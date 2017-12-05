@@ -79,7 +79,6 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 import static android.view.View.GONE;
@@ -199,12 +198,12 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     e.printStackTrace();
 
                 }
-
                 JSONArray imagesJsonArray = jsonObject.getJSONArray("images");
+                JSONArray preSelectedAssetsJsonArray = jsonObject.getJSONArray("preSelectedAssets");
 
-                if (imagesJsonArray != null) {
-                    for (int i = 0; i < imagesJsonArray.length(); i++) {
-                        preSelectedAssets.add(imagesJsonArray.getString(i));
+                if (preSelectedAssetsJsonArray != null) {
+                    for (int i = 0; i < preSelectedAssetsJsonArray.length(); i++) {
+                        preSelectedAssets.add(preSelectedAssetsJsonArray.getString(i));
                     }
                 }
 
@@ -343,13 +342,16 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 (findViewById(fakeR.getId("id", "btnAdd"))).setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
+                        ArrayList<Uri> serialPreselectedAssets = new ArrayList<Uri>();
+                        for(String s : preSelectedAssets){
+                            serialPreselectedAssets.add(Uri.parse(s));
+                        }
                         Matisse.from(PhotoCaptionInputViewActivity.this)
                                 .choose(MimeType.of(
                                         MimeType.JPEG,
-                                        MimeType.PNG,
-                                        MimeType.MP4
+                                        MimeType.PNG
 
-                                ), false)
+                                ), true)
                                 .countable(true)
                                 .capture(true)
                                 .captureStrategy(
@@ -361,33 +363,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                                 .imageEngine(new GlideEngine())
                                 .enablePreview(false)
                                 .showUseOrigin(false)
-                                .forResult(REQUEST_CODE_CHOOSE);
+                                .showSingleMediaType(true)
+                                .forResult(REQUEST_CODE_CHOOSE, serialPreselectedAssets);
 
-//                        PhotoPicker.builder()
-//                                .setPhotoCount(maxImages)
-//                                .setGridColumnCount(4)
-//                                .setShowCamera(true)
-//                                .setPreviewEnabled(false)
-//                                .setShowGif(false)
-//                                .setSelected(preSelectedAssets)
-//                                .start(PhotoCaptionInputViewActivity.this);
-//                        ArrayList<Image> preSelectedAssetsImage = new ArrayList<Image>();
-//                        for (int i = 0; i < preSelectedAssets.size(); i++) {
-//                            Image image = new Image(i, preSelectedAssets.get(i), preSelectedAssets.get(i));
-//                            preSelectedAssetsImage.add(image);
-//                        }
-//                        com.esafirm.imagepicker.features.ImagePicker
-//                                .create(PhotoCaptionInputViewActivity.this)
-//                                .returnAfterFirst(false)
-////                                .folderMode(true) // folder mode (false by default)
-////                                .folderTitle(getString(fakeR.getId("string", "ALBUM"))) // folder selection title
-//                                .multi() // multi mode (default mode)
-//                                .limit(maxImages) // max images can be selected (99 by default)
-//                                .showCamera(true) // show camera or not (true by default)
-//                                .origin(preSelectedAssetsImage)
-////                                .enableLog(false) // disabling log
-//                                .theme(fakeR.getId("style", "ImagePickerTheme"))
-//                                .start(REQUEST_CODE_PICKER); // start image picker activity with request code
                     }
                 });
                 //show image view
@@ -671,12 +649,40 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
             if (resultCode == RESULT_OK && requestCode == REQUEST_CODE_CHOOSE){
-                ArrayList<String> photos = new ArrayList<String>();
-                List<Uri> result = Matisse.obtainResult(data);
+                ArrayList<String> newImages = new ArrayList<String>();
+                ArrayList<String> newPreselectedAssets = new ArrayList<String>();
+                ArrayList<String> newCaptions = new ArrayList<String>();
 
-                for (int i = 0 ; i < result.size() ; i++){
-                    photos.add(PathUtils.getPath(getApplicationContext(),result.get(i)));
+                List<Uri> result = Matisse.obtainResult(data);
+                for (int i = 0 ; i < result.size() ; i++) {
+                    String fileActualPath = PathUtils.getPath(getApplicationContext(),result.get(i));
+                    String uriString = result.get(i).toString();
+                    int index = preSelectedAssets.indexOf(uriString);
+                    if (fileActualPath.contains("file:///")) {
+                        newImages.add(fileActualPath);
+                    } else {
+                        newImages.add(Uri.fromFile(new File(fileActualPath)).toString());
+                    }
+
+                    newPreselectedAssets.add(uriString);
+                    if(preSelectedAssets.contains(uriString)){
+                        if(index>0 && index < captions.size()){
+                            newCaptions.add(captions.get(index));
+                        }else{
+                            newCaptions.add("");
+                        }
+                    }else{
+                        newCaptions.add("");
+                    }
+
                 }
+                imageList = newImages;
+                preSelectedAssets = newPreselectedAssets;
+                captions = newCaptions;
+
+//                for (int i = 0 ; i < result.size() ; i++){
+//                    photos.add(PathUtils.getPath(getApplicationContext(),result.get(i)));
+//                }
 //            if ((requestCode == PhotoPicker.REQUEST_CODE || requestCode == PhotoPreview.REQUEST_CODE)) {
 //                ArrayList<String> photos = null;
 //                if (data != null) {
@@ -688,16 +694,16 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 //                }
 //
 //                ArrayList<String> tempList = new ArrayList<String>();
-//
-                Iterator it = photos.iterator();
-                while (it.hasNext()) {
-                    String imagePath = (String) it.next();
-                    if (!preSelectedAssets.contains(imagePath)) {
-                        preSelectedAssets.add(imagePath);
-                        imageList.add(Uri.fromFile(new File(imagePath)).toString());
-                        captions.add("");
-                    }
-                }
+
+//                Iterator<Uri> it = result.iterator();
+//                while (it.hasNext()) {
+//                    Uri uri =  it.next();
+//                    if (!preSelectedAssets.contains(uri.toString())) {
+//                        preSelectedAssets.add(uri.toString());
+//                        imageList.add(PathUtils.getPath(getApplicationContext(),uri));
+//                        captions.add("");
+//                    }
+//                }
 
                 refreshList();
             }
@@ -722,6 +728,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             if (actionBar != null) {
                 actionBar.setTitle((index + 1) + "/" + actionBarTitle.size());
             }
+            mEditText.setText(captions.get(index));
         } catch (NullPointerException e) {
             e.printStackTrace();
         }
