@@ -680,44 +680,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 preSelectedAssets = newPreselectedAssets;
                 captions = newCaptions;
 
-//                for (int i = 0 ; i < result.size() ; i++){
-//                    photos.add(PathUtils.getPath(getApplicationContext(),result.get(i)));
-//                }
-//            if ((requestCode == PhotoPicker.REQUEST_CODE || requestCode == PhotoPreview.REQUEST_CODE)) {
-//                ArrayList<String> photos = null;
-//                if (data != null) {
-//                    photos = data.getStringArrayListExtra(PhotoPicker.KEY_SELECTED_PHOTOS);
-//                }
-//                ArrayList<Image> images = (ArrayList<Image>) com.esafirm.imagepicker.features.ImagePicker.getImages(data);
-//                if (kProgressHUD != null) {
-//                    kProgressHUD.dismiss();
-//                }
-//
-//                ArrayList<String> tempList = new ArrayList<String>();
-
-//                Iterator<Uri> it = result.iterator();
-//                while (it.hasNext()) {
-//                    Uri uri =  it.next();
-//                    if (!preSelectedAssets.contains(uri.toString())) {
-//                        preSelectedAssets.add(uri.toString());
-//                        imageList.add(PathUtils.getPath(getApplicationContext(),uri));
-//                        captions.add("");
-//                    }
-//                }
 
                 refreshList();
             }
-            /*if (requestCode == Picker.PICK_IMAGE_DEVICE) {
-                kProgressHUD = KProgressHUD.create(PhotoCaptionInputViewActivity.this)
-                        .setStyle(KProgressHUD.Style.SPIN_INDETERMINATE)
-                        .setDetailsLabel(getString(fakeR.getId("string", "DOWNLOADING")))
-                        .setCancellable(false)
-                        .setAnimationSpeed(2)
-                        .setDimAmount(0.5f)
-                        .show();
-
-                imagePicker.submit(data);
-            }*/
         }
 
     }
