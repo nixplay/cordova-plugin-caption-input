@@ -86,9 +86,6 @@
 			</style>
 
 		</config-file>
-		<config-file target="res/values/dimens.xml" parent="/*">
-			<dimen name="grid_expected_size">120dp</dimen>
-		</config-file>
 		<config-file parent="/*" target="AndroidManifest.xml"/>
 		<source-file src="src/android/PhotoCaptionInputViewPlugin.java" target-dir="src/com/creedon/cordova/plugin/captioninput"/>
 		<source-file src="src/android/PhotoCaptionInputViewActivity.java" target-dir="src/com/creedon/cordova/plugin/captioninput"/>
