@@ -86,7 +86,7 @@
 			</style>
 
 		</config-file>
-		<config-file parent="/resources" target="res/values/dimens.xml">
+		<config-file target="res/values/dimens.xml" parent="/*">
 			<dimen name="grid_expected_size">120dp</dimen>
 		</config-file>
 		<config-file parent="/*" target="AndroidManifest.xml"/>
