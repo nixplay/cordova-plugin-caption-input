@@ -357,7 +357,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                                 .captureStrategy(
                                         new CaptureStrategy(true, getApplication().getPackageName()+".fileprovider"))
                                 .maxSelectable(PhotoCaptionInputViewActivity.this.maxImages)
-                                .gridExpectedSize(320)
+                                .gridExpectedSize(getResources().getDimensionPixelSize(getResources().getIdentifier("grid_expected_size", "dimen", getPackageName())))
                                 .restrictOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
                                 .thumbnailScale(0.85f)
                                 .imageEngine(new GlideEngine())
