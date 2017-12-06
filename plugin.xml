@@ -117,5 +117,6 @@
 
 		<source-file src="src/android/drawable-xxhdpi/round_corner_button.xml" target-dir="res/drawable-xxhdpi" />
 		<source-file src="src/android/drawable-xxhdpi/action_bar_bg.xml" target-dir="res/drawable-xxhdpi" />
+		<source-file src="src/android/values/dimens.xml" target-dir="res/values"/>
 	</platform>
 </plugin>
