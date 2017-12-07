@@ -66,7 +66,6 @@ import com.zhihu.matisse.Matisse;
 import com.zhihu.matisse.MimeType;
 import com.zhihu.matisse.engine.impl.GlideEngine;
 import com.zhihu.matisse.internal.entity.CaptureStrategy;
-import com.zhihu.matisse.internal.utils.PathUtils;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -355,9 +354,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
                                 ), true)
                                 .countable(true)
-                                .capture(true)
-                                .captureStrategy(
-                                        new CaptureStrategy(true, getApplication().getPackageName()+".provider"))
+//                                .capture(true)
+//                                .captureStrategy(
+//                                        new CaptureStrategy(true, getApplication().getPackageName()+".provider"))
                                 .maxSelectable(PhotoCaptionInputViewActivity.this.maxImages)
                                 .gridExpectedSize((int) convertDpToPixel(120,PhotoCaptionInputViewActivity.this))
                                 .restrictOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
@@ -656,8 +655,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 ArrayList<String> newCaptions = new ArrayList<String>();
 
                 List<Uri> result = Matisse.obtainResult(data);
+                List<String> fileActualPaths = Matisse.obtainPathResult(data);
                 for (int i = 0 ; i < result.size() ; i++) {
-                    String fileActualPath = PathUtils.getPath(getApplicationContext(),result.get(i));
+                    String fileActualPath = fileActualPaths.get(i);
                     String uriString = result.get(i).toString();
                     int index = preSelectedAssets.indexOf(uriString);
                     if (fileActualPath.contains("file:///")) {
