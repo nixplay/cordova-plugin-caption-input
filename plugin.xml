@@ -44,9 +44,6 @@
 				<param name="android-package" value="com.creedon.cordova.plugin.captioninput.PhotoCaptionInputViewPlugin"/>
 			</feature>
 		</config-file>
-		<config-file target="res/values/dimens.xml" parent="/resources">
-			<dimen name="grid_expected_sizedeimens">120dp</dimen>
-		</config-file>
 		<config-file target="res/values/styles.xml" parent="/resources">
 			<style name="TransparentActionBarAppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
 				<!--<item name="android:windowActionBarOverlay">true</item>
