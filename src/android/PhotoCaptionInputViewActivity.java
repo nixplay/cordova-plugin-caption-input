@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
+import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -35,6 +36,7 @@ import android.support.v7.widget.RecyclerView;
 import android.text.Editable;
 import android.text.InputFilter;
 import android.text.TextWatcher;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -357,7 +359,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                                 .captureStrategy(
                                         new CaptureStrategy(true, getApplication().getPackageName()+".fileprovider"))
                                 .maxSelectable(PhotoCaptionInputViewActivity.this.maxImages)
-                                .gridExpectedSize(320)
+                                .gridExpectedSize((int) convertDpToPixel(120,PhotoCaptionInputViewActivity.this))
                                 .restrictOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
                                 .thumbnailScale(0.85f)
                                 .imageEngine(new GlideEngine())
@@ -1220,6 +1222,20 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         void resizeProcessed(ArrayList<String> temp);
 
         void ResizeCompleted(ArrayList<String> outList);
+    }
+
+    /**
+     * This method converts dp unit to equivalent pixels, depending on device density.
+     *
+     * @param dp A value in dp (density independent pixels) unit. Which we need to convert into pixels
+     * @param context Context to get resources and device specific display metrics
+     * @return A float value to represent px equivalent to dp depending on device density
+     */
+    public static float convertDpToPixel(float dp, Context context){
+        Resources resources = context.getResources();
+        DisplayMetrics metrics = resources.getDisplayMetrics();
+        float px = dp * ((float)metrics.densityDpi / DisplayMetrics.DENSITY_DEFAULT);
+        return px;
     }
 
 }
