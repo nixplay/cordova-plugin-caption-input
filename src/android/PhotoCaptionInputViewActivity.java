@@ -3,6 +3,7 @@ package com.creedon.cordova.plugin.captioninput;
 
 import android.app.Activity;
 import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -65,7 +66,6 @@ import com.rengwuxian.materialedittext.MaterialEditText;
 import com.zhihu.matisse.Matisse;
 import com.zhihu.matisse.MimeType;
 import com.zhihu.matisse.engine.impl.GlideEngine;
-import com.zhihu.matisse.internal.entity.CaptureStrategy;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -344,8 +344,11 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     @Override
                     public void onClick(View view) {
                         ArrayList<Uri> serialPreselectedAssets = new ArrayList<Uri>();
-                        for(String s : preSelectedAssets){
-                            serialPreselectedAssets.add(Uri.parse(s));
+                        for(String s : imageList){
+                            File file = new File(s.replaceFirst("file://",""));
+                            if(file.exists()) {
+                                serialPreselectedAssets.add(getImageContentUri(PhotoCaptionInputViewActivity.this, file));
+                            }
                         }
                         Matisse.from(PhotoCaptionInputViewActivity.this)
                                 .choose(MimeType.of(
@@ -354,9 +357,6 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
                                 ), true)
                                 .countable(true)
-//                                .capture(true)
-//                                .captureStrategy(
-//                                        new CaptureStrategy(true, getApplication().getPackageName()+".provider"))
                                 .maxSelectable(PhotoCaptionInputViewActivity.this.maxImages)
                                 .gridExpectedSize((int) convertDpToPixel(120,PhotoCaptionInputViewActivity.this))
                                 .restrictOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
@@ -383,6 +383,28 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             Intent intent = new Intent();
             setResult(RESULT_CANCELED, intent);
             finish();
+        }
+    }
+    public static Uri getImageContentUri(Context context, File imageFile) {
+        String filePath = imageFile.getAbsolutePath();
+        Cursor cursor = context.getContentResolver().query(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                new String[] { MediaStore.Images.Media._ID },
+                MediaStore.Images.Media.DATA + "=? ",
+                new String[] { filePath }, null);
+        if (cursor != null && cursor.moveToFirst()) {
+            int id = cursor.getInt(cursor.getColumnIndex(MediaStore.MediaColumns._ID));
+            cursor.close();
+            return Uri.withAppendedPath(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "" + id);
+        } else {
+            if (imageFile.exists()) {
+                ContentValues values = new ContentValues();
+                values.put(MediaStore.Images.Media.DATA, filePath);
+                return context.getContentResolver().insert(
+                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+            } else {
+                return null;
+            }
         }
     }
 
