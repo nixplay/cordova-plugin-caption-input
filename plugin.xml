@@ -16,14 +16,19 @@
 		</config-file>
 		<header-file src="src/ios/PhotoCaptionInputViewPlugin.h"/>
 		<source-file src="src/ios/PhotoCaptionInputViewPlugin.m"/>
+		<header-file src="src/ios/AVAsset+VideoOrientation.h"/>
+		<source-file src="src/ios/AVAsset+VideoOrientation.m"/>
 		<pods-config ios-min-version="9.0" use-frameworks="true"></pods-config>
-		<pod name="MWPhotoBrowser" git="https://github.com/nixplay/MWPhotoBrowser"  tag="2.1.27" />
-		<pod name="PhotoCaptionInputView" git="https://github.com/nixplay/PhotoCaptionInputView.git" tag="0.5.2" />
-		<pod name="GMImagePicker" git="https://github.com/nixplay/GMImagePicker.git" tag="0.1.3"/>
+		<pod name="SDAVAssetExportSession" git="https://github.com/nixplay/SDAVAssetExportSession.git" branch="master"/>
+		<pod name="PhotoCaptionInputView" git="https://github.com/nixplay/PhotoCaptionInputView.git" branch="develop" />
+		<pod name="MWPhotoBrowser" git="https://github.com/nixplay/MWPhotoBrowser.git" branch="develop" />
+		<pod name="GMImagePicker" git="https://github.com/nixplay/GMImagePicker.git" branch="develop"/>
+		<pod name="ICGVideoTrimmer" git="https://github.com/nixplay/ICGVideoTrimmer.git" branch="develop"/>
+		<pod name="SDWebImage" version="4.2.2"/>
+		<pod name="PopupDialog" version="0.6.1"/>
 		<pod name="MRProgress"/>
 		<pod name="Masonry"/>
-		<pod name="SDWebImage" version="4.1.0"/>
-		<pod name="CRGradientNavigationBar"/>
+		<pod name="FileMD5Hash"/>
 		<resource-file src="src/ios/PhotoCaptionInputViewPlugin.bundle"/>
 	</platform>
 	<platform name="android">
