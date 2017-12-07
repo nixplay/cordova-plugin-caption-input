@@ -39,10 +39,6 @@
 				android:name="com.creedon.cordova.plugin.captioninput.PhotoCaptionInputViewActivity"
 				android:screenOrientation="portrait"  android:theme="@style/TransparentActionBarAppTheme" >
 			</activity>
-
-			<activity android:theme="@style/customTheme" android:name="me.iwf.photopicker.PhotoPickerActivity"/>
-			<activity android:theme="@style/Theme.AppCompat.NoActionBar" android:name="me.iwf.photopicker.PhotoPagerActivity" />
-
 		</config-file>
 		<config-file parent="/*" target="res/xml/config.xml">
 			<feature name="PhotoCaptionInputViewPlugin">
@@ -91,7 +87,6 @@
 			</style>
 
 		</config-file>
-
 		<config-file parent="/*" target="AndroidManifest.xml"/>
 		<source-file src="src/android/PhotoCaptionInputViewPlugin.java" target-dir="src/com/creedon/cordova/plugin/captioninput"/>
 		<source-file src="src/android/PhotoCaptionInputViewActivity.java" target-dir="src/com/creedon/cordova/plugin/captioninput"/>
