@@ -344,10 +344,17 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     @Override
                     public void onClick(View view) {
                         ArrayList<Uri> serialPreselectedAssets = new ArrayList<Uri>();
-                        for(String s : imageList){
-                            File file = new File(s.replaceFirst("file://",""));
-                            if(file.exists()) {
-                                serialPreselectedAssets.add(getImageContentUri(PhotoCaptionInputViewActivity.this, file));
+                        // if image from camera?
+                        if(imageList.size() == 1) {
+                            for (String s : imageList) {
+                                File file = new File(s.replaceFirst("file://", ""));
+                                if (file.exists()) {
+                                    serialPreselectedAssets.add(getImageContentUri(PhotoCaptionInputViewActivity.this, file));
+                                }
+                            }
+                        }else{
+                            for (String s : preSelectedAssets) {
+                                serialPreselectedAssets.add(Uri.parse(s));
                             }
                         }
                         Matisse.from(PhotoCaptionInputViewActivity.this)
