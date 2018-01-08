@@ -19,7 +19,6 @@
 		<header-file src="src/ios/AVAsset+VideoOrientation.h"/>
 		<source-file src="src/ios/AVAsset+VideoOrientation.m"/>
 		<pods-config ios-min-version="9.0" use-frameworks="true"></pods-config>
-
 		<pod name="SDAVAssetExportSession" git="https://github.com/nixplay/SDAVAssetExportSession.git" branch="master"/>
 		<pod name="PhotoCaptionInputView" git="https://github.com/nixplay/PhotoCaptionInputView.git" branch="develop" />
 		<pod name="MWPhotoBrowser" git="https://github.com/nixplay/MWPhotoBrowser.git" branch="develop" />
