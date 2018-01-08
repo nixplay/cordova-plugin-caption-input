@@ -1115,7 +1115,8 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             if (temp.size() == 0) {
                 onImageResized.ResizeCompleted(outList);
             } else {
-                if ((width != 0 && height != 0) || temp.get(0).toLowerCase().contains("bmp")) {
+                //fixed http://crashes.to/s/d00290ba305 stackoverflow
+                if ((width != 0 && height != 0) || temp.get(0).contains("bmp") || temp.get(0).contains("BMP")) {
                     try {
                         URI uri = new URI(temp.get(0));
 
