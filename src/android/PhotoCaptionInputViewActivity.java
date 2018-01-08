@@ -14,6 +14,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Rect;
 import android.media.ExifInterface;
+import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -86,6 +87,7 @@ import static android.view.View.GONE;
 import static com.creedon.cordova.plugin.captioninput.Constants.KEY_CAPTIONS;
 import static com.creedon.cordova.plugin.captioninput.Constants.KEY_IMAGES;
 import static com.creedon.cordova.plugin.captioninput.Constants.KEY_INVALIDIMAGES;
+import static com.creedon.cordova.plugin.captioninput.Constants.KEY_METADATAS;
 import static com.creedon.cordova.plugin.captioninput.Constants.KEY_PRESELECTS;
 
 /**
@@ -136,7 +138,13 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
                         currentPosition = mPager.getCurrentItem();
                         setActionBarTitle(imageList, currentPosition);
-                        mEditText.setText(captions.get(currentPosition));
+                        if(isVideo(imageList.get(currentPosition))){
+                            mEditText.setText("");
+                            mEditText.setVisibility(View.INVISIBLE);
+                        }else {
+                            mEditText.setText(captions.get(currentPosition));
+                            mEditText.setVisibility(View.VISIBLE);
+                        }
                         linearLayoutManager.scrollToPositionWithOffset(currentPosition, -1);
                         if (recyclerViewAdapter != null) {
                             recyclerViewAdapter.notifyDataSetChanged();
@@ -172,17 +180,17 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
         SharedPreferences sharedPrefs = getSharedPreferences("group.com.creedon.Nixplay", Context.MODE_PRIVATE);
         boolean isOptimizeSize = false;
-        try{
-            isOptimizeSize = sharedPrefs.getBoolean("nixSettings.settings.resolution",false);
-        }catch(Exception e){
+        try {
+            isOptimizeSize = sharedPrefs.getBoolean("nixSettings.settings.resolution", false);
+        } catch (Exception e) {
             try {
                 String ret = sharedPrefs.getString("nixSettings.settings.resolution", "");
                 isOptimizeSize = Boolean.parseBoolean(ret);
-            }catch (Exception e1){
+            } catch (Exception e1) {
                 e1.printStackTrace();
             }
         }
-        if(isOptimizeSize) {
+        if (isOptimizeSize) {
             this.width = 1820;
             this.height = 1820;
         }
@@ -331,6 +339,21 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 mPagerAdapter = new ScreenSlidePagerAdapter(getSupportFragmentManager(), stringArray);
                 mPager.setAdapter(mPagerAdapter);
 
+                mPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+                    @Override
+                    public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+                        mPagerAdapter.stopVideoPlayback();
+                    }
+
+                    @Override
+                    public void onPageSelected(int position) {
+                    }
+
+                    @Override
+                    public void onPageScrollStateChanged(int state) {
+                    }
+                });
+
                 RecyclerView recyclerView = (RecyclerView) findViewById(fakeR.getId("id", "recycleview"));
                 linearLayoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
                 recyclerViewAdapter = new RecyclerViewAdapter(this, stringArray);
@@ -344,28 +367,20 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     @Override
                     public void onClick(View view) {
                         ArrayList<Uri> serialPreselectedAssets = new ArrayList<Uri>();
-                        // if image from camera?
-                        if(imageList.size() == 1) {
-                            for (String s : imageList) {
-                                File file = new File(s.replaceFirst("file://", ""));
-                                if (file.exists()) {
-                                    serialPreselectedAssets.add(getImageContentUri(PhotoCaptionInputViewActivity.this, file));
-                                }
-                            }
-                        }else{
-                            for (String s : preSelectedAssets) {
-                                serialPreselectedAssets.add(Uri.parse(s));
-                            }
+//content uri all the way
+                        for (String s : preSelectedAssets) {
+                            serialPreselectedAssets.add(Uri.parse(s));
                         }
+
                         Matisse.from(PhotoCaptionInputViewActivity.this)
                                 .choose(MimeType.of(
                                         MimeType.JPEG,
-                                        MimeType.PNG
-
-                                ), true)
+                                        MimeType.PNG,
+                                        MimeType.MP4
+                                ), false)
                                 .countable(true)
                                 .maxSelectable(PhotoCaptionInputViewActivity.this.maxImages)
-                                .gridExpectedSize((int) convertDpToPixel(120,PhotoCaptionInputViewActivity.this))
+                                .gridExpectedSize((int) convertDpToPixel(120, PhotoCaptionInputViewActivity.this))
                                 .restrictOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
                                 .thumbnailScale(0.85f)
                                 .imageEngine(new GlideEngine())
@@ -392,13 +407,14 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             finish();
         }
     }
+
     public static Uri getImageContentUri(Context context, File imageFile) {
         String filePath = imageFile.getAbsolutePath();
         Cursor cursor = context.getContentResolver().query(
                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                new String[] { MediaStore.Images.Media._ID },
+                new String[]{MediaStore.Images.Media._ID},
                 MediaStore.Images.Media.DATA + "=? ",
-                new String[] { filePath }, null);
+                new String[]{filePath}, null);
         if (cursor != null && cursor.moveToFirst()) {
             int id = cursor.getInt(cursor.getColumnIndex(MediaStore.MediaColumns._ID));
             cursor.close();
@@ -413,6 +429,11 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 return null;
             }
         }
+    }
+
+    private static boolean isVideo(String filePath) {
+        filePath = filePath.toLowerCase();
+        return filePath.endsWith(".mp4");
     }
 
     /**
@@ -651,7 +672,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             if (recyclerViewAdapter.getItemCount() > 0 || recyclerViewAdapter != null) {
                 recyclerViewAdapter.notifyDataSetChanged();
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -670,7 +691,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             if (recyclerViewAdapter.getItemCount() > 0 || recyclerViewAdapter != null) {
                 recyclerViewAdapter.notifyDataSetChanged();
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -678,14 +699,14 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
-            if (resultCode == RESULT_OK && requestCode == REQUEST_CODE_CHOOSE){
+            if (resultCode == RESULT_OK && requestCode == REQUEST_CODE_CHOOSE) {
                 ArrayList<String> newImages = new ArrayList<String>();
                 ArrayList<String> newPreselectedAssets = new ArrayList<String>();
                 ArrayList<String> newCaptions = new ArrayList<String>();
 
                 List<Uri> result = Matisse.obtainResult(data);
                 List<String> fileActualPaths = Matisse.obtainPathResult(data);
-                for (int i = 0 ; i < result.size() ; i++) {
+                for (int i = 0; i < result.size(); i++) {
                     String fileActualPath = fileActualPaths.get(i);
                     String uriString = result.get(i).toString();
                     int index = preSelectedAssets.indexOf(uriString);
@@ -696,13 +717,13 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     }
 
                     newPreselectedAssets.add(uriString);
-                    if(preSelectedAssets.contains(uriString)){
-                        if(index>0 && index < captions.size()){
+                    if (preSelectedAssets.contains(uriString)) {
+                        if (index > 0 && index < captions.size()) {
                             newCaptions.add(captions.get(index));
-                        }else{
+                        } else {
                             newCaptions.add("");
                         }
-                    }else{
+                    } else {
                         newCaptions.add("");
                     }
 
@@ -784,7 +805,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         imageResizer.setCallback(new ResizeCallback() {
 
             @Override
-            public void onResizeSuccess(ArrayList<String> outList) {
+            public void onResizeSuccess(ArrayList<String> outList, JSONArray jsonArray) {
                 kProgressHUD.dismiss();
                 Bundle conData = new Bundle();
                 try {
@@ -797,6 +818,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     jsonObject.put(KEY_PRESELECTS, new JSONArray());
                     jsonObject.put(KEY_INVALIDIMAGES, new JSONArray());
                     jsonObject.put(KEY_TYPE, type);
+                    jsonObject.put(KEY_METADATAS, jsonArray);
                     conData.putString(Constants.RESULT, jsonObject.toString());
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -828,7 +850,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
 
         String outFilePath = System.getProperty("java.io.tmpdir") + "/";
-        if(!(inFilePath + File.separator + inFileName).equals(outFilePath + inFileName)) {
+        if (!(inFilePath + File.separator + inFileName).equals(outFilePath + inFileName)) {
             copyFile(inFilePath + File.separator, inFileName, outFilePath);
             try {
                 copyExif(inFilePath + File.separator + inFileName, outFilePath + inFileName);
@@ -838,6 +860,32 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             return outFilePath + inFileName;
         }
         return inFilePath + File.separator + inFileName;
+
+    }
+
+    protected String storeImage(String inFileName, Bitmap bmp) throws JSONException, IOException, URISyntaxException {
+
+        String filename = inFileName;
+        filename.replace("bmp", "jpg");
+        String filePath = System.getProperty("java.io.tmpdir") + "/" + filename;
+//        exif.writeExif(bmp, filePath, 100);
+        FileOutputStream out = null;
+        try {
+            out = new FileOutputStream(filePath);
+            bmp.compress(Bitmap.CompressFormat.JPEG, 100, out); // bmp is your Bitmap instance
+            // PNG is a lossless format, the compression factor (100) is ignored
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (out != null) {
+                    out.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return filePath;
 
     }
 
@@ -1041,11 +1089,15 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         public int getItemPosition(Object object) {
             return POSITION_NONE;
         }
+
+        public void stopVideoPlayback() {
+            ((ScreenSlidePageFragment) getItem(currentPosition)).stopVideoPlayback();
+        }
     }
 
 
     private interface ResizeCallback {
-        void onResizeSuccess(ArrayList<String> outList);
+        void onResizeSuccess(ArrayList<String> outList, JSONArray jsonArray);
 
         void onResizeFailed(String s);
     }
@@ -1074,6 +1126,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         private final List<String> files;
         private ResizeCallback callback;
         private ArrayList<String> outList;
+        private JSONArray outMetaList;
         OnImageResized onImageResizedCallback = new OnImageResized() {
 
             @Override
@@ -1082,12 +1135,16 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             }
 
             @Override
-            public void ResizeCompleted(ArrayList<String> outList) {
+            public void resizeCompleted(ArrayList<String> outList) {
                 if (callback != null) {
                     onDone();
                 }
             }
         };
+        private String originalFileName;
+        private String subfileName;
+        private String previewBitmapFileName;
+        private String thumbnailBitmapFileName;
 
         public ImageResizer(Context context, List<String> files) {
             this.context = context;
@@ -1113,9 +1170,8 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
         private void processFile(final ArrayList<String> temp, final OnImageResized onImageResized) {
             if (temp.size() == 0) {
-                onImageResized.ResizeCompleted(outList);
+                onImageResized.resizeCompleted(outList);
             } else {
-                //fixed http://crashes.to/s/d00290ba305 stackoverflow
                 if ((width != 0 && height != 0) || temp.get(0).contains("bmp") || temp.get(0).contains("BMP")) {
                     try {
                         URI uri = new URI(temp.get(0));
@@ -1174,7 +1230,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                                             } else {
                                                 outFilePath = storeImage(imageFile.getParentFile().getAbsolutePath(), imageFile.getName());
                                             }
-                                            outList.add(Uri.fromFile(new File(outFilePath)).toString());
+                                            addData(Uri.fromFile(new File(outFilePath)).toString(), new JSONObject());
 
                                         } catch (JSONException e) {
                                             e.printStackTrace();
@@ -1198,14 +1254,13 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                         e.printStackTrace();
                         callback.onResizeFailed("URISyntaxException " + e.getMessage());
                     }
-                } else {
-
+                } else if (temp.get(0).contains("jpg") || temp.get(0).contains("jpeg") || temp.get(0).contains("JPG") || temp.get(0).contains("JPEG") || temp.get(0).contains("png") || temp.get(0).contains("PNG")) {
                     try {
                         URI uri = new URI(temp.get(0));
                         File inFile = new File(uri);
                         Log.d("processFile", "storeImage " + uri);
                         String outFilePath = storeImage(inFile.getParentFile().getAbsolutePath(), inFile.getName());
-                        outList.add(Uri.fromFile(new File(outFilePath)).toString());
+                        addData(Uri.fromFile(new File(outFilePath)).toString(), new JSONObject());
                     } catch (URISyntaxException e) {
                         e.printStackTrace();
                         callback.onResizeFailed("URISyntaxException storeImage " + e.getMessage());
@@ -1221,8 +1276,80 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     }
 
 
+                } else if (temp.get(0).contains("mp4") || temp.get(0).contains("MP4")) {
+                    URI uri = null;
+                    try {
+                        uri = new URI(temp.get(0));
+                        Uri src = Uri.parse(temp.get(0));
+                        File inFile = new File(uri);
+                        Log.d("processFile", "storeImage " + uri);
+
+                        MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
+                        mediaMetadataRetriever.setDataSource(PhotoCaptionInputViewActivity.this, src);
+                        Bitmap previewBitmap = mediaMetadataRetriever.getFrameAtTime(0);
+                        Bitmap thumbnailBitmap = (previewBitmap.getWidth() >= previewBitmap.getHeight()) ?
+                                Bitmap.createBitmap(
+                                        previewBitmap,
+                                        previewBitmap.getWidth() / 2 - previewBitmap.getHeight() / 2,
+                                        0,
+                                        previewBitmap.getHeight(),
+                                        previewBitmap.getHeight()
+                                ) :
+                                Bitmap.createBitmap(
+                                        previewBitmap,
+                                        0,
+                                        previewBitmap.getHeight() / 2 - previewBitmap.getWidth() / 2,
+                                        previewBitmap.getWidth(),
+                                        previewBitmap.getWidth()
+                                );
+
+                        originalFileName = temp.get(0).substring(temp.get(0).lastIndexOf("/") + 1);
+                        subfileName = temp.get(0).substring(temp.get(0).lastIndexOf(".") + 1);
+                        previewBitmapFileName = originalFileName.replace(subfileName, "-preview.jpg");
+                        thumbnailBitmapFileName = originalFileName.replace(subfileName, "-thumbnail.jpg");
+                        String previewBitmapFilePath = storeImage(previewBitmapFileName, previewBitmap);
+                        String thumbnailBitmapFilePath = storeImage(thumbnailBitmapFileName, thumbnailBitmap);
+                        Log.d("previewBitmapFilePath", previewBitmapFilePath);
+                        Log.d("thumbnailBitmapFilePath", thumbnailBitmapFilePath);
+                        JSONObject metaData = new JSONObject();
+
+                        long durationMs = Long.parseLong(mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
+                        long videoWidth = Long.parseLong(mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH));
+                        long videoHeight = Long.parseLong(mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT));
+
+
+                        /* testing only */
+
+
+                        metaData.put("duration", 15000 > durationMs ? durationMs : 15000);
+                        metaData.put("width", videoWidth);
+                        metaData.put("height", videoHeight);
+                        metaData.put("originalDuration", durationMs);
+                        metaData.put("edited", "auto");
+
+                        addData(Uri.fromFile(inFile).toString(), metaData);
+                    } catch (URISyntaxException e) {
+                        e.printStackTrace();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    } finally {
+                        temp.remove(0);
+                        onImageResized.resizeProcessed(temp);
+                    }
+
+                } else {
+                    addData("", new JSONObject());
+                    temp.remove(0);
+                    onImageResized.resizeProcessed(temp);
                 }
             }
+        }
+
+        private void addData(String s, JSONObject jsonObject) {
+            outList.add(s);
+            outMetaList.put(new JSONArray());
         }
 
         private void onDone() {
@@ -1231,7 +1358,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     ((Activity) context).runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            callback.onResizeSuccess(outList);
+                            callback.onResizeSuccess(outList, outMetaList);
                         }
                     });
                 }
@@ -1251,20 +1378,20 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     private interface OnImageResized {
         void resizeProcessed(ArrayList<String> temp);
 
-        void ResizeCompleted(ArrayList<String> outList);
+        void resizeCompleted(ArrayList<String> outList);
     }
 
     /**
      * This method converts dp unit to equivalent pixels, depending on device density.
      *
-     * @param dp A value in dp (density independent pixels) unit. Which we need to convert into pixels
+     * @param dp      A value in dp (density independent pixels) unit. Which we need to convert into pixels
      * @param context Context to get resources and device specific display metrics
      * @return A float value to represent px equivalent to dp depending on device density
      */
-    public static float convertDpToPixel(float dp, Context context){
+    public static float convertDpToPixel(float dp, Context context) {
         Resources resources = context.getResources();
         DisplayMetrics metrics = resources.getDisplayMetrics();
-        float px = dp * ((float)metrics.densityDpi / DisplayMetrics.DENSITY_DEFAULT);
+        float px = dp * ((float) metrics.densityDpi / DisplayMetrics.DENSITY_DEFAULT);
         return px;
     }
 

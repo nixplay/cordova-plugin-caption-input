@@ -18,4 +18,5 @@ public class Constants {
     public static final String KEY_IMAGES = "images";
     public static final String KEY_CAPTIONS = "captions";
     public static final String KEY_INVALIDIMAGES = "invalidImages";
+    public static final String KEY_METADATAS = "metaDatas";
 }
