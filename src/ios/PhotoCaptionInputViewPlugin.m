@@ -72,7 +72,7 @@
     NSArray *argfriends = [options objectForKey:@"friends"];
     
     
-    _destinationType = @"";
+    _distinationType = @"";
     if(![[argfriends class] isEqual:[NSNull class]]){
         self.friends = argfriends;
     }else{
@@ -95,9 +95,10 @@
     CGSize imageTargetSize = CGSizeMake(imageSize * scale, imageSize * scale);
     CGSize thumbTargetSize = CGSizeMake(imageSize / 3.0 * scale, imageSize / 3.0 * scale);
     
-    PHFetchResult<PHAsset *> * result = [PHAsset fetchAssetsWithLocalIdentifiers:self.preSelectedAssets options:nil];
-    NSInteger numVideos = 0;
-    [result enumerateObjectsUsingBlock:^(PHAsset * _Nonnull asset, NSUInteger idx, BOOL * _Nonnull stop) {
+    
+    [self.preSelectedAssets enumerateObjectsUsingBlock:^(NSString * _Nonnull localIdentifier, NSUInteger idx, BOOL * _Nonnull stop) {
+        PHFetchResult<PHAsset *> * result = [PHAsset fetchAssetsWithLocalIdentifiers:@[localIdentifier] options:nil];
+        PHAsset *asset = [result objectAtIndex:0];
         [images addObject:[MWPhotoExt photoWithAsset:asset targetSize:imageTargetSize] ];
         [thumbs addObject:[MWPhotoExt photoWithAsset:asset targetSize:thumbTargetSize] ];
     }];
@@ -131,9 +132,8 @@
     UIButton *button = (UIButton*)sender;
     [_buttonOptions enumerateObjectsUsingBlock:^(NSDictionary *obj, NSUInteger idx, BOOL * _Nonnull stop) {
         
-        if([[obj valueForKey:KEY_LABEL] isEqualToString:button.titleLabel.text]){
-            
-            _destinationType = [obj valueForKey:KEY_TYPE];
+        if([[obj valueForKey:KEY_LABEL] isEqualToString:button.titleLabel.text]){            
+            _distinationType = [obj valueForKey:KEY_TYPE];
         }
     }];
     [_photoCaptionInputViewController getPhotosCaptions];
@@ -148,6 +148,7 @@
 #ifdef DEBUG
     NSLog(@"%@", message);
 #endif
+
     pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[NSDictionary new]];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:self.callbackId];
 #ifdef DEBUG
@@ -158,11 +159,6 @@
     }
 
 
-    pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[NSDictionary new]];
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:self.callbackId];
-#ifdef DEBUG
-    NSLog(@"PhotoCaptionInputView: User pressed cancel button");
-#endif
     [controller dismissViewControllerAnimated:YES completion:nil];
     
 }
@@ -171,12 +167,10 @@
     __block NSMutableArray *preSelectedAssets = [[NSMutableArray alloc] init];
     __block NSMutableArray *fileStrings = [[NSMutableArray alloc] init];
     __block NSMutableArray *metaDatas = [[NSMutableArray alloc] init];
-    
-    
     __block NSMutableArray *invalidImages = [[NSMutableArray alloc] init];
     CGSize targetSize = CGSizeMake(self.width, self.height);
-//    NSString* docsPath = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) objectAtIndex:0];
-    NSString* docsPath = [NSTemporaryDirectory() stringByStandardizingPath];
+    NSString* docsPath = [NSTemporaryDirectory()stringByStandardizingPath];
+    
     __block CDVPluginResult* result = nil;
     
     PHImageManager *manager = [PHImageManager defaultManager];
@@ -198,17 +192,11 @@
     MBProgressHUD *hud = [MBProgressHUD showHUDAddedTo:controller.view animated:YES];
     hud.mode = MBProgressHUDModeAnnularDeterminate;
     hud.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.3];
-    hud.label.text = @"Loading";
+    hud.label.text = NSLocalizedString(@"LOADING", nil);
     
-//    [controller.view addSubview:progressView];
-//    [progressView mas_makeConstraints:^(MASConstraintMaker *make) {
-//        make.centerY.equalTo(progressView.superview.mas_centerY);
-//        make.centerX.equalTo(progressView.superview.mas_centerX);
-//    }];
     dispatch_group_async(dispatchGroup, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-        PHFetchResult<PHAsset *> * fetchArray = [PHAsset fetchAssetsWithLocalIdentifiers:preselectAssets options:nil];
-        __block CGFloat numberOfImage = [fetchArray count];
-        [self processAssets:fetchArray
+        __block CGFloat numberOfImage = [inPhotos count];
+        [self processAssets:inPhotos
                       index:0
                    docsPath:docsPath
                  targetSize:targetSize
@@ -221,7 +209,6 @@
               }
               dispatch_group_notify(dispatchGroup, dispatch_get_main_queue(), ^{
                   
-//                  [progressView dismiss:YES];
                   [hud hideAnimated:YES];
                   [self.commandDelegate sendPluginResult:result callbackId:self.callbackId];
                   [controller.presentingViewController dismissViewControllerAnimated:YES completion:nil];
@@ -268,7 +255,7 @@
     
 }
 
--(void) processAssets:(PHFetchResult<PHAsset *>*)fetchAssets
+-(void) processAssets:(NSArray*)fetchAssets
                 index:(NSInteger)index
              docsPath:(NSString*)docsPath
            targetSize:(CGSize)targetSize
@@ -285,8 +272,9 @@
     }
     
     __block NSInteger internalIndex = index;
-    PHAsset *asset = [fetchAssets objectAtIndex:internalIndex];
-    
+    NSString *assetString = [fetchAssets objectAtIndex:internalIndex];
+    PHFetchResult<PHAsset*> *fetchResult = [PHAsset fetchAssetsWithLocalIdentifiers: @[assetString] options:nil];
+    PHAsset *asset = [fetchResult objectAtIndex:0];
     NSString *localIdentifier;
     NSError * err;
     CDVPluginResult *result = nil;
@@ -349,17 +337,17 @@
                                                     } else {
                                                         image = [UIImage imageWithData:imageData];
                                                         // resample first
-
+                                                        
                                                         data = (imageMetadata != NULL)? [self writeMetadataIntoImageData:UIImageJPEGRepresentation(image, self.quality/100.0f) metadata: [[NSMutableDictionary alloc]initWithDictionary:imageMetadata]] : UIImageJPEGRepresentation(image, self.quality/100.0f) ;
-
+                                                        
                                                     }
                                                 } else {
                                                     image = [UIImage imageWithData:imageData];
                                                     // scale
                                                     UIImage* scaledImage = [self imageByScalingNotCroppingForSize:image toSize:targetSize];
-
+                                                    
                                                     data = (imageMetadata != NULL)? [self writeMetadataIntoImageData:UIImageJPEGRepresentation(image, self.quality/100.0f) metadata: [[NSMutableDictionary alloc]initWithDictionary:imageMetadata]] : UIImageJPEGRepresentation(scaledImage, self.quality/100.0f) ;
-
+                                                    
                                                 }
                                                 
                                                 NSError *err;
@@ -403,6 +391,7 @@
                                 }];
             
             
+
         }
     } else if(asset.mediaType == PHAssetMediaTypeVideo){
         localIdentifier = [asset localIdentifier];
