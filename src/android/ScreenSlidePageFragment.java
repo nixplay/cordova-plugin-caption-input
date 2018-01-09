@@ -154,6 +154,7 @@ public class ScreenSlidePageFragment extends Fragment {
                         public void onCompletion(MediaPlayer mp) {
                             playButton.setVisibility(View.VISIBLE);
                             videoView.setVisibility(View.INVISIBLE);
+                            zoomableDraweeView.setVisibility(View.VISIBLE);
 
                         }
                     });
