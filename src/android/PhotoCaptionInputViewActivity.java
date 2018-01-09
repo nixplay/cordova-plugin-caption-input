@@ -347,6 +347,13 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
                     @Override
                     public void onPageSelected(int position) {
+                        if(isVideo(imageList.get(position))){
+                            mEditText.setText("");
+                            mEditText.setVisibility(View.INVISIBLE);
+                        }else {
+                            mEditText.setText(captions.get(currentPosition));
+                            mEditText.setVisibility(View.VISIBLE);
+                        }
                     }
 
                     @Override
@@ -354,7 +361,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     }
                 });
 
-                RecyclerView recyclerView = (RecyclerView) findViewById(fakeR.getId("id", "recycleview"));
+                RecyclerView recyclerView = findViewById(fakeR.getId("id", "recycleview"));
                 linearLayoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
                 recyclerViewAdapter = new RecyclerViewAdapter(this, stringArray);
                 recyclerView.setHasFixedSize(true);
@@ -1150,6 +1157,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             this.context = context;
             this.files = files;
             this.outList = new ArrayList<String>();
+            this.outMetaList = new JSONArray();
         }
 
 
