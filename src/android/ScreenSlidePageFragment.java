@@ -11,6 +11,7 @@ import android.os.Handler;
 import android.support.v4.app.Fragment;
 import android.support.v4.graphics.drawable.DrawableCompat;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -146,7 +147,9 @@ public class ScreenSlidePageFragment extends Fragment {
                             mp.start();
 
                             float multiplier = (float) videoView.getHeight() / (float) mp.getVideoHeight();
-                            videoView.setLayoutParams(new FrameLayout.LayoutParams( ((int) (mp.getVideoWidth() * multiplier)), ViewGroup.LayoutParams.MATCH_PARENT));
+                            FrameLayout.LayoutParams params = new FrameLayout.LayoutParams( ((int) (mp.getVideoWidth() * multiplier)), ViewGroup.LayoutParams.MATCH_PARENT);
+                            params.gravity = Gravity.CENTER;
+                            videoView.setLayoutParams(params);
                         }
                     });
                     videoView.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {

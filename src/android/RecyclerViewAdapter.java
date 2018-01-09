@@ -24,6 +24,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static android.view.View.INVISIBLE;
+import static android.view.View.VISIBLE;
+
 public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolders> implements RecyclerViewHolders.RecyclerViewHoldersListener {
     private static final String TAG = RecyclerViewAdapter.class.getSimpleName();
 
@@ -102,6 +105,7 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolder
 
         int width = 100;
         int height = 100;
+
         ImageRequest request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(itemList.get(position)))
                 .setResizeOptions(new ResizeOptions(width, height))
                 .build();
@@ -129,10 +133,20 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolder
             } else {
                 holder.simpleDraweeView.getHierarchy().setRoundingParams(null);
             }
+            if(isVideo(itemList.get(position))) {
+                holder.videoIcon.setVisibility(VISIBLE);
+            }else{
+                holder.videoIcon.setVisibility(INVISIBLE);
+            }
         }
         holder.simpleDraweeView.setController(controller);
 
 
+    }
+
+    private static boolean isVideo(String filePath) {
+        filePath = filePath.toLowerCase();
+        return filePath.endsWith(".mp4");
     }
 
     @Override

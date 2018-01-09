@@ -1357,7 +1357,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
         private void addData(String s, JSONObject jsonObject) {
             outList.add(s);
-            outMetaList.put(new JSONArray());
+            outMetaList.put(jsonObject);
         }
 
         private void onDone() {

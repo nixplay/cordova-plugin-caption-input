@@ -21,4 +21,16 @@
         fresco:progressBarAutoRotateInterval="1000"
         fresco:progressBarImageScaleType="centerInside"/>
 
+    <ImageView
+        android:id="@+id/iv_video"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|left"
+        android:layout_marginBottom="1dp"
+        android:layout_marginLeft="1dp"
+        android:paddingBottom="1dp"
+        android:paddingLeft="1dp"
+        card_view:srcCompat="@drawable/video_overlay"/>
+
+
 </android.support.v7.widget.CardView>
