@@ -106,12 +106,12 @@
 		<source-file src="src/android/zoomable/TransformGestureDetector.java" target-dir="src/com/creedon/cordova/plugin/captioninput/zoomable"/>
 		<source-file src="src/android/zoomable/ZoomableController.java" target-dir="src/com/creedon/cordova/plugin/captioninput/zoomable"/>
 		<source-file src="src/android/zoomable/ZoomableDraweeView.java" target-dir="src/com/creedon/cordova/plugin/captioninput/zoomable"/>
-		<source-file src="src/android/activity_photoscaptioninput.xml" target-dir="res/layout" />
-		<source-file src="src/android/layout_imageoverlay.xml" target-dir="res/layout" />
-		<source-file src="src/android/layout_photocaption_card_view.xml" target-dir="res/layout" />
-		<source-file src="src/android/fragment_screen_slide_page.xml" target-dir="res/layout" />
+		<source-file src="src/android/xml/activity_photoscaptioninput.xml" target-dir="res/layout" />
+		<source-file src="src/android/xml/layout_imageoverlay.xml" target-dir="res/layout" />
+		<source-file src="src/android/xml/layout_photocaption_card_view.xml" target-dir="res/layout" />
+		<source-file src="src/android/xml/fragment_screen_slide_page.xml" target-dir="res/layout" />
 
-		<source-file src="src/android/menu_photoscaptioninput.xml" target-dir="res/menu" />
+		<source-file src="src/android/xml/menu_photoscaptioninput.xml" target-dir="res/menu" />
 		<source-file src="src/android/drawable-xxhdpi/add.png" target-dir="res/drawable-xxhdpi" />
 		<source-file src="src/android/drawable-xxxhdpi/add.png" target-dir="res/drawable-xxxhdpi" />
 		<source-file src="src/android/drawable-xxhdpi/sendfriend.png" target-dir="res/drawable-xxhdpi" />
