@@ -361,7 +361,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     }
                 });
 
-                RecyclerView recyclerView = findViewById(fakeR.getId("id", "recycleview"));
+                RecyclerView recyclerView = (RecyclerView) findViewById(fakeR.getId("id", "recycleview"));
                 linearLayoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
                 recyclerViewAdapter = new RecyclerViewAdapter(this, stringArray);
                 recyclerView.setHasFixedSize(true);
@@ -442,7 +442,6 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         filePath = filePath.toLowerCase();
         return filePath.endsWith(".mp4");
     }
-
     /**
      * Get a file path from a Uri. This will get the the path for Storage Access
      * Framework Documents, as well as the _data field for the MediaStore and
