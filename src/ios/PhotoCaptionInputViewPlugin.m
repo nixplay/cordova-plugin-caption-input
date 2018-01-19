@@ -43,7 +43,7 @@
 - (NSMutableDictionary*)callbackIds {
     if(_callbackIds == nil) {
         _callbackIds = [[NSMutableDictionary alloc] init];
-        
+
     }
     return _callbackIds;
 }
@@ -54,7 +54,7 @@
 #endif
     self.callbackId = command.callbackId;
     [self.callbackIds setValue:command.callbackId forKey:@"showGallery"];
-    
+
     NSDictionary *options = [command.arguments objectAtIndex:0];
     NSMutableArray *images = [[NSMutableArray alloc] init];
     NSMutableArray *thumbs = [[NSMutableArray alloc] init];
@@ -63,24 +63,29 @@
     self.outputType = [[options objectForKey:@"outputType"] integerValue];
     self.width = [[options objectForKey:@"width"] integerValue];
     self.height = [[options objectForKey:@"height"] integerValue];
-    self.quality = [[options objectForKey:@"quality"] integerValue];
+    if([options objectForKey:@"quality"] != nil){
+        self.quality = [[options objectForKey:@"quality"] integerValue];
+    }else{
+        self.quality = 100;
+    }
     self.allow_video = [[options objectForKey:@"allow_video" ] boolValue ];
+
     //    NSUInteger photoIndex = [[options objectForKey:@"index"] intValue];
     self.preSelectedAssets = [options objectForKey:@"preSelectedAssets"];
-    
+
     NSDictionary * data = [options objectForKey:@"data"];
     NSArray *argfriends = [options objectForKey:@"friends"];
-    
-    
+
+
     _distinationType = @"";
     if(![[argfriends class] isEqual:[NSNull class]]){
         self.friends = argfriends;
     }else{
         self.friends = [NSArray new];
-        
+
     }
-    
-    
+
+
     NSArray *buttonOptions = [options objectForKey:@"buttons"];
     if(![[buttonOptions class] isEqual:[NSNull class]]){
         _buttonOptions = [NSMutableArray arrayWithArray:buttonOptions];
@@ -94,26 +99,26 @@
     CGFloat imageSize = MAX(screen.bounds.size.width, screen.bounds.size.height) * 1.5;
     CGSize imageTargetSize = CGSizeMake(imageSize * scale, imageSize * scale);
     CGSize thumbTargetSize = CGSizeMake(imageSize / 3.0 * scale, imageSize / 3.0 * scale);
-    
-    
+
+
     [self.preSelectedAssets enumerateObjectsUsingBlock:^(NSString * _Nonnull localIdentifier, NSUInteger idx, BOOL * _Nonnull stop) {
-        
+
         PHFetchResult<PHAsset *> * result = [PHAsset fetchAssetsWithLocalIdentifiers:@[localIdentifier] options:nil];
         PHAsset *asset = [result objectAtIndex:0];
         [images addObject:[MWPhotoExt photoWithAsset:asset targetSize:imageTargetSize] ];
         [thumbs addObject:[MWPhotoExt photoWithAsset:asset targetSize:thumbTargetSize] ];
     }];
-    
+
     self.photos = images;
     self.thumbnails = thumbs;
-    
-    
+
+
     PhotoCaptionInputViewController *vc = [[PhotoCaptionInputViewController alloc] initWithPhotos:_photos thumbnails:_thumbnails preselectedAssets:self.preSelectedAssets delegate:self];
     vc.allow_video = self.allow_video;
     vc.alwaysShowControls = YES;
     vc.maximumImagesCount = self.maximumImagesCount;
     _photoCaptionInputViewController = vc;
-    
+
     CustomViewController *nc = [[CustomViewController alloc]initWithRootViewController:vc];
     CATransition *transition = [[CATransition alloc] init];
     transition.duration = 0.35;
@@ -122,19 +127,19 @@
     [[UINavigationBar appearance] setBarTintColor:[UIColor clearColor]];
     [[UINavigationBar appearance] setTranslucent:YES];
     [self.viewController.view.window.layer addAnimation:transition forKey:kCATransition];
-    
+
     [self.viewController presentViewController:nc animated:NO completion:^{
     }];
-    
-    
+
+
 }
 
 -(void) onSendPressed:(id) sender{
     UIButton *button = (UIButton*)sender;
     [_buttonOptions enumerateObjectsUsingBlock:^(NSDictionary *obj, NSUInteger idx, BOOL * _Nonnull stop) {
-        
+
         if([[obj valueForKey:KEY_LABEL] isEqualToString:button.titleLabel.text]){
-            
+
             _distinationType = [obj valueForKey:KEY_TYPE];
         }
     }];
@@ -161,7 +166,7 @@
     NSLog(@"PhotoCaptionInputView: User pressed cancel button");
 #endif
     [controller dismissViewControllerAnimated:YES completion:nil];
-    
+
 }
 -(void) photoCaptionInputView:(PhotoCaptionInputViewController*)controller captions:(NSArray *)captions photos:(NSArray*)photos preSelectedAssets:(NSArray*)preselectAssets startEndTime:(NSArray*)startEndTimes {
     [controller tilePages];
@@ -171,19 +176,19 @@
     __block NSMutableArray *invalidImages = [[NSMutableArray alloc] init];
     CGSize targetSize = CGSizeMake(self.width, self.height);
     NSString* docsPath = [NSTemporaryDirectory()stringByStandardizingPath];
-    
+
     __block CDVPluginResult* result = nil;
-    
+
     PHImageManager *manager = [PHImageManager defaultManager];
     PHImageRequestOptions *requestOptions;
     requestOptions = [[PHImageRequestOptions alloc] init];
     requestOptions.resizeMode   = PHImageRequestOptionsResizeModeExact;
     requestOptions.deliveryMode = PHImageRequestOptionsDeliveryModeHighQualityFormat;
     requestOptions.networkAccessAllowed = YES;
-    
+
     // this one is key
     requestOptions.synchronous = false;
-    
+
     dispatch_group_t dispatchGroup = dispatch_group_create();
 //    __block MRProgressOverlayView *progressView = [MRProgressOverlayView new];
 //    progressView.mode = MRProgressOverlayViewModeDeterminateCircular;
@@ -215,15 +220,13 @@
                   result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: [NSDictionary dictionaryWithObjectsAndKeys: preSelectedAssets, @"preSelectedAssets", fileStrings, @"images", captions, @"captions",  invalidImages, @"invalidImages", metaDatas, @"metaDatas", _destinationType, KEY_TYPE, nil]];
               }
               dispatch_group_notify(dispatchGroup, dispatch_get_main_queue(), ^{
-                  
                   [hud hideAnimated:YES];
                   [self.commandDelegate sendPluginResult:result callbackId:self.callbackId];
                   [controller.presentingViewController dismissViewControllerAnimated:YES completion:nil];
                   [self.viewController dismissViewControllerAnimated:YES completion:nil];
-                  
-                  
+
+
               });
-              
           } nextCallback:^(NSInteger index, NSString *filePath, NSString *localIdentifier, NSString *_Nullable invalidImage, NSDictionary * _Nullable metadata) {
               if(invalidImage != nil){
                   [fileStrings addObject:@""];
@@ -257,9 +260,9 @@
                   [self.viewController dismissViewControllerAnimated:YES completion:nil];
               });
           }];
-        
+
     });
-    
+
 }
 
 -(void) processAssets:(NSArray*)fetchAssets
@@ -273,12 +276,12 @@
          nextCallback:(void(^)(NSInteger index , NSString* filePath, NSString* localIdentifier, NSString* _Nullable invalidImage, NSDictionary *_Nullable metadata))nextCallback
      progressCallback:(void(^)(NSInteger index , CGFloat progress))progressCallback
         errorCallback:(void(^)(CDVPluginResult* errorResult))errorCallback{
-    
+
     if(index >= [fetchAssets count]){
         completedCallback();
         return;
     }
-    
+
     __block NSInteger internalIndex = index;
     NSString *assetString = [fetchAssets objectAtIndex:internalIndex];
     PHFetchResult<PHAsset*> *fetchResult = [PHAsset fetchAssetsWithLocalIdentifiers: @[assetString] options:nil];
@@ -308,8 +311,8 @@
                   startEndTimes:nil
               completedCallback:completedCallback nextCallback:nextCallback progressCallback:progressCallback errorCallback:errorCallback];
         }else{
-            
-            
+
+
             [manager requestImageDataForAsset:asset
                                       options:requestOptions
                                 resultHandler:^(NSData *imageData,
@@ -318,25 +321,25 @@
                                                 NSDictionary *info) {
 #ifdef DEBUG
                                     NSLog(@"info %@", info);
-                                    
+
                                     NSLog(@"ExifData %@", [self getExifDataFromImageData:imageData]);
 #endif
                                     if([dataUTI isEqualToString:@"public.png"] || [dataUTI isEqualToString:@"public.jpeg"] || [dataUTI isEqualToString:@"public.jpeg-2000"] || [dataUTI isEqualToString:@"public.heic"]) {
-                                        
-                                        
+
+
                                         if (imageData != nil) {
-                                            
+
                                             @autoreleasepool {
                                                 // Save off the properties
-                                                
+
                                                 CGImageSourceRef imageSource = CGImageSourceCreateWithData((__bridge CFDataRef) imageData, NULL);
-                                                
-                                                
-                                                
+
+
+
                                                 NSMutableDictionary *imageMetadata = [(NSDictionary *) CFBridgingRelease(CGImageSourceCopyPropertiesAtIndex(imageSource, 0, NULL)) mutableCopy];
                                                 CFRelease(imageSource);
-                                                
-                                                
+
+
                                                 NSData* data = nil;
                                                 if (self.width == 0 && self.height == 0) {
                                                     // no scaling required
@@ -345,19 +348,28 @@
                                                     } else {
                                                         image = [UIImage imageWithData:imageData];
                                                         // resample first
-                                                        
+
                                                         data = (imageMetadata != NULL)? [self writeMetadataIntoImageData:UIImageJPEGRepresentation(image, self.quality/100.0f) metadata: [[NSMutableDictionary alloc]initWithDictionary:imageMetadata]] : UIImageJPEGRepresentation(image, self.quality/100.0f) ;
-                                                        
+
                                                     }
                                                 } else {
                                                     image = [UIImage imageWithData:imageData];
                                                     // scale
                                                     UIImage* scaledImage = [self imageByScalingNotCroppingForSize:image toSize:targetSize];
-                                                    
-                                                    data = (imageMetadata != NULL)? [self writeMetadataIntoImageData:UIImageJPEGRepresentation(image, self.quality/100.0f) metadata: [[NSMutableDictionary alloc]initWithDictionary:imageMetadata]] : UIImageJPEGRepresentation(scaledImage, self.quality/100.0f) ;
-                                                    
+                                                    if (imageMetadata != NULL) {
+                                                        NSMutableDictionary *metaData = [[NSMutableDictionary alloc]initWithDictionary:imageMetadata];
+                                                        NSMutableDictionary *TIFF = [metaData objectForKey:@"{TIFF}"];
+                                                        [TIFF setValue:0 forKey:@"Orientation"];
+                                                        [metaData setValue:0 forKey:@"Orientation"];
+                                                        [metaData setValue:TIFF forKey:@"{TIFF}"];
+                                                        data = [self writeMetadataIntoImageData:UIImageJPEGRepresentation(scaledImage, self.quality/100.0f) metadata: metaData];
+                                                    } else{
+                                                        data = UIImageJPEGRepresentation(scaledImage, self.quality/100.0f) ;
+                                                    }
+
+
                                                 }
-                                                
+
                                                 NSError *err;
                                                 if (![data writeToFile:filePath options:NSAtomicWrite error:&err] ) {
                                                     CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_IO_EXCEPTION messageAsString:[err localizedDescription]];
@@ -375,16 +387,16 @@
                                                           startEndTimes:nil
                                                       completedCallback:completedCallback nextCallback:nextCallback progressCallback:progressCallback errorCallback:errorCallback];
                                                 }
-                                                
+
                                             }
-                                            
+
                                         }else{
                                             CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_IO_EXCEPTION messageAsString:[err localizedDescription]];
                                             errorCallback(result);
                                         }
-                                        
+
                                     } else {
-                                        
+
                                         internalIndex ++;
                                         nextCallback(internalIndex,nil, nil, localIdentifier, nil);
                                         [self processAssets:fetchAssets
@@ -397,8 +409,8 @@
                                           completedCallback:completedCallback nextCallback:nextCallback progressCallback:progressCallback errorCallback:errorCallback];
                                     }
                                 }];
-            
-            
+
+
         }
     } else if(asset.mediaType == PHAssetMediaTypeVideo){
         localIdentifier = [asset localIdentifier];
@@ -860,7 +872,7 @@
         }
         
     }
-    
+
 }
 
 -(NSString*) getMD5FileString:(NSString*)filePath docPath:(NSString*)docsPath subtype:(NSString*)subtype{
@@ -881,18 +893,18 @@
 
 - (NSMutableArray*)photoBrowser:(MWPhotoBrowser *)photoBrowser buildToolbarItems:(UIToolbar*)toolBar{
     NSMutableArray *items = [[NSMutableArray alloc] init];
-    
+
     UIBarButtonItem *flexSpace = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFlexibleSpace target:self action:nil];
     [items addObject:flexSpace];
     float margin = 0.0f;
-    
-    
-    
-    
+
+
+
+
     [toolBar setBackgroundImage:[UIImage new]
              forToolbarPosition:UIToolbarPositionAny
                      barMetrics:UIBarMetricsDefault];
-    
+
     [toolBar setBackgroundColor:[UIColor clearColor]];
     toolBar.clipsToBounds = YES;
     for (UIView *subView in [toolBar subviews]) {
@@ -913,15 +925,15 @@
         button.clipsToBounds = YES;
         [button setAttributedTitle:[self attributedString:[dic valueForKey:KEY_LABEL] WithSize:TEXT_SIZE color:[UIColor whiteColor]] forState:UIControlStateNormal];
         [button addTarget:self action:@selector(onSendPressed:) forControlEvents:UIControlEventTouchUpInside];
-        
+
         UIBarButtonItem *addPhotoButton = [[UIBarButtonItem alloc] initWithCustomView:button];
         [items addObject:addPhotoButton];
     }else{
-        
+
         [_buttonOptions enumerateObjectsUsingBlock:^(NSDictionary *obj, NSUInteger idx, BOOL * _Nonnull stop) {
-            
+
             CGFloat  buttonWidth = (SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"11.0")) ? (self.viewController.view.frame.size.width *.45)-10 : (self.viewController.view.frame.size.width *.5) - 10;
-            
+
             NSString *labelText = [obj valueForKey:KEY_LABEL];
             if (idx ==0 ) {
                 UIButton *button =  [UIButton buttonWithType:UIButtonTypeCustom];
@@ -935,13 +947,13 @@
                 button.clipsToBounds = YES;
                 [button setAttributedTitle:[self attributedString:labelText WithSize:TEXT_SIZE color:[UIColor whiteColor]] forState:UIControlStateNormal];
                 button.autoresizingMask = UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleWidth;
-                
+
                 UIBarButtonItem *addFriendsButton = [[UIBarButtonItem alloc] initWithCustomView:button];
                 [items addObject:addFriendsButton];
-                
-                
+
+
             }else{
-                
+
                 CGRect newFrame = CGRectMake(0,0,
                                              buttonWidth,
                                              44 );
@@ -954,7 +966,7 @@
                 button.autoresizingMask = UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleWidth;
                 UIBarButtonItem *addPhotoButton = [[UIBarButtonItem alloc] initWithCustomView:button];
                 [items addObject:addPhotoButton];
-                
+
             }
             if(idx != [_buttonOptions count]-1){
                 UIBarButtonItem *fixedSpace = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemFixedSpace target:self action:nil];
@@ -964,11 +976,11 @@
                     fixedSpace.width = -8;
                 }
                 [items addObject:fixedSpace];
-                
+
             }
         }];
-        
-        
+
+
     }
     [items addObject:flexSpace];
     //    [items addObject:fixedSpace];
@@ -976,7 +988,7 @@
     //    fixedSpace2.width = 15;
     //    [items addObject:fixedSpace2];
     toolBar.barStyle = UIBarStyleDefault;
-    
+
     toolBar.barTintColor = [UIColor whiteColor];;
     return items;
 }
@@ -993,11 +1005,11 @@
     CGFloat targetHeight = frameSize.height;
     CGFloat scaleFactor = 0.0;
     CGSize scaledSize = frameSize;
-    
+
     if (CGSizeEqualToSize(imageSize, frameSize) == NO) {
         CGFloat widthFactor = targetWidth / width;
         CGFloat heightFactor = targetHeight / height;
-        
+
         // opposite comparison to imageByScalingAndCroppingForSize in order to contain the image within the given bounds
         if (widthFactor == 0.0) {
             scaleFactor = heightFactor;
@@ -1010,18 +1022,18 @@
         }
         scaledSize = CGSizeMake(floor(width * scaleFactor), floor(height * scaleFactor));
     }
-    
+
     UIGraphicsBeginImageContext(scaledSize); // this will resize
-    
+
     [sourceImage drawInRect:CGRectMake(0, 0, scaledSize.width, scaledSize.height)];
-    
+
     newImage = UIGraphicsGetImageFromCurrentImageContext();
     if (newImage == nil) {
 #ifdef DEBUG
         NSLog(@"could not scale image");
 #endif
     }
-    
+
     // pop the context to get back to the default
     UIGraphicsEndImageContext();
     return newImage;
@@ -1029,7 +1041,7 @@
 
 -(NSAttributedString *) attributedString:(NSString*)string WithSize:(NSInteger)size color:(UIColor*)color{
     NSMutableAttributedString *attributedString = [[NSMutableAttributedString alloc]init];
-    
+
     NSDictionary *dictAttr0 = [self attributedDirectoryWithSize:size color:color];
     NSAttributedString *attr0 = [[NSAttributedString alloc]initWithString:string attributes:dictAttr0];
     [attributedString appendAttributedString:attr0];
@@ -1251,20 +1263,20 @@ static dispatch_time_t getDispatchTimeFromSeconds(float seconds) {
 -(NSDictionary*)getExifDataFromImageData:(NSData*) imageData
 {
     @try {
-        
+
         CGImageSourceRef imageSource = CGImageSourceCreateWithData((__bridge CFDataRef)imageData, nil);
         if (imageSource != NULL)
         {
             NSDictionary *metaoptions = @{(NSString *)kCGImageSourceShouldCache : [NSNumber numberWithBool:NO]};
-            
+
             CFDictionaryRef imageProperties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, (__bridge CFDictionaryRef)metaoptions);
             NSDictionary *myMetadata = [NSDictionary dictionaryWithDictionary:(__bridge NSDictionary *)imageProperties];
-            
+
             CFRelease(imageProperties);
             CFRelease(imageSource);
-            
+
             return myMetadata;
-            
+
         }
     }@catch(NSException *exception){
 #ifdef DEBUG
@@ -1278,7 +1290,7 @@ static dispatch_time_t getDispatchTimeFromSeconds(float seconds) {
     NSString *fullFilePath =  [options objectForKey:@"fullFilePath"];
     NSInteger quality = [[options objectForKey:@"quality"] integerValue];
     NSDictionary *meta = [options objectForKey:@"meta"] ;
-    
+
     NSData *data = (meta != NULL)? [self writeMetadataIntoImageData:UIImageJPEGRepresentation(img, quality/100.0f) metadata: [[NSMutableDictionary alloc]initWithDictionary:meta]] : UIImageJPEGRepresentation(img, quality/100.0f) ;
     NSError* err = nil;
     if (![data writeToFile:fullFilePath options:NSAtomicWrite error:&err]) {
@@ -1286,7 +1298,7 @@ static dispatch_time_t getDispatchTimeFromSeconds(float seconds) {
     } else {
         return YES;
     }
-    
+
 }
 
 
@@ -1294,10 +1306,10 @@ static dispatch_time_t getDispatchTimeFromSeconds(float seconds) {
 -(NSData *)writeMetadataIntoImageData:(NSData *)imageData metadata:(NSMutableDictionary *)metadata {
     // create an imagesourceref
     CGImageSourceRef source = CGImageSourceCreateWithData((__bridge CFDataRef) imageData, NULL);
-    
+
     // this is the type of image (e.g., public.jpeg)
     CFStringRef UTI = CGImageSourceGetType(source);
-    
+
     // create a new data object and write the new image into it
     NSMutableData *dest_data = [NSMutableData data];
     CGImageDestinationRef destination = CGImageDestinationCreateWithData((__bridge CFMutableDataRef)dest_data, UTI, 1, NULL);
