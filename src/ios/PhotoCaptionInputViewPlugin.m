@@ -320,16 +320,8 @@
 
                                                 NSData* data = nil;
                                                 if (self.width == 0 && self.height == 0) {
-                                                    // no scaling required
-                                                    if (self.quality == 100) {
-                                                        data = [imageData copy];
-                                                    } else {
-                                                        image = [UIImage imageWithData:imageData];
-                                                        // resample first
-
-                                                        data = (imageMetadata != NULL)? [self writeMetadataIntoImageData:UIImageJPEGRepresentation(image, self.quality/100.0f) metadata: [[NSMutableDictionary alloc]initWithDictionary:imageMetadata]] : UIImageJPEGRepresentation(image, self.quality/100.0f) ;
-
-                                                    }
+                                                    image = [UIImage imageWithData:imageData];
+                                                    data = (imageMetadata != NULL)? [self writeMetadataIntoImageData:UIImageJPEGRepresentation(image, self.quality/100.0f) metadata: [[NSMutableDictionary alloc]initWithDictionary:imageMetadata]] : UIImageJPEGRepresentation(image, self.quality/100.0f) ;
                                                 } else {
                                                     image = [UIImage imageWithData:imageData];
                                                     // scale
