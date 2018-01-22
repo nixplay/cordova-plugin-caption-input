@@ -40,12 +40,14 @@ import android.text.InputFilter;
 import android.text.TextWatcher;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.util.SparseArray;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
@@ -78,6 +80,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.ref.WeakReference;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -123,35 +126,42 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     private int width, height;
     private JSONArray buttonOptions;
     ViewPager.OnPageChangeListener onPageChangeListener = new ViewPager.OnPageChangeListener() {
+        Boolean first = true;
+
         public void onPageScrollStateChanged(int state) {
         }
 
         public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+            mPagerAdapter.stopVideoPlayback(position);
+
+            if (first && positionOffset == 0 && positionOffsetPixels == 0) {
+                onPageSelected(0);
+                first = false;
+            } else {
+                onPageSelected(position);
+            }
         }
 
         public void onPageSelected(int position) {
-            // Check if this is the page you want.
-            if (currentPosition != mPager.getCurrentItem()) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
 
-                        currentPosition = mPager.getCurrentItem();
-                        setActionBarTitle(imageList, currentPosition);
-                        if(isVideo(imageList.get(currentPosition))){
-                            mEditText.setText("");
-                            mEditText.setVisibility(View.INVISIBLE);
-                        }else {
-                            mEditText.setText(captions.get(currentPosition));
-                            mEditText.setVisibility(View.VISIBLE);
-                        }
-                        linearLayoutManager.scrollToPositionWithOffset(currentPosition, -1);
-                        if (recyclerViewAdapter != null) {
-                            recyclerViewAdapter.notifyDataSetChanged();
-                        }
+                    currentPosition = mPager.getCurrentItem();
+                    setActionBarTitle(imageList, currentPosition);
+                    if(isVideo(imageList.get(currentPosition))){
+                        mEditText.setText("");
+                        mEditText.setVisibility(View.INVISIBLE);
+                    }else {
+                        mEditText.setText(captions.get(currentPosition));
+                        mEditText.setVisibility(View.VISIBLE);
                     }
-                });
-            }
+                    linearLayoutManager.scrollToPositionWithOffset(currentPosition, -1);
+                    if (recyclerViewAdapter != null) {
+                        recyclerViewAdapter.notifyDataSetChanged();
+                    }
+                }
+            });
         }
     };
     private ViewPager.OnAdapterChangeListener onAdapterChangeListener = new ViewPager.OnAdapterChangeListener() {
@@ -338,28 +348,6 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 mPager.addOnPageChangeListener(onPageChangeListener);
                 mPagerAdapter = new ScreenSlidePagerAdapter(getSupportFragmentManager(), stringArray);
                 mPager.setAdapter(mPagerAdapter);
-
-                mPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
-                    @Override
-                    public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-                        mPagerAdapter.stopVideoPlayback();
-                    }
-
-                    @Override
-                    public void onPageSelected(int position) {
-                        if(isVideo(imageList.get(position))){
-                            mEditText.setText("");
-                            mEditText.setVisibility(View.INVISIBLE);
-                        }else {
-                            mEditText.setText(captions.get(currentPosition));
-                            mEditText.setVisibility(View.VISIBLE);
-                        }
-                    }
-
-                    @Override
-                    public void onPageScrollStateChanged(int state) {
-                    }
-                });
 
                 RecyclerView recyclerView = (RecyclerView) findViewById(fakeR.getId("id", "recycleview"));
                 linearLayoutManager = new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false);
@@ -1062,6 +1050,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
     private class ScreenSlidePagerAdapter extends FragmentStatePagerAdapter {
         private ArrayList<String> itemList;
+        private SparseArray<WeakReference<ScreenSlidePageFragment>> mPageReferenceMap = new SparseArray<WeakReference<ScreenSlidePageFragment>>();
 
         ScreenSlidePagerAdapter(FragmentManager fm, ArrayList<String> itemList) {
             super(fm);
@@ -1070,8 +1059,32 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
         @Override
         public Fragment getItem(int position) {
+            return getFragment(position);
+        }
 
-            return ScreenSlidePageFragment.newInstance(itemList.get(position));
+        @NonNull
+        @Override
+        public Object instantiateItem(ViewGroup container, int position) {
+            ScreenSlidePageFragment myFragment = ScreenSlidePageFragment.newInstance(itemList.get(position));
+            mPageReferenceMap.put(position, new WeakReference<ScreenSlidePageFragment>(myFragment));
+
+            return super.instantiateItem(container, position);
+        }
+
+        @Override
+        public void destroyItem(ViewGroup container, int position, Object object) {
+            super.destroyItem(container, position, object);
+            mPageReferenceMap.remove(position);
+        }
+
+        public ScreenSlidePageFragment getFragment(int position) {
+            WeakReference<ScreenSlidePageFragment> weakReference = mPageReferenceMap.get(position);
+
+            if (null != weakReference) {
+                return (ScreenSlidePageFragment) weakReference.get();
+            } else {
+                return null;
+            }
         }
 
         @Override
@@ -1096,8 +1109,11 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             return POSITION_NONE;
         }
 
-        public void stopVideoPlayback() {
-            ((ScreenSlidePageFragment) getItem(currentPosition)).stopVideoPlayback();
+        public void stopVideoPlayback(int position) {
+            ScreenSlidePageFragment fragment = getFragment(position);
+            if (fragment != null) {
+                fragment.stopVideoPlayback();
+            }
         }
     }
 
