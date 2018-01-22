@@ -148,6 +148,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 public void run() {
 
                     currentPosition = mPager.getCurrentItem();
+                    mPagerAdapter.stopVideoPlayback(currentPosition);
                     setActionBarTitle(imageList, currentPosition);
                     if(isVideo(imageList.get(currentPosition))){
                         mEditText.setText("");
