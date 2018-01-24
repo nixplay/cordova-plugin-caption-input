@@ -69,7 +69,7 @@
         self.quality = 100;
     }
     self.allow_video = [[options objectForKey:@"allow_video" ] boolValue ];
-
+    
     //    NSUInteger photoIndex = [[options objectForKey:@"index"] intValue];
     self.preSelectedAssets = [options objectForKey:@"preSelectedAssets"];
     
@@ -77,7 +77,7 @@
     NSArray *argfriends = [options objectForKey:@"friends"];
     
     
-    _distinationType = @"";
+    _destinationType = @"";
     if(![[argfriends class] isEqual:[NSNull class]]){
         self.friends = argfriends;
     }else{
@@ -140,7 +140,7 @@
         
         if([[obj valueForKey:KEY_LABEL] isEqualToString:button.titleLabel.text]){
             
-            _distinationType = [obj valueForKey:KEY_TYPE];
+            _destinationType = [obj valueForKey:KEY_TYPE];
         }
     }];
     [_photoCaptionInputViewController getPhotosCaptions];
@@ -158,8 +158,8 @@
     if(self.exportSession){
         [self.exportSession cancelExport];
     }
-
-
+    
+    
     pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[NSDictionary new]];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:self.callbackId];
 #ifdef DEBUG
@@ -190,25 +190,25 @@
     requestOptions.synchronous = false;
     
     dispatch_group_t dispatchGroup = dispatch_group_create();
-//    __block MRProgressOverlayView *progressView = [MRProgressOverlayView new];
-//    progressView.mode = MRProgressOverlayViewModeDeterminateCircular;
-//    progressView.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.3];
-//    progressView.tintColor = [UIColor darkGrayColor];
-//    [progressView show:YES];
+    //    __block MRProgressOverlayView *progressView = [MRProgressOverlayView new];
+    //    progressView.mode = MRProgressOverlayViewModeDeterminateCircular;
+    //    progressView.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.3];
+    //    progressView.tintColor = [UIColor darkGrayColor];
+    //    [progressView show:YES];
     MBProgressHUD *hud = [MBProgressHUD showHUDAddedTo:controller.view animated:YES];
     hud.mode = MBProgressHUDModeAnnularDeterminate;
     hud.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.3];
     hud.label.text = NSLocalizedString(@"LOADING", nil);
     
-//    [controller.view addSubview:progressView];
-//    [progressView mas_makeConstraints:^(MASConstraintMaker *make) {
-//        make.centerY.equalTo(progressView.superview.mas_centerY);
-//        make.centerX.equalTo(progressView.superview.mas_centerX);
-//    }];
+    //    [controller.view addSubview:progressView];
+    //    [progressView mas_makeConstraints:^(MASConstraintMaker *make) {
+    //        make.centerY.equalTo(progressView.superview.mas_centerY);
+    //        make.centerX.equalTo(progressView.superview.mas_centerX);
+    //    }];
     dispatch_group_async(dispatchGroup, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
         //        PHFetchResult<PHAsset *> * fetchArray = [PHAsset fetchAssetsWithLocalIdentifiers:inPhotos options:nil];
-        __block CGFloat numberOfImage = [inPhotos count];
-        [self processAssets:inPhotos
+        __block CGFloat numberOfImage = [photos count];
+        [self processAssets:photos
                       index:0
                    docsPath:docsPath
                  targetSize:targetSize
@@ -240,20 +240,20 @@
               [metaDatas addObject:(metadata == nil)?@{}:metadata];
               
               dispatch_async(dispatch_get_main_queue(), ^{
-//                  [progressView setProgress:(CGFloat)index/(CGFloat)numberOfImage];
+                  //                  [progressView setProgress:(CGFloat)index/(CGFloat)numberOfImage];
                   hud.progress = (CGFloat)index/(CGFloat)numberOfImage;
               });
               
           } progressCallback:^(NSInteger index , CGFloat progress){
               dispatch_async(dispatch_get_main_queue(), ^{
-//                  [progressView setProgress:((CGFloat)index/(CGFloat)numberOfImage)+((progress/100.0f)*(1/(CGFloat)numberOfImage))];
+                  //                  [progressView setProgress:((CGFloat)index/(CGFloat)numberOfImage)+((progress/100.0f)*(1/(CGFloat)numberOfImage))];
                   float outputprogress = ((CGFloat)index/(CGFloat)numberOfImage)+((progress/100.0f)*(1/(CGFloat)numberOfImage));
                   hud.label.text = [NSString stringWithFormat:@"%.f%%",outputprogress*100];
                   hud.progress = outputprogress;
               });
           } errorCallback:^(CDVPluginResult *errorResult) {
               dispatch_group_notify(dispatchGroup, dispatch_get_main_queue(), ^{
-//                  [progressView dismiss:YES];
+                  //                  [progressView dismiss:YES];
                   [hud hideAnimated:YES];
                   [self.commandDelegate sendPluginResult:errorResult callbackId:self.callbackId];
                   [controller.presentingViewController dismissViewControllerAnimated:YES completion:nil];
@@ -452,13 +452,13 @@
                     NSArray *tracks = [avasset tracksWithMediaType:AVMediaTypeVideo];
                     AVAssetTrack *track = [tracks objectAtIndex:0];
                     CGSize mediaSize = track.naturalSize;
-
                     
-//                    @"duration": duration,
-//                    @"width": width,
-//                    @"height": height,
-//                    @"originalDuration": originalDuration,
-//                    @"edited":edited
+                    
+                    //                    @"duration": duration,
+                    //                    @"width": width,
+                    //                    @"height": height,
+                    //                    @"originalDuration": originalDuration,
+                    //                    @"edited":edited
                     
                     __block NSDictionary *metaDic = @{
                                                       @"duration": @((int)((CMTimeGetSeconds(duration)*1000))),
@@ -477,9 +477,9 @@
                     : CGSizeMake(mediaSize.width*scale, mediaSize.height*scale);
                     
                     _exportSession = [[SDAVAssetExportSession alloc] initWithAsset:avasset ];
-//                    exportSession.outputURL = furl;
-//                    exportSession.outputFileType=AVFileTypeQuickTimeMovie;
-//                    exportSession.timeRange = range;
+                    //                    exportSession.outputURL = furl;
+                    //                    exportSession.outputFileType=AVFileTypeQuickTimeMovie;
+                    //                    exportSession.timeRange = range;
                     _exportSession.shouldOptimizeForNetworkUse = YES;
                     _exportSession.outputFileType = AVFileTypeMPEG4;
                     _exportSession.outputURL = furl;
@@ -504,7 +504,7 @@
                     AVSampleRateKey: @44100,
                     AVEncoderBitRateKey: @128000,
                     };
-
+                    
                     dispatch_semaphore_t sessionWaitSemaphore = dispatch_semaphore_create(0);
                     
                     void (^completionHandler)(void) = ^(void)
@@ -552,20 +552,20 @@
                                 NSLog(@"Export canceled %@", [[_exportSession error] localizedDescription]);
                                 errorCallback(result);
                             }
-//                                internalIndex ++;
-//                                nextCallback(internalIndex,nil, nil, localIdentifier, nil);
-//                            {
-//                                dispatch_group_async(dispatch_group_create(), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-//                                    [self processAssets:fetchAssets
-//                                                  index:internalIndex
-//                                               docsPath:docsPath
-//                                             targetSize:targetSize
-//                                                manager:manager
-//                                         requestOptions:requestOptions
-//                                          startEndTimes:nil
-//                                      completedCallback:completedCallback nextCallback:nextCallback progressCallback:progressCallback errorCallback:errorCallback];
-//                                });
-//                            }
+                                //                                internalIndex ++;
+                                //                                nextCallback(internalIndex,nil, nil, localIdentifier, nil);
+                                //                            {
+                                //                                dispatch_group_async(dispatch_group_create(), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
+                                //                                    [self processAssets:fetchAssets
+                                //                                                  index:internalIndex
+                                //                                               docsPath:docsPath
+                                //                                             targetSize:targetSize
+                                //                                                manager:manager
+                                //                                         requestOptions:requestOptions
+                                //                                          startEndTimes:nil
+                                //                                      completedCallback:completedCallback nextCallback:nextCallback progressCallback:progressCallback errorCallback:errorCallback];
+                                //                                });
+                                //                            }
                                 break;
                             case AVAssetExportSessionStatusWaiting:
                                 NSLog(@"Export waiting");
@@ -648,7 +648,7 @@
                                           completedCallback:completedCallback nextCallback:nextCallback progressCallback:progressCallback errorCallback:errorCallback];
                                     });
                                 }
-
+                                
                                 
                                 
                                 
@@ -656,209 +656,209 @@
                         }
                         
                     }];
-                     
+                    
                     
                     /*BOOL maintainAspectRatio = YES;
-                    float videoWidth = mediaSize.width;
-                    float videoHeight = mediaSize.height;
-                    int newWidth;
-                    int newHeight;
-                    
-                    if (maintainAspectRatio) {
-                        float aspectRatio = videoWidth / videoHeight;
-                        
-                        // for some portrait videos ios gives the wrong width and height, this fixes that
-                        NSString *videoOrientation = [self getOrientationForTrack:avasset];
-                        if ([videoOrientation isEqual: @"portrait"]) {
-                            if (videoWidth > videoHeight) {
-                                videoWidth = mediaSize.height;
-                                videoHeight = mediaSize.width;
-                                aspectRatio = videoWidth / videoHeight;
-                            }
-                        }
-                        
-                        newWidth = (width && height) ? height * aspectRatio : videoWidth;
-                        newHeight = (width && height) ? newWidth / aspectRatio : videoHeight;
-                    } else {
-                        newWidth = (width && height) ? width : videoWidth;
-                        newHeight = (width && height) ? height : videoHeight;
-                    }
-                    NSString *stringOutputFileType = AVFileTypeMPEG4;
-                    NSString *outputExtension = @".mp4";
-                    
-                    SDAVAssetExportSession *encoder = [[SDAVAssetExportSession alloc] initWithAsset:avasset];
-                    encoder.outputFileType = stringOutputFileType;
-                    encoder.outputURL = furl;
-                    encoder.shouldOptimizeForNetworkUse = YES;
-                    encoder.videoSettings = @
-                    {
-                    AVVideoCodecKey: AVVideoCodecH264,
-                    AVVideoWidthKey: [NSNumber numberWithInt: newWidth],
-                    AVVideoHeightKey: [NSNumber numberWithInt: newHeight],
-                    AVVideoCompressionPropertiesKey: @
-                        {
-                        AVVideoAverageBitRateKey: @6000000,
-                        AVVideoProfileLevelKey: AVVideoProfileLevelH264High40,
-                        },
-                    };
-                    encoder.audioSettings = @
-                    {
-                    AVFormatIDKey: @(kAudioFormatMPEG4AAC),
-                    AVNumberOfChannelsKey: @2,
-                    AVSampleRateKey: @44100,
-                    AVEncoderBitRateKey: @128000,
-                    };
-                    
-//                    encoder.timeRange = range;
-                    
-                    dispatch_semaphore_t sessionWaitSemaphore = dispatch_semaphore_create(0);
-                    
-                    void (^completionHandler)(void) = ^(void)
-                    {
-                        dispatch_semaphore_signal(sessionWaitSemaphore);
-                    };
-                    
-                    // do it
-                    [self.commandDelegate runInBackground:^{
-                        [encoder exportAsynchronouslyWithCompletionHandler:completionHandler];
-                        do {
-                            dispatch_time_t dispatchTime = DISPATCH_TIME_FOREVER;  // if we dont want progress, we will wait until it finishes.
-                            dispatchTime = getDispatchTimeFromSeconds((float)1.0);
-                            double progress = [encoder progress] * 100;
-                            
-                            progressCallback(internalIndex, progress);
-                            dispatch_semaphore_wait(sessionWaitSemaphore, dispatchTime);
-                        } while( [encoder status] < AVAssetExportSessionStatusCompleted );
-                        
-                        switch ([encoder status]) {
-                            case AVAssetExportSessionStatusFailed:
-                                
-                                NSLog(@"Export failed: %@", [[encoder error] localizedDescription]);
-                                
-                                internalIndex ++;
-                                nextCallback(internalIndex,nil, nil, localIdentifier);
-                            {
-                                dispatch_group_async(dispatch_group_create(), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-                                    [self processAssets:fetchAssets
-                                                  index:internalIndex
-                                               docsPath:docsPath
-                                             targetSize:targetSize
-                                                manager:manager
-                                         requestOptions:requestOptions
-                                          startEndTimes:nil
-                                      completedCallback:completedCallback nextCallback:nextCallback progressCallback:progressCallback errorCallback:errorCallback];
-                                });
-                            }
-                                break;
-                            case AVAssetExportSessionStatusCancelled:
-                                
-                                NSLog(@"Export canceled %@", [[encoder error] localizedDescription]);
-                                
-                                internalIndex ++;
-                                nextCallback(internalIndex,nil, nil, localIdentifier);
-                            {
-                                dispatch_group_async(dispatch_group_create(), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-                                    [self processAssets:fetchAssets
-                                                  index:internalIndex
-                                               docsPath:docsPath
-                                             targetSize:targetSize
-                                                manager:manager
-                                         requestOptions:requestOptions
-                                          startEndTimes:nil
-                                      completedCallback:completedCallback nextCallback:nextCallback progressCallback:progressCallback errorCallback:errorCallback];
-                                });
-                            }
-                                break;
-                            case AVAssetExportSessionStatusWaiting:
-                                NSLog(@"Export waiting");
-                                break;
-                            case AVAssetExportSessionStatusExporting:
-                                NSLog(@"Export exporting");
-                                break;
-                            case AVAssetExportSessionStatusUnknown:
-                                
-                                NSLog(@"Export unknown %@", [[encoder error] localizedDescription]);
-                                internalIndex ++;
-                                nextCallback(internalIndex,nil, nil, localIdentifier);
-                                
-                            {
-                                dispatch_group_async(dispatch_group_create(), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-                                    [self processAssets:fetchAssets
-                                                  index:internalIndex
-                                               docsPath:docsPath
-                                             targetSize:targetSize
-                                                manager:manager
-                                         requestOptions:requestOptions
-                                          startEndTimes:nil
-                                      completedCallback:completedCallback nextCallback:nextCallback progressCallback:progressCallback errorCallback:errorCallback];
-                                });
-                            }
-                                
-                                break;
-                            case AVAssetExportSessionStatusCompleted:
-                                NSLog(@"AVAssetExportSessionStatusCompleted");
-                                
-                                __block NSString *exportFileName = [self getMD5FileString:filePath  docPath:docsPath subtype:outputExtension];
-                                [manager requestImageForAsset:asset targetSize:CGSizeMake(512, 512) contentMode:PHImageContentModeDefault options:requestOptions resultHandler:^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
-                                    @autoreleasepool {
-                                        if(result != nil){
-                                            NSString *thumbnailPath = [exportFileName stringByReplacingOccurrencesOfString:outputExtension withString:@"-thumbnail.jpg"];
-                                            NSData * binaryImageData = UIImageJPEGRepresentation(result, self.quality/100.0f);
-                                            NSError *err;
-                                            if (![binaryImageData writeToFile:thumbnailPath options:NSAtomicWrite error:&err] ) {
-                                                NSLog(@"Error: %@", err);
-                                                internalIndex ++;
-                                                nextCallback(internalIndex,nil, nil, localIdentifier);
-                                                dispatch_group_async(dispatch_group_create(), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-                                                    [self processAssets:fetchAssets
-                                                                  index:internalIndex
-                                                               docsPath:docsPath
-                                                             targetSize:targetSize
-                                                                manager:manager
-                                                         requestOptions:requestOptions
-                                                          startEndTimes:nil
-                                                      completedCallback:completedCallback nextCallback:nextCallback progressCallback:progressCallback errorCallback:errorCallback];
-                                                });
-                                            } else {
-                                                [manager requestImageForAsset:asset targetSize:CGSizeMake(asset.pixelWidth, asset.pixelHeight) contentMode:PHImageContentModeDefault options:requestOptions resultHandler:^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
-                                                    @autoreleasepool {
-                                                        if(result != nil){
-                                                            NSString *previewPath = [exportFileName stringByReplacingOccurrencesOfString:outputExtension withString:@"-preview.jpg"];
-                                                            NSData * binaryImageData = UIImageJPEGRepresentation(result, self.quality/100.0f);
-                                                            NSError *err;
-                                                            if (![binaryImageData writeToFile:previewPath options:NSAtomicWrite error:&err] ) {
-                                                                NSLog(@"Error: %@", err);
-                                                                internalIndex ++;
-                                                                nextCallback(internalIndex,nil, nil, localIdentifier);
-                                                            } else {
-                                                                internalIndex++;
-                                                                nextCallback(internalIndex,[[NSURL fileURLWithPath:exportFileName] absoluteString], localIdentifier, nil);
-                                                            }
-                                                            dispatch_group_async(dispatch_group_create(), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-                                                                [self processAssets:fetchAssets
-                                                                              index:internalIndex
-                                                                           docsPath:docsPath
-                                                                         targetSize:targetSize
-                                                                            manager:manager
-                                                                     requestOptions:requestOptions
-                                                                      startEndTimes:nil
-                                                                  completedCallback:completedCallback nextCallback:nextCallback progressCallback:progressCallback errorCallback:errorCallback];
-                                                            });
-                                                        }
-                                                    }
-                                                }];
-                                            }
-                                        }
-                                    }
-                                }];
-                                
-                                
-                                
-                                break;
-                        }
-                        
-                        
-                    }];*/
+                     float videoWidth = mediaSize.width;
+                     float videoHeight = mediaSize.height;
+                     int newWidth;
+                     int newHeight;
+                     
+                     if (maintainAspectRatio) {
+                     float aspectRatio = videoWidth / videoHeight;
+                     
+                     // for some portrait videos ios gives the wrong width and height, this fixes that
+                     NSString *videoOrientation = [self getOrientationForTrack:avasset];
+                     if ([videoOrientation isEqual: @"portrait"]) {
+                     if (videoWidth > videoHeight) {
+                     videoWidth = mediaSize.height;
+                     videoHeight = mediaSize.width;
+                     aspectRatio = videoWidth / videoHeight;
+                     }
+                     }
+                     
+                     newWidth = (width && height) ? height * aspectRatio : videoWidth;
+                     newHeight = (width && height) ? newWidth / aspectRatio : videoHeight;
+                     } else {
+                     newWidth = (width && height) ? width : videoWidth;
+                     newHeight = (width && height) ? height : videoHeight;
+                     }
+                     NSString *stringOutputFileType = AVFileTypeMPEG4;
+                     NSString *outputExtension = @".mp4";
+                     
+                     SDAVAssetExportSession *encoder = [[SDAVAssetExportSession alloc] initWithAsset:avasset];
+                     encoder.outputFileType = stringOutputFileType;
+                     encoder.outputURL = furl;
+                     encoder.shouldOptimizeForNetworkUse = YES;
+                     encoder.videoSettings = @
+                     {
+                     AVVideoCodecKey: AVVideoCodecH264,
+                     AVVideoWidthKey: [NSNumber numberWithInt: newWidth],
+                     AVVideoHeightKey: [NSNumber numberWithInt: newHeight],
+                     AVVideoCompressionPropertiesKey: @
+                     {
+                     AVVideoAverageBitRateKey: @6000000,
+                     AVVideoProfileLevelKey: AVVideoProfileLevelH264High40,
+                     },
+                     };
+                     encoder.audioSettings = @
+                     {
+                     AVFormatIDKey: @(kAudioFormatMPEG4AAC),
+                     AVNumberOfChannelsKey: @2,
+                     AVSampleRateKey: @44100,
+                     AVEncoderBitRateKey: @128000,
+                     };
+                     
+                     //                    encoder.timeRange = range;
+                     
+                     dispatch_semaphore_t sessionWaitSemaphore = dispatch_semaphore_create(0);
+                     
+                     void (^completionHandler)(void) = ^(void)
+                     {
+                     dispatch_semaphore_signal(sessionWaitSemaphore);
+                     };
+                     
+                     // do it
+                     [self.commandDelegate runInBackground:^{
+                     [encoder exportAsynchronouslyWithCompletionHandler:completionHandler];
+                     do {
+                     dispatch_time_t dispatchTime = DISPATCH_TIME_FOREVER;  // if we dont want progress, we will wait until it finishes.
+                     dispatchTime = getDispatchTimeFromSeconds((float)1.0);
+                     double progress = [encoder progress] * 100;
+                     
+                     progressCallback(internalIndex, progress);
+                     dispatch_semaphore_wait(sessionWaitSemaphore, dispatchTime);
+                     } while( [encoder status] < AVAssetExportSessionStatusCompleted );
+                     
+                     switch ([encoder status]) {
+                     case AVAssetExportSessionStatusFailed:
+                     
+                     NSLog(@"Export failed: %@", [[encoder error] localizedDescription]);
+                     
+                     internalIndex ++;
+                     nextCallback(internalIndex,nil, nil, localIdentifier);
+                     {
+                     dispatch_group_async(dispatch_group_create(), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
+                     [self processAssets:fetchAssets
+                     index:internalIndex
+                     docsPath:docsPath
+                     targetSize:targetSize
+                     manager:manager
+                     requestOptions:requestOptions
+                     startEndTimes:nil
+                     completedCallback:completedCallback nextCallback:nextCallback progressCallback:progressCallback errorCallback:errorCallback];
+                     });
+                     }
+                     break;
+                     case AVAssetExportSessionStatusCancelled:
+                     
+                     NSLog(@"Export canceled %@", [[encoder error] localizedDescription]);
+                     
+                     internalIndex ++;
+                     nextCallback(internalIndex,nil, nil, localIdentifier);
+                     {
+                     dispatch_group_async(dispatch_group_create(), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
+                     [self processAssets:fetchAssets
+                     index:internalIndex
+                     docsPath:docsPath
+                     targetSize:targetSize
+                     manager:manager
+                     requestOptions:requestOptions
+                     startEndTimes:nil
+                     completedCallback:completedCallback nextCallback:nextCallback progressCallback:progressCallback errorCallback:errorCallback];
+                     });
+                     }
+                     break;
+                     case AVAssetExportSessionStatusWaiting:
+                     NSLog(@"Export waiting");
+                     break;
+                     case AVAssetExportSessionStatusExporting:
+                     NSLog(@"Export exporting");
+                     break;
+                     case AVAssetExportSessionStatusUnknown:
+                     
+                     NSLog(@"Export unknown %@", [[encoder error] localizedDescription]);
+                     internalIndex ++;
+                     nextCallback(internalIndex,nil, nil, localIdentifier);
+                     
+                     {
+                     dispatch_group_async(dispatch_group_create(), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
+                     [self processAssets:fetchAssets
+                     index:internalIndex
+                     docsPath:docsPath
+                     targetSize:targetSize
+                     manager:manager
+                     requestOptions:requestOptions
+                     startEndTimes:nil
+                     completedCallback:completedCallback nextCallback:nextCallback progressCallback:progressCallback errorCallback:errorCallback];
+                     });
+                     }
+                     
+                     break;
+                     case AVAssetExportSessionStatusCompleted:
+                     NSLog(@"AVAssetExportSessionStatusCompleted");
+                     
+                     __block NSString *exportFileName = [self getMD5FileString:filePath  docPath:docsPath subtype:outputExtension];
+                     [manager requestImageForAsset:asset targetSize:CGSizeMake(512, 512) contentMode:PHImageContentModeDefault options:requestOptions resultHandler:^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
+                     @autoreleasepool {
+                     if(result != nil){
+                     NSString *thumbnailPath = [exportFileName stringByReplacingOccurrencesOfString:outputExtension withString:@"-thumbnail.jpg"];
+                     NSData * binaryImageData = UIImageJPEGRepresentation(result, self.quality/100.0f);
+                     NSError *err;
+                     if (![binaryImageData writeToFile:thumbnailPath options:NSAtomicWrite error:&err] ) {
+                     NSLog(@"Error: %@", err);
+                     internalIndex ++;
+                     nextCallback(internalIndex,nil, nil, localIdentifier);
+                     dispatch_group_async(dispatch_group_create(), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
+                     [self processAssets:fetchAssets
+                     index:internalIndex
+                     docsPath:docsPath
+                     targetSize:targetSize
+                     manager:manager
+                     requestOptions:requestOptions
+                     startEndTimes:nil
+                     completedCallback:completedCallback nextCallback:nextCallback progressCallback:progressCallback errorCallback:errorCallback];
+                     });
+                     } else {
+                     [manager requestImageForAsset:asset targetSize:CGSizeMake(asset.pixelWidth, asset.pixelHeight) contentMode:PHImageContentModeDefault options:requestOptions resultHandler:^(UIImage * _Nullable result, NSDictionary * _Nullable info) {
+                     @autoreleasepool {
+                     if(result != nil){
+                     NSString *previewPath = [exportFileName stringByReplacingOccurrencesOfString:outputExtension withString:@"-preview.jpg"];
+                     NSData * binaryImageData = UIImageJPEGRepresentation(result, self.quality/100.0f);
+                     NSError *err;
+                     if (![binaryImageData writeToFile:previewPath options:NSAtomicWrite error:&err] ) {
+                     NSLog(@"Error: %@", err);
+                     internalIndex ++;
+                     nextCallback(internalIndex,nil, nil, localIdentifier);
+                     } else {
+                     internalIndex++;
+                     nextCallback(internalIndex,[[NSURL fileURLWithPath:exportFileName] absoluteString], localIdentifier, nil);
+                     }
+                     dispatch_group_async(dispatch_group_create(), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
+                     [self processAssets:fetchAssets
+                     index:internalIndex
+                     docsPath:docsPath
+                     targetSize:targetSize
+                     manager:manager
+                     requestOptions:requestOptions
+                     startEndTimes:nil
+                     completedCallback:completedCallback nextCallback:nextCallback progressCallback:progressCallback errorCallback:errorCallback];
+                     });
+                     }
+                     }
+                     }];
+                     }
+                     }
+                     }
+                     }];
+                     
+                     
+                     
+                     break;
+                     }
+                     
+                     
+                     }];*/
                 }
             }];
         }
