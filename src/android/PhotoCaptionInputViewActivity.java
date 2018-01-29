@@ -370,8 +370,8 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
                         Matisse.from(PhotoCaptionInputViewActivity.this)
                                 .choose(MimeType.of(
-                                        MimeType.JPEG,
-                                        MimeType.PNG,
+//                                        MimeType.JPEG,
+//                                        MimeType.PNG,
                                         MimeType.MP4
                                 ), false)
                                 .countable(true)
@@ -1310,31 +1310,31 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
                         MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
                         mediaMetadataRetriever.setDataSource(PhotoCaptionInputViewActivity.this, src);
-                        Bitmap previewBitmap = mediaMetadataRetriever.getFrameAtTime(0);
-                        Bitmap thumbnailBitmap = (previewBitmap.getWidth() >= previewBitmap.getHeight()) ?
-                                Bitmap.createBitmap(
-                                        previewBitmap,
-                                        previewBitmap.getWidth() / 2 - previewBitmap.getHeight() / 2,
-                                        0,
-                                        previewBitmap.getHeight(),
-                                        previewBitmap.getHeight()
-                                ) :
-                                Bitmap.createBitmap(
-                                        previewBitmap,
-                                        0,
-                                        previewBitmap.getHeight() / 2 - previewBitmap.getWidth() / 2,
-                                        previewBitmap.getWidth(),
-                                        previewBitmap.getWidth()
-                                );
-
-                        originalFileName = temp.get(0).substring(temp.get(0).lastIndexOf("/") + 1);
-                        subfileName = temp.get(0).substring(temp.get(0).lastIndexOf(".") + 1);
-                        previewBitmapFileName = originalFileName.replace(subfileName, "-preview.jpg");
-                        thumbnailBitmapFileName = originalFileName.replace(subfileName, "-thumbnail.jpg");
-                        String previewBitmapFilePath = storeImage(previewBitmapFileName, previewBitmap);
-                        String thumbnailBitmapFilePath = storeImage(thumbnailBitmapFileName, thumbnailBitmap);
-                        Log.d("previewBitmapFilePath", previewBitmapFilePath);
-                        Log.d("thumbnailBitmapFilePath", thumbnailBitmapFilePath);
+//                        Bitmap previewBitmap = mediaMetadataRetriever.getFrameAtTime(0);
+//                        Bitmap thumbnailBitmap = (previewBitmap.getWidth() >= previewBitmap.getHeight()) ?
+//                                Bitmap.createBitmap(
+//                                        previewBitmap,
+//                                        previewBitmap.getWidth() / 2 - previewBitmap.getHeight() / 2,
+//                                        0,
+//                                        previewBitmap.getHeight(),
+//                                        previewBitmap.getHeight()
+//                                ) :
+//                                Bitmap.createBitmap(
+//                                        previewBitmap,
+//                                        0,
+//                                        previewBitmap.getHeight() / 2 - previewBitmap.getWidth() / 2,
+//                                        previewBitmap.getWidth(),
+//                                        previewBitmap.getWidth()
+//                                );
+//
+//                        originalFileName = temp.get(0).substring(temp.get(0).lastIndexOf("/") + 1);
+//                        subfileName = temp.get(0).substring(temp.get(0).lastIndexOf(".") + 1);
+//                        previewBitmapFileName = originalFileName.replace(subfileName, "-preview.jpg");
+//                        thumbnailBitmapFileName = originalFileName.replace(subfileName, "-thumbnail.jpg");
+//                        String previewBitmapFilePath = storeImage(previewBitmapFileName, previewBitmap);
+//                        String thumbnailBitmapFilePath = storeImage(thumbnailBitmapFileName, thumbnailBitmap);
+//                        Log.d("previewBitmapFilePath", previewBitmapFilePath);
+//                        Log.d("thumbnailBitmapFilePath", thumbnailBitmapFilePath);
                         JSONObject metaData = new JSONObject();
 
                         long durationMs = Long.parseLong(mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
@@ -1344,8 +1344,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
                         /* testing only */
 
+                        metaData.put("start", 0L);
 
-                        metaData.put("duration", 15000 > durationMs ? durationMs : 15000);
+                        metaData.put("duration", 15000L > durationMs ? durationMs : 15000L);
                         metaData.put("width", videoWidth);
                         metaData.put("height", videoHeight);
                         metaData.put("originalDuration", durationMs);
@@ -1353,8 +1354,6 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
                         addData(Uri.fromFile(inFile).toString(), metaData);
                     } catch (URISyntaxException e) {
-                        e.printStackTrace();
-                    } catch (IOException e) {
                         e.printStackTrace();
                     } catch (JSONException e) {
                         e.printStackTrace();
