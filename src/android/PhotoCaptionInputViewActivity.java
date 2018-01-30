@@ -50,6 +50,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.inputmethod.InputMethodManager;
+import android.webkit.MimeTypeMap;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -370,8 +371,8 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
                         Matisse.from(PhotoCaptionInputViewActivity.this)
                                 .choose(MimeType.of(
-                                       MimeType.JPEG,
-                                       MimeType.PNG,
+                                        MimeType.JPEG,
+                                        MimeType.PNG,
                                         MimeType.MP4
                                 ), false)
                                 .countable(true)
@@ -1165,9 +1166,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         OnImageResized onImageResizedCallback = new OnImageResized() {
 
             @Override
-            public void resizeProcessed(Boolean isBitmap , Integer index) {
+            public void resizeProcessed(Integer index) {
                 callback.onResizePrecess(index);
-                processFile(onImageResizedCallback, isBitmap, index);
+                processFile(onImageResizedCallback, index);
             }
 
             @Override
@@ -1198,18 +1199,20 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         private void processFiles() {
             try {
                 //start progress
-                processFile( onImageResizedCallback , files.get(0).toLowerCase().contains("bmp") , 0);
+                processFile( onImageResizedCallback , 0);
             } catch (Exception e) {
                 e.printStackTrace();
 
             }
         }
-        private void processFile( final OnImageResized onImageResized, Boolean isBitmap, Integer index) {
+        private void processFile( final OnImageResized onImageResized, Integer index) {
             if (files.size() > 0) {
                 //fixed http://crashes.to/s/d00290ba305 stackoverflow
-                if ((width != 0 && height != 0)  || isBitmap) {
+                String fileName = files.get(0);
+                Uri src = Uri.parse(fileName);
+                if ((width != 0 && height != 0)  || MimeType.BMP.checkType(getContentResolver(), src)) {
                     try {
-                        URI uri = new URI(files.get(0));
+                        URI uri = new URI(fileName);
 
                         final File imageFile = new File(uri);
                         ImageRequest request = null;
@@ -1228,11 +1231,11 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                             }
                             float reqWidth = options.outWidth * scale;
                             float reqHeight = options.outHeight * scale;
-                            request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(files.get(0)))
+                            request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(fileName))
                                     .setResizeOptions(new ResizeOptions((int) reqWidth, (int) reqHeight))
                                     .build();
                         } else {
-                            request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(files.get(0)))
+                            request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(fileName))
                                     .build();
                         }
                         ImagePipeline imagePipeline = Fresco.getImagePipeline();
@@ -1282,11 +1285,11 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
                                             if(files.size() == 0) {
                                                 //if filesize = 0 end progress
-                                                onImageResized.ResizeCompleted(outList);
+                                                onImageResized.resizeCompleted(outList);
                                             }else {
                                                 //if filesize > 0 continue progress
                                                 Integer nextIndex = copyindex[0]+1;
-                                                onImageResized.resizeProcessed(files.get(0).toLowerCase().contains("bmp"), nextIndex);
+                                                onImageResized.resizeProcessed( nextIndex);
                                             }
                                         }
 
@@ -1298,40 +1301,11 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                         e.printStackTrace();
                         callback.onResizeFailed("URISyntaxException " + e.getMessage());
                     }
-                } else if (temp.get(0).contains("jpg") || temp.get(0).contains("jpeg") || temp.get(0).contains("JPG") || temp.get(0).contains("JPEG") || temp.get(0).contains("png") || temp.get(0).contains("PNG")) {
-                    try {
-                        URI uri = new URI(files.get(0));
-                        File inFile = new File(uri);
-                        Log.d("processFile", "storeImage " + uri);
-                        String outFilePath = storeImage(inFile.getParentFile().getAbsolutePath(), inFile.getName());
-                        addData(Uri.fromFile(new File(outFilePath)).toString(), new JSONObject());
-                    } catch (URISyntaxException e) {
-                        e.printStackTrace();
-                        callback.onResizeFailed("URISyntaxException storeImage " + e.getMessage());
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                        callback.onResizeFailed("JSONException storeImage " + e.getMessage());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        callback.onResizeFailed("IOException storeImage " + e.getMessage());
-                    } finally {
-                        files.remove(0);
-                        if(files.size() == 0) {
-                            //if filesize = 0 end progress
-                            onImageResized.ResizeCompleted(outList);
-                        }else {
-                            //if filesize > 0 continue progress
-                            Integer nextIndex = index+1;
-                            onImageResized.resizeProcessed(files.get(0).toLowerCase().contains("bmp"), nextIndex);
-                        }
-                    }
-
-
-                } else if (temp.get(0).contains("mp4") || temp.get(0).contains("MP4")) {
+                } else if (MimeType.MP4.checkType(getContentResolver(), src)) {
                     URI uri = null;
                     try {
-                        uri = new URI(temp.get(0));
-                        Uri src = Uri.parse(temp.get(0));
+                        uri = new URI(fileName);
+
                         File inFile = new File(uri);
                         Log.d("processFile", "storeImage " + uri);
 
@@ -1385,14 +1359,55 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     } catch (JSONException e) {
                         e.printStackTrace();
                     } finally {
-                        temp.remove(0);
-                        onImageResized.resizeProcessed(temp);
+                        files.remove(0);
+                        if(files.size() == 0) {
+                            //if filesize = 0 end progress
+                            onImageResized.resizeCompleted(outList);
+                        }else {
+                            Integer nextIndex = index+1;
+                            onImageResized.resizeProcessed(nextIndex);
+                        }
                     }
+
+                } else if (MimeType.JPEG.checkType(getContentResolver(), src) || MimeType.PNG.checkType(getContentResolver(), src)) {
+                    try {
+                        URI uri = new URI(files.get(0));
+                        File inFile = new File(uri);
+                        Log.d("processFile", "storeImage " + uri);
+                        String outFilePath = storeImage(inFile.getParentFile().getAbsolutePath(), inFile.getName());
+                        addData(Uri.fromFile(new File(outFilePath)).toString(), new JSONObject());
+                    } catch (URISyntaxException e) {
+                        e.printStackTrace();
+                        callback.onResizeFailed("URISyntaxException storeImage " + e.getMessage());
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                        callback.onResizeFailed("JSONException storeImage " + e.getMessage());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        callback.onResizeFailed("IOException storeImage " + e.getMessage());
+                    } finally {
+                        files.remove(0);
+                        if(files.size() == 0) {
+                            //if filesize = 0 end progress
+                            onImageResized.resizeCompleted(outList);
+                        }else {
+                            //if filesize > 0 continue progress
+                            Integer nextIndex = index+1;
+                            onImageResized.resizeProcessed(nextIndex);
+                        }
+                    }
+
 
                 } else {
                     addData("", new JSONObject());
-                    temp.remove(0);
-                    onImageResized.resizeProcessed(temp);
+                    files.remove(0);
+                    Integer nextIndex = index+1;
+                    if(files.size() == 0) {
+                        //if filesize = 0 end progress
+                        onImageResized.resizeCompleted(outList);
+                    }else {
+                        onImageResized.resizeProcessed(nextIndex);
+                    }
                 }
             }
         }
@@ -1426,7 +1441,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     }
 
     private interface OnImageResized {
-        void resizeProcessed(Boolean isBitmap, Integer index);
+        void resizeProcessed(Integer index);
 
         void resizeCompleted(ArrayList<String> outList);
     }
