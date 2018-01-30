@@ -1178,10 +1178,10 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 }
             }
         };
-        private String originalFileName;
-        private String subfileName;
-        private String previewBitmapFileName;
-        private String thumbnailBitmapFileName;
+//        private String originalFileName;
+//        private String subfileName;
+//        private String previewBitmapFileName;
+//        private String thumbnailBitmapFileName;
 
         public ImageResizer(Context context, ArrayList<String> files) {
             this.context = context;
@@ -1260,6 +1260,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                                             }
                                         } catch (IOException e) {
                                             e.printStackTrace();
+                                            callback.onResizeFailed("IOException storeImage " + e.getMessage());
                                         }
                                         try {
                                             Log.d("processFile", "storeImageWithExif " + imageFile);
@@ -1356,8 +1357,10 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                         addData(Uri.fromFile(inFile).toString(), metaData);
                     } catch (URISyntaxException e) {
                         e.printStackTrace();
+                        callback.onResizeFailed("URISyntaxException storeImage " + e.getMessage());
                     } catch (JSONException e) {
                         e.printStackTrace();
+                        callback.onResizeFailed("JSONException storeImage " + e.getMessage());
                     } finally {
                         files.remove(0);
                         if(files.size() == 0) {
@@ -1429,6 +1432,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 }
             } catch (NullPointerException e) {
                 e.printStackTrace();
+                callback.onResizeFailed("NullPointerException storeImage " + e.getMessage());
             }
         }
 
@@ -1438,6 +1442,15 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         }
 
 
+    }
+
+    public static String getMimeType(String url) {
+        String type = null;
+        String extension = MimeTypeMap.getFileExtensionFromUrl(url);
+        if (extension != null) {
+            type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
+        }
+        return type;
     }
 
     private interface OnImageResized {
