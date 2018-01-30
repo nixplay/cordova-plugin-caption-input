@@ -375,6 +375,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                                         MimeType.MP4
                                 ), false)
                                 .countable(true)
+                                .showSingleMediaType(true)
                                 .maxSelectable(PhotoCaptionInputViewActivity.this.maxImages)
                                 .gridExpectedSize((int) convertDpToPixel(120, PhotoCaptionInputViewActivity.this))
                                 .restrictOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
@@ -784,18 +785,19 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             @Override
             public void run() {
                 kProgressHUD = KProgressHUD.create(PhotoCaptionInputViewActivity.this)
-                        .setStyle(KProgressHUD.Style.SPIN_INDETERMINATE)
-                        .setDetailsLabel(getString(fakeR.getId("string", "LOADING")))
+                        .setStyle(KProgressHUD.Style.PIE_DETERMINATE)
+                        .setDetailsLabel("")
                         .setCancellable(false)
                         .setAnimationSpeed(2)
                         .setDimAmount(0.5f)
+                        .setMaxProgress(imageList.size())
                         .show();
 
             }
         });
         ImageResizer imageResizer = new ImageResizer(this, imageList);
-
-        ImageResizeTask task = new ImageResizeTask();
+        imageResizer.run();
+//        ImageResizeTask task = new ImageResizeTask();
 
         imageResizer.setCallback(new ResizeCallback() {
 
@@ -826,6 +828,16 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             }
 
             @Override
+            public void onResizePrecess(final Integer process) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        kProgressHUD.setProgress(process);
+                    }
+                });
+            }
+
+            @Override
             public void onResizeFailed(String s) {
                 kProgressHUD.dismiss();
                 Log.e(TAG, s);
@@ -836,7 +848,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
             }
         });
-        task.execute(imageResizer);
+//        task.execute(imageResizer);
 
     }
 
@@ -1122,6 +1134,8 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     private interface ResizeCallback {
         void onResizeSuccess(ArrayList<String> outList, JSONArray jsonArray);
 
+        void onResizePrecess(Integer process);
+
         void onResizeFailed(String s);
     }
 
@@ -1146,15 +1160,16 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
     public class ImageResizer {
         private final Context context;
-        private final List<String> files;
+        private final ArrayList<String> files;
         private ResizeCallback callback;
         private ArrayList<String> outList;
         private JSONArray outMetaList;
         OnImageResized onImageResizedCallback = new OnImageResized() {
 
             @Override
-            public void resizeProcessed(ArrayList<String> temp) {
-                processFile(temp, onImageResizedCallback);
+            public void resizeProcessed(Boolean isBitmap , Integer index) {
+                callback.onResizePrecess(index);
+                processFile(onImageResizedCallback, isBitmap, index);
             }
 
             @Override
@@ -1169,7 +1184,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         private String previewBitmapFileName;
         private String thumbnailBitmapFileName;
 
-        public ImageResizer(Context context, List<String> files) {
+        public ImageResizer(Context context, ArrayList<String> files) {
             this.context = context;
             this.files = files;
             this.outList = new ArrayList<String>();
@@ -1184,21 +1199,19 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
         private void processFiles() {
             try {
-                ArrayList<String> tempfiles = new ArrayList<String>(files);
-                processFile(tempfiles, onImageResizedCallback);
+                //start progress
+                processFile( onImageResizedCallback , files.get(0).toLowerCase().contains("bmp") , 0);
             } catch (Exception e) {
                 e.printStackTrace();
 
             }
         }
-
-        private void processFile(final ArrayList<String> temp, final OnImageResized onImageResized) {
-            if (temp.size() == 0) {
-                onImageResized.resizeCompleted(outList);
-            } else {
-                if ((width != 0 && height != 0) || temp.get(0).contains("bmp") || temp.get(0).contains("BMP")) {
+        private void processFile( final OnImageResized onImageResized, Boolean isBitmap, Integer index) {
+            if (files.size() > 0) {
+                //fixed http://crashes.to/s/d00290ba305 stackoverflow
+                if ((width != 0 && height != 0)  || isBitmap) {
                     try {
-                        URI uri = new URI(temp.get(0));
+                        URI uri = new URI(files.get(0));
 
                         final File imageFile = new File(uri);
                         ImageRequest request = null;
@@ -1217,17 +1230,18 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                             }
                             float reqWidth = options.outWidth * scale;
                             float reqHeight = options.outHeight * scale;
-                            request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(temp.get(0)))
+                            request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(files.get(0)))
                                     .setResizeOptions(new ResizeOptions((int) reqWidth, (int) reqHeight))
                                     .build();
                         } else {
-                            request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(temp.get(0)))
+                            request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(files.get(0)))
                                     .build();
                         }
                         ImagePipeline imagePipeline = Fresco.getImagePipeline();
                         DataSource<CloseableReference<CloseableImage>> dataSource = imagePipeline.fetchDecodedImage(request, this);
 
                         CallerThreadExecutor executor = CallerThreadExecutor.getInstance();
+                        final Integer[] copyindex = {index};
                         dataSource.subscribe(
                                 new BaseBitmapDataSubscriber() {
                                     @Override
@@ -1266,8 +1280,16 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                                             e.printStackTrace();
                                             callback.onResizeFailed("URISyntaxException " + e.getMessage());
                                         } finally {
-                                            temp.remove(0);
-                                            onImageResized.resizeProcessed(temp);
+                                            files.remove(0);
+
+                                            if(files.size() == 0) {
+                                                //if filesize = 0 end progress
+                                                onImageResized.ResizeCompleted(outList);
+                                            }else {
+                                                //if filesize > 0 continue progress
+                                                Integer nextIndex = copyindex[0]+1;
+                                                onImageResized.resizeProcessed(files.get(0).toLowerCase().contains("bmp"), nextIndex);
+                                            }
                                         }
 
                                     }
@@ -1280,7 +1302,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     }
                 } else if (temp.get(0).contains("jpg") || temp.get(0).contains("jpeg") || temp.get(0).contains("JPG") || temp.get(0).contains("JPEG") || temp.get(0).contains("png") || temp.get(0).contains("PNG")) {
                     try {
-                        URI uri = new URI(temp.get(0));
+                        URI uri = new URI(files.get(0));
                         File inFile = new File(uri);
                         Log.d("processFile", "storeImage " + uri);
                         String outFilePath = storeImage(inFile.getParentFile().getAbsolutePath(), inFile.getName());
@@ -1295,8 +1317,15 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                         e.printStackTrace();
                         callback.onResizeFailed("IOException storeImage " + e.getMessage());
                     } finally {
-                        temp.remove(0);
-                        onImageResized.resizeProcessed(temp);
+                        files.remove(0);
+                        if(files.size() == 0) {
+                            //if filesize = 0 end progress
+                            onImageResized.ResizeCompleted(outList);
+                        }else {
+                            //if filesize > 0 continue progress
+                            Integer nextIndex = index+1;
+                            onImageResized.resizeProcessed(files.get(0).toLowerCase().contains("bmp"), nextIndex);
+                        }
                     }
 
 
@@ -1399,7 +1428,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     }
 
     private interface OnImageResized {
-        void resizeProcessed(ArrayList<String> temp);
+        void resizeProcessed(Boolean isBitmap, Integer index);
 
         void resizeCompleted(ArrayList<String> outList);
     }
