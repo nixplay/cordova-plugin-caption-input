@@ -370,12 +370,11 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
                         Matisse.from(PhotoCaptionInputViewActivity.this)
                                 .choose(MimeType.of(
-//                                        MimeType.JPEG,
-//                                        MimeType.PNG,
+                                       MimeType.JPEG,
+                                       MimeType.PNG,
                                         MimeType.MP4
                                 ), false)
                                 .countable(true)
-                                .showSingleMediaType(true)
                                 .maxSelectable(PhotoCaptionInputViewActivity.this.maxImages)
                                 .gridExpectedSize((int) convertDpToPixel(120, PhotoCaptionInputViewActivity.this))
                                 .restrictOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
@@ -383,7 +382,6 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                                 .imageEngine(new GlideEngine())
                                 .enablePreview(false)
                                 .showUseOrigin(false)
-                                .showSingleMediaType(true)
                                 .forResult(REQUEST_CODE_CHOOSE, serialPreselectedAssets);
 
                     }
