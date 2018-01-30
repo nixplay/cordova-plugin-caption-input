@@ -364,6 +364,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
                                 ), true)
                                 .countable(true)
+                                .showSingleMediaType(true)
                                 .maxSelectable(PhotoCaptionInputViewActivity.this.maxImages)
                                 .gridExpectedSize((int) convertDpToPixel(120,PhotoCaptionInputViewActivity.this))
                                 .restrictOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
