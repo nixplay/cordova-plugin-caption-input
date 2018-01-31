@@ -79,7 +79,19 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static android.view.View.GONE;
 import static com.creedon.cordova.plugin.captioninput.Constants.KEY_CAPTIONS;
@@ -154,6 +166,8 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     private ArrayList<String> preSelectedAssets = new ArrayList<String>();
     private int maxImages;
     private ImageResizer imageResizer;
+
+    private ArrayList<String> currentTaskIDs = new ArrayList<String>();
 
 
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
@@ -265,7 +279,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 mEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
                     @Override
                     public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                        Log.d("onEditorAction", " TextView " + v.toString() + " actionId " + actionId + " event " + event);
+                        Log.d(TAG, " TextView " + v.toString() + " actionId " + actionId + " event " + event);
                         return false;
                     }
                 });
@@ -622,9 +636,10 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     @Override
     public void onBackPressed() {
         super.onBackPressed();
-        if (imageResizer != null) {
-            imageResizer.cancel();
+        for(String currentTaskID : currentTaskIDs) {
+            BackgroundExecutor.cancelAll(currentTaskID, true);
         }
+        currentTaskIDs.clear();
         setResult(Activity.RESULT_CANCELED);
         finish();
     }
@@ -764,20 +779,38 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             }
         });
         imageResizer = new ImageResizer(this, imageList, new OnResizedCallback() {
-
-            public ArrayList<String> outList = new ArrayList<String>();
+//https://stackoverflow.com/questions/7860822/sorting-hashmap-based-on-keys
+            public TreeMap<Integer,String> outList = new TreeMap<Integer,String>();
 
             @Override
-            public void onResizeSuccess(String result, Integer index) {
-                outList.add(result);
+            public void onResizeSuccess(String result, Integer index, String originalFilename) {
+                outList.put(index,result);
+                final int process = outList.size();
+//                Log.d(TAG,"onResizeSuccess "+index+": result-> "+result+ " originalFilename : "+originalFilename);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        kProgressHUD.setProgress(process);
+                    }
+                });
 
-                if (index >= imageList.size() - 1) {
+                if (outList.size() == imageList.size()) {
                     kProgressHUD.dismiss();
+                    Set<Map.Entry<Integer, String>> entries = outList.entrySet();
+                    Iterator<Map.Entry<Integer, String>> it = entries.iterator();
+
+//                    while(it.hasNext()){
+//                        Map.Entry<Integer, String> o = it.next();
+//                        Log.d( TAG , "To JSON Array "+String.valueOf(o.getKey()) +" : "+ o.getValue());
+//                    }
+
                     Bundle conData = new Bundle();
                     try {
                         JSONObject jsonObject = new JSONObject();
-
-                        JSONArray array = new JSONArray(outList);
+                        //https://stackoverflow.com/questions/15402321/how-to-convert-hashmap-to-json-array-in-android
+                        Collection<String> values = outList.values();
+                        JSONArray array = new JSONArray(values);
+//                        Log.d(TAG, array.toString());
 
                         jsonObject.put(KEY_IMAGES, array);
                         jsonObject.put(KEY_CAPTIONS, new JSONArray(captions));
@@ -788,66 +821,77 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
+                    for(String currentTaskID : currentTaskIDs) {
+                        BackgroundExecutor.cancelAll(currentTaskID, true);
+                    }
+                    currentTaskIDs.clear();
                     Intent intent = new Intent();
                     intent.putExtras(conData);
                     setResult(RESULT_OK, intent);
                     finishActivity(Constants.REQUEST_SUBMIT);
                     finish();
-                } else {
-                    final int nextIndex = index + 1;
-                    final String fileName = imageList.get(nextIndex).toLowerCase();
-                    Thread t = new Thread(new Runnable() {
-                        public void run() {
-                            boolean isResize = fileName.endsWith("bmp");
-                            imageResizer.processFile(imageList.get(nextIndex), nextIndex, isResize);
-                        }
-                    });
-                    t.run();
-
 
                 }
             }
 
             @Override
             public void onResizePrecess(final Integer process) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        kProgressHUD.setProgress(process);
-                    }
-                });
+//                runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        kProgressHUD.setProgress(process);
+//                    }
+//                });
 
             }
 
             @Override
             public void onResizeFailed(String s) {
-                imageResizer.cancel();
-                kProgressHUD.dismiss();
                 Log.e(TAG, s);
-                Intent intent = new Intent();
-
-                setResult(RESULT_CANCELED, intent);
-                finish();
-
             }
         });
-        boolean isResize = imageList.get(0).toLowerCase().endsWith("bmp");
-        imageResizer.processFile(imageList.get(0), 0, isResize);
+
+
+        for(int i = 0 ; i < imageList.size() ; i++) {
+
+            final int nextIndex = i ;
+            final String fileName = imageList.get(nextIndex).toLowerCase();
+//            Log.d(TAG,"imagelist "+String.valueOf(i)+ " : "+fileName);
+            String currentTaskID = String.valueOf(i);
+            currentTaskIDs.add(currentTaskID);
+            BackgroundExecutor.execute(
+                    new BackgroundExecutor.Task(currentTaskID, 0L, fileName) {
+                        @Override
+                        public void execute() {
+                            try {
+                                boolean isResize = fileName.endsWith("bmp");
+                                imageResizer.processFile(imageList.get(nextIndex), nextIndex, isResize);
+                            } catch (final Throwable e) {
+                                Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), e);
+                            }
+                        }
+                    }
+            );
+        }
+
 
     }
 
 
-    protected String storeImage(String inFilePath, String inFileName) throws JSONException, IOException, URISyntaxException {
+    protected String storeImage(String inFilePath, String inFileName) throws JSONException, URISyntaxException {
 
 
         String outFilePath = System.getProperty("java.io.tmpdir") + "/";
         if (!(inFilePath + File.separator + inFileName).equals(outFilePath + inFileName)) {
             copyFile(inFilePath + File.separator, inFileName, outFilePath);
             try {
-                copyExif(inFilePath + File.separator + inFileName, outFilePath + inFileName);
-            } catch (Exception e) {
+                if(inFilePath.toLowerCase().endsWith("jpeg") || inFilePath.toLowerCase().endsWith("jpg")) {
+                    copyExif(inFilePath + File.separator + inFileName, outFilePath + inFileName);
+                }
+            } catch (IOException e){
                 e.printStackTrace();
             }
+
             return outFilePath + inFileName;
         }
         return inFilePath + File.separator + inFileName;
@@ -911,9 +955,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             out = null;
 
         } catch (FileNotFoundException fnfe1) {
-            Log.e("tag", fnfe1.getMessage());
+            Log.e(TAG, fnfe1.getMessage());
         } catch (Exception e) {
-            Log.e("tag", e.getMessage());
+            Log.e(TAG, e.getMessage());
         }
 
     }
@@ -1057,7 +1101,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
 
     private interface OnResizedCallback {
-        void onResizeSuccess(String result, Integer index);
+        void onResizeSuccess(String result, Integer index, String originalFilename);
 
         void onResizePrecess(Integer process);
 
@@ -1083,6 +1127,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         public void processFile(String fileName, Integer index, boolean isResize) {
             if (isCancel) {
                 callback.onResizeFailed("User cancelled");
+                return;
             }
             if (files.size() > 0) {
 
@@ -1130,7 +1175,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     try {
                         URI uri = new URI(fileName);
                         File inFile = new File(uri);
-                        Log.d("processFile", "storeImage " + uri);
+//                        Log.d("processFile", "storeImage " + uri);
                         outFilePath = storeImage(inFile.getParentFile().getAbsolutePath(), inFile.getName());
 
 
@@ -1140,13 +1185,10 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     } catch (JSONException e) {
                         e.printStackTrace();
                         callback.onResizeFailed("JSONException storeImage " + e.getMessage());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        callback.onResizeFailed("IOException storeImage " + e.getMessage());
-                    } finally {
-                        callback.onResizeSuccess(Uri.fromFile(new File(outFilePath)).toString(), index);
-                        callback.onResizePrecess(index);
                     }
+                    callback.onResizeSuccess(Uri.fromFile(new File(outFilePath)).toString(), index, fileName);
+                    callback.onResizePrecess(index);
+
 
 
                 }
@@ -1172,7 +1214,6 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         @Override
         public void onProgressUpdate(DataSource<CloseableReference<CloseableImage>> dataSource) {
             super.onProgressUpdate(dataSource);
-            Log.d("onProgressUpdate", String.valueOf(dataSource.getProgress()));
         }
 
         @Override
@@ -1193,7 +1234,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             }
             String outFilePath = "";
             try {
-                Log.d("processFile", "storeImageWithExif " + imageFile);
+//                Log.d("processFile", "storeImageWithExif " + imageFile);
 
                 if (exif != null) {
                     outFilePath = storeImageWithExif(imageFile.getName(), bmp, exif);
@@ -1211,9 +1252,8 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             } catch (URISyntaxException e) {
                 e.printStackTrace();
                 callback.onResizeFailed("URISyntaxException " + e.getMessage());
-            } finally {
-                callback.onResizeSuccess(Uri.fromFile(new File(outFilePath)).toString(), index);
             }
+            callback.onResizeSuccess(Uri.fromFile(new File(outFilePath)).toString(), index, imageFile.getAbsolutePath());
             callback.onResizePrecess(index);
         }
     }
@@ -1231,5 +1271,228 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         float px = dp * ((float) metrics.densityDpi / DisplayMetrics.DENSITY_DEFAULT);
         return px;
     }
+    static final class BackgroundExecutor {
 
+
+
+        public static final Executor DEFAULT_EXECUTOR = Executors.newScheduledThreadPool(2 * Runtime.getRuntime().availableProcessors());
+        private static Executor executor = DEFAULT_EXECUTOR;
+
+        public static List<Task> getTASKS() {
+            return TASKS;
+        }
+
+        private static final List<Task> TASKS = new ArrayList<Task>();
+        private static final ThreadLocal<String> CURRENT_SERIAL = new ThreadLocal<String >();
+
+        private BackgroundExecutor() {
+        }
+
+        /**
+         * Execute a runnable after the given delay.
+         *
+         * @param runnable the task to execute
+         * @param delay    the time from now to delay execution, in milliseconds
+         *                 <p>
+         *                 if <code>delay</code> is strictly positive and the current
+         *                 executor does not support scheduling (if
+         *                 Executor has been called with such an
+         *                 executor)
+         * @return Future associated to the running task
+         * @throws IllegalArgumentException if the current executor set by Executor
+         *                                  does not support scheduling
+         */
+        private static Future<?> directExecute(Runnable runnable, long delay) {
+            Future<?> future = null;
+            if (delay > 0) {
+            /* no serial, but a delay: schedule the task */
+                if (!(executor instanceof ScheduledExecutorService)) {
+                    throw new IllegalArgumentException("The executor set does not support scheduling");
+                }
+                ScheduledExecutorService scheduledExecutorService = (ScheduledExecutorService) executor;
+                future = scheduledExecutorService.schedule(runnable, delay, TimeUnit.MILLISECONDS);
+            } else {
+                if (executor instanceof ExecutorService) {
+                    ExecutorService executorService = (ExecutorService) executor;
+                    future = executorService.submit(runnable);
+                } else {
+                /* non-cancellable task */
+                    executor.execute(runnable);
+                }
+            }
+            return future;
+        }
+
+        /**
+         * Execute a task after (at least) its delay <strong>and</strong> after all
+         * tasks added with the same non-null <code>serial</code> (if any) have
+         * completed execution.
+         *
+         * @param task the task to execute
+         * @throws IllegalArgumentException if <code>task.delay</code> is strictly positive and the
+         *                                  current executor does not support scheduling (if
+         *                                  Executor has been called with such an
+         *                                  executor)
+         */
+        public static synchronized void execute(Task task) {
+            Future<?> future = null;
+            if (task.serial == null || !hasSerialRunning(task.serial)) {
+                task.executionAsked = true;
+                future = directExecute(task, task.remainingDelay);
+            }
+            if ((task.id != null || task.serial != null) && !task.managed.get()) {
+            /* keep task */
+                task.future = future;
+                TASKS.add(task);
+            }
+        }
+
+        /**
+         * Indicates whether a task with the specified <code>serial</code> has been
+         * submitted to the executor.
+         *
+         * @param serial the serial queue
+         * @return <code>true</code> if such a task has been submitted,
+         * <code>false</code> otherwise
+         */
+        private static boolean hasSerialRunning(String serial) {
+            for (Task task : TASKS) {
+                if (task.executionAsked && serial.equals(task.serial)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /**
+         * Retrieve and remove the first task having the specified
+         * <code>serial</code> (if any).
+         *
+         * @param serial the serial queue
+         * @return task if found, <code>null</code> otherwise
+         */
+        private static Task take(String serial) {
+            int len = TASKS.size();
+            for (int i = 0; i < len; i++) {
+                if (serial.equals(TASKS.get(i).serial)) {
+                    return TASKS.remove(i);
+                }
+            }
+            return null;
+        }
+
+        /**
+         * Cancel all tasks having the specified <code>id</code>.
+         *
+         * @param id                    the cancellation identifier
+         * @param mayInterruptIfRunning <code>true</code> if the thread executing this task should be
+         *                              interrupted; otherwise, in-progress tasks are allowed to
+         *                              complete
+         */
+        public static synchronized void cancelAll(String id, boolean mayInterruptIfRunning) {
+            for (int i = TASKS.size() - 1; i >= 0; i--) {
+                Task task = TASKS.get(i);
+                if (id.equals(task.id)) {
+                    if (task.future != null) {
+                        task.future.cancel(mayInterruptIfRunning);
+                        if (!task.managed.getAndSet(true)) {
+						/*
+						 * the task has been submitted to the executor, but its
+						 * execution has not started yet, so that its run()
+						 * method will never call postExecute()
+						 */
+                            task.postExecute();
+                        }
+                    } else if (task.executionAsked) {
+                        Log.w(TAG, "A task with id " + task.id + " cannot be cancelled (the executor set does not support it)");
+                    } else {
+					/* this task has not been submitted to the executor */
+                        TASKS.remove(i);
+                    }
+                }
+            }
+
+        }
+
+        public static abstract class Task implements Runnable {
+
+            private String id;
+            private long remainingDelay;
+            private long targetTimeMillis; /* since epoch */
+            private String serial;
+            private boolean executionAsked;
+            private Future<?> future;
+
+            /*
+             * A task can be cancelled after it has been submitted to the executor
+             * but before its run() method is called. In that case, run() will never
+             * be called, hence neither will postExecute(): the tasks with the same
+             * serial identifier (if any) will never be submitted.
+             *
+             * Therefore, cancelAll() *must* call postExecute() if run() is not
+             * started.
+             *
+             * This flag guarantees that either cancelAll() or run() manages this
+             * task post execution, but not both.
+             */
+            private AtomicBoolean managed = new AtomicBoolean();
+
+            public Task(String id, long delay, String serial) {
+                if (!"".equals(id)) {
+                    this.id = id;
+                }
+                if (delay > 0) {
+                    remainingDelay = delay;
+                    targetTimeMillis = System.currentTimeMillis() + delay;
+                }
+                if (!"".equals(serial)) {
+                    this.serial = serial;
+                }
+            }
+
+            @Override
+            public void run() {
+                if (managed.getAndSet(true)) {
+                /* cancelled and postExecute() already called */
+                    return;
+                }
+
+                try {
+                    CURRENT_SERIAL.set(serial);
+                    execute();
+                } finally {
+                /* handle next tasks */
+                    postExecute();
+                }
+            }
+
+            public abstract void execute();
+
+            private void postExecute() {
+                if (id == null && serial == null) {
+				/* nothing to do */
+                    return;
+                }
+                CURRENT_SERIAL.set(null);
+                synchronized (BackgroundExecutor.class) {
+				/* execution complete */
+                    TASKS.remove(this);
+
+                    if (serial != null) {
+                        Task next = take(serial);
+                        if (next != null) {
+                            if (next.remainingDelay != 0) {
+							/* the delay may not have elapsed yet */
+                                next.remainingDelay = Math.max(0L, targetTimeMillis - System.currentTimeMillis());
+                            }
+						/* a task having the same serial was queued, execute it */
+                            BackgroundExecutor.execute(next);
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
+
+
