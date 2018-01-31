@@ -15,7 +15,6 @@ import android.graphics.BitmapFactory;
 import android.graphics.Rect;
 import android.media.ExifInterface;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -80,7 +79,19 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static android.view.View.GONE;
 import static com.creedon.cordova.plugin.captioninput.Constants.KEY_CAPTIONS;
@@ -154,6 +165,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     };
     private ArrayList<String> preSelectedAssets = new ArrayList<String>();
     private int maxImages;
+    private ImageResizer imageResizer;
+
+    private ArrayList<String> currentTaskIDs = new ArrayList<String>();
 
 
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
@@ -172,17 +186,17 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
         SharedPreferences sharedPrefs = getSharedPreferences("group.com.creedon.Nixplay", Context.MODE_PRIVATE);
         boolean isOptimizeSize = false;
-        try{
-            isOptimizeSize = sharedPrefs.getBoolean("nixSettings.settings.resolution",false);
-        }catch(Exception e){
+        try {
+            isOptimizeSize = sharedPrefs.getBoolean("nixSettings.settings.resolution", false);
+        } catch (Exception e) {
             try {
                 String ret = sharedPrefs.getString("nixSettings.settings.resolution", "");
                 isOptimizeSize = Boolean.parseBoolean(ret);
-            }catch (Exception e1){
+            } catch (Exception e1) {
                 e1.printStackTrace();
             }
         }
-        if(isOptimizeSize) {
+        if (isOptimizeSize) {
             this.width = 1820;
             this.height = 1820;
         }
@@ -265,7 +279,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 mEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
                     @Override
                     public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                        Log.d("onEditorAction", " TextView " + v.toString() + " actionId " + actionId + " event " + event);
+                        Log.d(TAG, " TextView " + v.toString() + " actionId " + actionId + " event " + event);
                         return false;
                     }
                 });
@@ -345,14 +359,14 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     public void onClick(View view) {
                         ArrayList<Uri> serialPreselectedAssets = new ArrayList<Uri>();
                         // if image from camera?
-                        if(imageList.size() == 1) {
+                        if (imageList.size() == 1) {
                             for (String s : imageList) {
                                 File file = new File(s.replaceFirst("file://", ""));
                                 if (file.exists()) {
                                     serialPreselectedAssets.add(getImageContentUri(PhotoCaptionInputViewActivity.this, file));
                                 }
                             }
-                        }else{
+                        } else {
                             for (String s : preSelectedAssets) {
                                 serialPreselectedAssets.add(Uri.parse(s));
                             }
@@ -366,7 +380,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                                 .countable(true)
                                 .showSingleMediaType(true)
                                 .maxSelectable(PhotoCaptionInputViewActivity.this.maxImages)
-                                .gridExpectedSize((int) convertDpToPixel(120,PhotoCaptionInputViewActivity.this))
+                                .gridExpectedSize((int) convertDpToPixel(120, PhotoCaptionInputViewActivity.this))
                                 .restrictOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
                                 .thumbnailScale(0.85f)
                                 .imageEngine(new GlideEngine())
@@ -393,13 +407,14 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             finish();
         }
     }
+
     public static Uri getImageContentUri(Context context, File imageFile) {
         String filePath = imageFile.getAbsolutePath();
         Cursor cursor = context.getContentResolver().query(
                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                new String[] { MediaStore.Images.Media._ID },
+                new String[]{MediaStore.Images.Media._ID},
                 MediaStore.Images.Media.DATA + "=? ",
-                new String[] { filePath }, null);
+                new String[]{filePath}, null);
         if (cursor != null && cursor.moveToFirst()) {
             int id = cursor.getInt(cursor.getColumnIndex(MediaStore.MediaColumns._ID));
             cursor.close();
@@ -621,6 +636,10 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     @Override
     public void onBackPressed() {
         super.onBackPressed();
+        for(String currentTaskID : currentTaskIDs) {
+            BackgroundExecutor.cancelAll(currentTaskID, true);
+        }
+        currentTaskIDs.clear();
         setResult(Activity.RESULT_CANCELED);
         finish();
     }
@@ -652,7 +671,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             if (recyclerViewAdapter.getItemCount() > 0 || recyclerViewAdapter != null) {
                 recyclerViewAdapter.notifyDataSetChanged();
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -671,7 +690,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             if (recyclerViewAdapter.getItemCount() > 0 || recyclerViewAdapter != null) {
                 recyclerViewAdapter.notifyDataSetChanged();
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -679,14 +698,14 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
-            if (resultCode == RESULT_OK && requestCode == REQUEST_CODE_CHOOSE){
+            if (resultCode == RESULT_OK && requestCode == REQUEST_CODE_CHOOSE) {
                 ArrayList<String> newImages = new ArrayList<String>();
                 ArrayList<String> newPreselectedAssets = new ArrayList<String>();
                 ArrayList<String> newCaptions = new ArrayList<String>();
 
                 List<Uri> result = Matisse.obtainResult(data);
                 List<String> fileActualPaths = Matisse.obtainPathResult(data);
-                for (int i = 0 ; i < result.size() ; i++) {
+                for (int i = 0; i < result.size(); i++) {
                     String fileActualPath = fileActualPaths.get(i);
                     String uriString = result.get(i).toString();
                     int index = preSelectedAssets.indexOf(uriString);
@@ -697,13 +716,13 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     }
 
                     newPreselectedAssets.add(uriString);
-                    if(preSelectedAssets.contains(uriString)){
-                        if(index>0 && index < captions.size()){
+                    if (preSelectedAssets.contains(uriString)) {
+                        if (index > 0 && index < captions.size()) {
                             newCaptions.add(captions.get(index));
-                        }else{
+                        } else {
                             newCaptions.add("");
                         }
-                    }else{
+                    } else {
                         newCaptions.add("");
                     }
 
@@ -732,27 +751,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     }
 
     private void finishWithResult(final String type) throws JSONException {
-//        Bundle conData = new Bundle();
-//        try {
-//            JSONObject jsonObject = new JSONObject();
-//
-//            JSONArray array = new JSONArray(imageList);
-//
-//            jsonObject.put(KEY_IMAGES, array);
-//            jsonObject.put(KEY_CAPTIONS, new JSONArray(captions));
-//            jsonObject.put(KEY_PRESELECTS, new JSONArray());
-//            jsonObject.put(KEY_INVALIDIMAGES, new JSONArray());
-//            conData.putString(Constants.RESULT, jsonObject.toString());
-//        } catch (JSONException e) {
-//            e.printStackTrace();
-//        }
-//        Intent intent = new Intent();
-//        intent.putExtras(conData);
-//        setResult(RESULT_OK, intent);
-//        finishActivity(Constants.REQUEST_SUBMIT);
-//        finish();
 
-        //for testing james 20170615
         recyclerViewAdapter = null;
         if (mPager != null) {
             mPager.removeOnPageChangeListener(onPageChangeListener);
@@ -779,74 +778,120 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
             }
         });
-        ImageResizer imageResizer = new ImageResizer(this, imageList);
-        imageResizer.run();
-//        ImageResizeTask task = new ImageResizeTask();
-
-        imageResizer.setCallback(new ResizeCallback() {
+        imageResizer = new ImageResizer(this, imageList, new OnResizedCallback() {
+//https://stackoverflow.com/questions/7860822/sorting-hashmap-based-on-keys
+            public TreeMap<Integer,String> outList = new TreeMap<Integer,String>();
 
             @Override
-            public void onResizeSuccess(ArrayList<String> outList) {
-                kProgressHUD.dismiss();
-                Bundle conData = new Bundle();
-                try {
-                    JSONObject jsonObject = new JSONObject();
-
-                    JSONArray array = new JSONArray(outList);
-
-                    jsonObject.put(KEY_IMAGES, array);
-                    jsonObject.put(KEY_CAPTIONS, new JSONArray(captions));
-                    jsonObject.put(KEY_PRESELECTS, new JSONArray());
-                    jsonObject.put(KEY_INVALIDIMAGES, new JSONArray());
-                    jsonObject.put(KEY_TYPE, type);
-                    conData.putString(Constants.RESULT, jsonObject.toString());
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-                Intent intent = new Intent();
-                intent.putExtras(conData);
-                setResult(RESULT_OK, intent);
-                finishActivity(Constants.REQUEST_SUBMIT);
-                finish();
-            }
-
-            @Override
-            public void onResizePrecess(final Integer process) {
+            public void onResizeSuccess(String result, Integer index, String originalFilename) {
+                outList.put(index,result);
+                final int process = outList.size();
+//                Log.d(TAG,"onResizeSuccess "+index+": result-> "+result+ " originalFilename : "+originalFilename);
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         kProgressHUD.setProgress(process);
                     }
                 });
+
+                if (outList.size() == imageList.size()) {
+                    kProgressHUD.dismiss();
+                    Set<Map.Entry<Integer, String>> entries = outList.entrySet();
+                    Iterator<Map.Entry<Integer, String>> it = entries.iterator();
+
+//                    while(it.hasNext()){
+//                        Map.Entry<Integer, String> o = it.next();
+//                        Log.d( TAG , "To JSON Array "+String.valueOf(o.getKey()) +" : "+ o.getValue());
+//                    }
+
+                    Bundle conData = new Bundle();
+                    try {
+                        JSONObject jsonObject = new JSONObject();
+                        //https://stackoverflow.com/questions/15402321/how-to-convert-hashmap-to-json-array-in-android
+                        Collection<String> values = outList.values();
+                        JSONArray array = new JSONArray(values);
+//                        Log.d(TAG, array.toString());
+
+                        jsonObject.put(KEY_IMAGES, array);
+                        jsonObject.put(KEY_CAPTIONS, new JSONArray(captions));
+                        jsonObject.put(KEY_PRESELECTS, new JSONArray());
+                        jsonObject.put(KEY_INVALIDIMAGES, new JSONArray());
+                        jsonObject.put(KEY_TYPE, type);
+                        conData.putString(Constants.RESULT, jsonObject.toString());
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                    for(String currentTaskID : currentTaskIDs) {
+                        BackgroundExecutor.cancelAll(currentTaskID, true);
+                    }
+                    currentTaskIDs.clear();
+                    Intent intent = new Intent();
+                    intent.putExtras(conData);
+                    setResult(RESULT_OK, intent);
+                    finishActivity(Constants.REQUEST_SUBMIT);
+                    finish();
+
+                }
+            }
+
+            @Override
+            public void onResizePrecess(final Integer process) {
+//                runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        kProgressHUD.setProgress(process);
+//                    }
+//                });
+
             }
 
             @Override
             public void onResizeFailed(String s) {
-                kProgressHUD.dismiss();
                 Log.e(TAG, s);
-                Intent intent = new Intent();
-
-                setResult(RESULT_CANCELED, intent);
-                finish();
-
             }
         });
-//        task.execute(imageResizer);
+
+
+        for(int i = 0 ; i < imageList.size() ; i++) {
+
+            final int nextIndex = i ;
+            final String fileName = imageList.get(nextIndex).toLowerCase();
+//            Log.d(TAG,"imagelist "+String.valueOf(i)+ " : "+fileName);
+            String currentTaskID = String.valueOf(i);
+            currentTaskIDs.add(currentTaskID);
+            BackgroundExecutor.execute(
+                    new BackgroundExecutor.Task(currentTaskID, 0L, fileName) {
+                        @Override
+                        public void execute() {
+                            try {
+                                boolean isResize = fileName.endsWith("bmp");
+                                imageResizer.processFile(imageList.get(nextIndex), nextIndex, isResize);
+                            } catch (final Throwable e) {
+                                Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), e);
+                            }
+                        }
+                    }
+            );
+        }
+
 
     }
 
 
-    protected String storeImage(String inFilePath, String inFileName) throws JSONException, IOException, URISyntaxException {
+    protected String storeImage(String inFilePath, String inFileName) throws JSONException, URISyntaxException {
 
 
         String outFilePath = System.getProperty("java.io.tmpdir") + "/";
-        if(!(inFilePath + File.separator + inFileName).equals(outFilePath + inFileName)) {
+        if (!(inFilePath + File.separator + inFileName).equals(outFilePath + inFileName)) {
             copyFile(inFilePath + File.separator, inFileName, outFilePath);
             try {
-                copyExif(inFilePath + File.separator + inFileName, outFilePath + inFileName);
-            } catch (Exception e) {
+                if(inFilePath.toLowerCase().endsWith("jpeg") || inFilePath.toLowerCase().endsWith("jpg")) {
+                    copyExif(inFilePath + File.separator + inFileName, outFilePath + inFileName);
+                }
+            } catch (IOException e){
                 e.printStackTrace();
             }
+
             return outFilePath + inFileName;
         }
         return inFilePath + File.separator + inFileName;
@@ -910,9 +955,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             out = null;
 
         } catch (FileNotFoundException fnfe1) {
-            Log.e("tag", fnfe1.getMessage());
+            Log.e(TAG, fnfe1.getMessage());
         } catch (Exception e) {
-            Log.e("tag", e.getMessage());
+            Log.e(TAG, e.getMessage());
         }
 
     }
@@ -1048,7 +1093,6 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
         }
 
-        //        https://stackoverflow.com/questions/13695649/refresh-images-on-fragmentstatepageradapter-on-resuming-activity
         @Override
         public int getItemPosition(Object object) {
             return POSITION_NONE;
@@ -1056,82 +1100,41 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     }
 
 
-    private interface ResizeCallback {
-        void onResizeSuccess(ArrayList<String> outList);
+    private interface OnResizedCallback {
+        void onResizeSuccess(String result, Integer index, String originalFilename);
 
         void onResizePrecess(Integer process);
 
         void onResizeFailed(String s);
     }
 
-    private class ImageResizeTask extends AsyncTask<ImageResizer, Void, Void> {
-        protected Void doInBackground(ImageResizer... imageResizers) {
-            int count = imageResizers.length;
-            long totalSize = 0;
-            for (int i = 0; i < count; i++) {
-                imageResizers[i].run();
-            }
-            return null;
-        }
-
-        protected void onProgressUpdate(Void... voids) {
-
-        }
-
-        protected void onPostExecute(Void result) {
-
-        }
-    }
 
     public class ImageResizer {
         private final Context context;
         private final ArrayList<String> files;
-        private ResizeCallback callback;
-        private ArrayList<String> outList;
-        OnImageResized onImageResizedCallback = new OnImageResized() {
+        private OnResizedCallback callback;
+        private boolean isCancel;
 
-            @Override
-            public void resizeProcessed(Boolean isBitmap , Integer index) {
-                callback.onResizePrecess(index);
-                processFile(onImageResizedCallback, isBitmap, index);
-            }
 
-            @Override
-            public void ResizeCompleted(ArrayList<String> outList) {
-                if (callback != null) {
-                    onDone();
-                }
-            }
-        };
-
-        public ImageResizer(Context context, ArrayList<String> files) {
+        public ImageResizer(Context context, ArrayList<String> files, OnResizedCallback callback) {
             this.context = context;
             this.files = files;
-            this.outList = new ArrayList<String>();
-        }
-
-
-        public void run() {
-            processFiles();
+            this.callback = callback;
 
         }
 
-        private void processFiles() {
-            try {
-                //start progress
-                processFile( onImageResizedCallback , files.get(0).toLowerCase().contains("bmp") , 0);
-            } catch (Exception e) {
-                e.printStackTrace();
 
+        public void processFile(String fileName, Integer index, boolean isResize) {
+            if (isCancel) {
+                callback.onResizeFailed("User cancelled");
+                return;
             }
-        }
-
-        private void processFile( final OnImageResized onImageResized, Boolean isBitmap, Integer index) {
             if (files.size() > 0) {
+
                 //fixed http://crashes.to/s/d00290ba305 stackoverflow
-                if ((width != 0 && height != 0)  || isBitmap) {
+                if ((width != 0 && height != 0) || isResize) {
                     try {
-                        URI uri = new URI(files.get(0));
+                        URI uri = new URI(fileName);
 
                         final File imageFile = new File(uri);
                         ImageRequest request = null;
@@ -1150,151 +1153,346 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                             }
                             float reqWidth = options.outWidth * scale;
                             float reqHeight = options.outHeight * scale;
-                            request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(files.get(0)))
+                            request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(fileName))
                                     .setResizeOptions(new ResizeOptions((int) reqWidth, (int) reqHeight))
                                     .build();
                         } else {
-                            request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(files.get(0)))
+                            request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(fileName))
                                     .build();
                         }
                         ImagePipeline imagePipeline = Fresco.getImagePipeline();
                         DataSource<CloseableReference<CloseableImage>> dataSource = imagePipeline.fetchDecodedImage(request, this);
 
                         CallerThreadExecutor executor = CallerThreadExecutor.getInstance();
-                        final Integer[] copyindex = {index};
-                        dataSource.subscribe(
-                                new BaseBitmapDataSubscriber() {
-                                    @Override
-                                    protected void onFailureImpl(DataSource<CloseableReference<CloseableImage>> dataSource) {
-                                        callback.onResizeFailed("Failed to resize at onFailureImpl " + imageFile.getAbsolutePath());
-                                    }
-
-                                    @Override
-                                    protected void onNewResultImpl(Bitmap bmp) {
-                                        ExifInterface exif = null;
-                                        try {
-                                            if (imageFile.getName().toLowerCase().endsWith("jpg") || imageFile.getName().toLowerCase().endsWith("jpeg")) {
-                                                exif = new ExifInterface(imageFile.getAbsolutePath());
-                                                exif.setAttribute(ExifInterface.TAG_ORIENTATION, String.valueOf(ExifInterface.ORIENTATION_NORMAL));
-                                            }
-                                        } catch (IOException e) {
-                                            e.printStackTrace();
-                                        }
-                                        try {
-                                            Log.d("processFile", "storeImageWithExif " + imageFile);
-                                            String outFilePath;
-                                            if (exif != null) {
-                                                outFilePath = storeImageWithExif(imageFile.getName(), bmp, exif);
-                                            } else {
-                                                outFilePath = storeImage(imageFile.getParentFile().getAbsolutePath(), imageFile.getName());
-                                            }
-                                            outList.add(Uri.fromFile(new File(outFilePath)).toString());
-
-                                        } catch (JSONException e) {
-                                            e.printStackTrace();
-                                            callback.onResizeFailed("JSONException " + e.getMessage());
-                                        } catch (IOException e) {
-                                            e.printStackTrace();
-                                            callback.onResizeFailed("IOException " + e.getMessage());
-                                        } catch (URISyntaxException e) {
-                                            e.printStackTrace();
-                                            callback.onResizeFailed("URISyntaxException " + e.getMessage());
-                                        } finally {
-                                            files.remove(0);
-
-                                            if(files.size() == 0) {
-                                                //if filesize = 0 end progress
-                                                onImageResized.ResizeCompleted(outList);
-                                            }else {
-                                                //if filesize > 0 continue progress
-                                                Integer nextIndex = copyindex[0]+1;
-                                                onImageResized.resizeProcessed(files.get(0).toLowerCase().contains("bmp"), nextIndex);
-                                            }
-                                        }
-
-                                    }
-                                }
-                                , executor);
+                        dataSource.subscribe(new Subscriber(callback, index, imageFile), executor);
 
                     } catch (URISyntaxException e) {
                         e.printStackTrace();
                         callback.onResizeFailed("URISyntaxException " + e.getMessage());
                     }
                 } else {
-
+                    String outFilePath = "";
                     try {
-                        URI uri = new URI(files.get(0));
+                        URI uri = new URI(fileName);
                         File inFile = new File(uri);
-                        Log.d("processFile", "storeImage " + uri);
-                        String outFilePath = storeImage(inFile.getParentFile().getAbsolutePath(), inFile.getName());
-                        outList.add(Uri.fromFile(new File(outFilePath)).toString());
+//                        Log.d("processFile", "storeImage " + uri);
+                        outFilePath = storeImage(inFile.getParentFile().getAbsolutePath(), inFile.getName());
+
+
                     } catch (URISyntaxException e) {
                         e.printStackTrace();
                         callback.onResizeFailed("URISyntaxException storeImage " + e.getMessage());
                     } catch (JSONException e) {
                         e.printStackTrace();
                         callback.onResizeFailed("JSONException storeImage " + e.getMessage());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        callback.onResizeFailed("IOException storeImage " + e.getMessage());
-                    } finally {
-                        files.remove(0);
-                        if(files.size() == 0) {
-                            //if filesize = 0 end progress
-                            onImageResized.ResizeCompleted(outList);
-                        }else {
-                            //if filesize > 0 continue progress
-                            Integer nextIndex = index+1;
-                            onImageResized.resizeProcessed(files.get(0).toLowerCase().contains("bmp"), nextIndex);
-                        }
                     }
+                    callback.onResizeSuccess(Uri.fromFile(new File(outFilePath)).toString(), index, fileName);
+                    callback.onResizePrecess(index);
+
 
 
                 }
             }
         }
 
-        private void onDone() {
-            try {
-                if (callback != null) {
-                    ((Activity) context).runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            callback.onResizeSuccess(outList);
-                        }
-                    });
-                }
-            } catch (NullPointerException e) {
-                e.printStackTrace();
-            }
+        public void cancel() {
+            isCancel = true;
         }
-
-
-        public void setCallback(ResizeCallback callback) {
-            this.callback = callback;
-        }
-
-
     }
 
-    private interface OnImageResized {
-        void resizeProcessed(Boolean isBitmap, Integer index);
+    class Subscriber extends BaseBitmapDataSubscriber {
+        private OnResizedCallback callback;
+        private Integer index;
+        private File imageFile;
 
-        void ResizeCompleted(ArrayList<String> outList);
+        public Subscriber(OnResizedCallback callback, Integer index, File imageFile) {
+            this.callback = callback;
+            this.index = index;
+            this.imageFile = imageFile;
+        }
+
+        @Override
+        public void onProgressUpdate(DataSource<CloseableReference<CloseableImage>> dataSource) {
+            super.onProgressUpdate(dataSource);
+        }
+
+        @Override
+        protected void onFailureImpl(DataSource<CloseableReference<CloseableImage>> dataSource) {
+            callback.onResizeFailed("Failed to resize at onFailureImpl " + imageFile.getAbsolutePath());
+        }
+
+        @Override
+        protected void onNewResultImpl(Bitmap bmp) {
+            ExifInterface exif = null;
+            try {
+                if (imageFile.getName().toLowerCase().endsWith("jpg") || imageFile.getName().toLowerCase().endsWith("jpeg")) {
+                    exif = new ExifInterface(imageFile.getAbsolutePath());
+                    exif.setAttribute(ExifInterface.TAG_ORIENTATION, String.valueOf(ExifInterface.ORIENTATION_NORMAL));
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            String outFilePath = "";
+            try {
+//                Log.d("processFile", "storeImageWithExif " + imageFile);
+
+                if (exif != null) {
+                    outFilePath = storeImageWithExif(imageFile.getName(), bmp, exif);
+                } else {
+                    outFilePath = storeImage(imageFile.getParentFile().getAbsolutePath(), imageFile.getName());
+                }
+
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+                callback.onResizeFailed("JSONException " + e.getMessage());
+            } catch (IOException e) {
+                e.printStackTrace();
+                callback.onResizeFailed("IOException " + e.getMessage());
+            } catch (URISyntaxException e) {
+                e.printStackTrace();
+                callback.onResizeFailed("URISyntaxException " + e.getMessage());
+            }
+            callback.onResizeSuccess(Uri.fromFile(new File(outFilePath)).toString(), index, imageFile.getAbsolutePath());
+            callback.onResizePrecess(index);
+        }
     }
 
     /**
      * This method converts dp unit to equivalent pixels, depending on device density.
      *
-     * @param dp A value in dp (density independent pixels) unit. Which we need to convert into pixels
+     * @param dp      A value in dp (density independent pixels) unit. Which we need to convert into pixels
      * @param context Context to get resources and device specific display metrics
      * @return A float value to represent px equivalent to dp depending on device density
      */
-    public static float convertDpToPixel(float dp, Context context){
+    public static float convertDpToPixel(float dp, Context context) {
         Resources resources = context.getResources();
         DisplayMetrics metrics = resources.getDisplayMetrics();
-        float px = dp * ((float)metrics.densityDpi / DisplayMetrics.DENSITY_DEFAULT);
+        float px = dp * ((float) metrics.densityDpi / DisplayMetrics.DENSITY_DEFAULT);
         return px;
     }
+    static final class BackgroundExecutor {
 
+
+
+        public static final Executor DEFAULT_EXECUTOR = Executors.newScheduledThreadPool(2 * Runtime.getRuntime().availableProcessors());
+        private static Executor executor = DEFAULT_EXECUTOR;
+
+        public static List<Task> getTASKS() {
+            return TASKS;
+        }
+
+        private static final List<Task> TASKS = new ArrayList<Task>();
+        private static final ThreadLocal<String> CURRENT_SERIAL = new ThreadLocal<String >();
+
+        private BackgroundExecutor() {
+        }
+
+        /**
+         * Execute a runnable after the given delay.
+         *
+         * @param runnable the task to execute
+         * @param delay    the time from now to delay execution, in milliseconds
+         *                 <p>
+         *                 if <code>delay</code> is strictly positive and the current
+         *                 executor does not support scheduling (if
+         *                 Executor has been called with such an
+         *                 executor)
+         * @return Future associated to the running task
+         * @throws IllegalArgumentException if the current executor set by Executor
+         *                                  does not support scheduling
+         */
+        private static Future<?> directExecute(Runnable runnable, long delay) {
+            Future<?> future = null;
+            if (delay > 0) {
+            /* no serial, but a delay: schedule the task */
+                if (!(executor instanceof ScheduledExecutorService)) {
+                    throw new IllegalArgumentException("The executor set does not support scheduling");
+                }
+                ScheduledExecutorService scheduledExecutorService = (ScheduledExecutorService) executor;
+                future = scheduledExecutorService.schedule(runnable, delay, TimeUnit.MILLISECONDS);
+            } else {
+                if (executor instanceof ExecutorService) {
+                    ExecutorService executorService = (ExecutorService) executor;
+                    future = executorService.submit(runnable);
+                } else {
+                /* non-cancellable task */
+                    executor.execute(runnable);
+                }
+            }
+            return future;
+        }
+
+        /**
+         * Execute a task after (at least) its delay <strong>and</strong> after all
+         * tasks added with the same non-null <code>serial</code> (if any) have
+         * completed execution.
+         *
+         * @param task the task to execute
+         * @throws IllegalArgumentException if <code>task.delay</code> is strictly positive and the
+         *                                  current executor does not support scheduling (if
+         *                                  Executor has been called with such an
+         *                                  executor)
+         */
+        public static synchronized void execute(Task task) {
+            Future<?> future = null;
+            if (task.serial == null || !hasSerialRunning(task.serial)) {
+                task.executionAsked = true;
+                future = directExecute(task, task.remainingDelay);
+            }
+            if ((task.id != null || task.serial != null) && !task.managed.get()) {
+            /* keep task */
+                task.future = future;
+                TASKS.add(task);
+            }
+        }
+
+        /**
+         * Indicates whether a task with the specified <code>serial</code> has been
+         * submitted to the executor.
+         *
+         * @param serial the serial queue
+         * @return <code>true</code> if such a task has been submitted,
+         * <code>false</code> otherwise
+         */
+        private static boolean hasSerialRunning(String serial) {
+            for (Task task : TASKS) {
+                if (task.executionAsked && serial.equals(task.serial)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /**
+         * Retrieve and remove the first task having the specified
+         * <code>serial</code> (if any).
+         *
+         * @param serial the serial queue
+         * @return task if found, <code>null</code> otherwise
+         */
+        private static Task take(String serial) {
+            int len = TASKS.size();
+            for (int i = 0; i < len; i++) {
+                if (serial.equals(TASKS.get(i).serial)) {
+                    return TASKS.remove(i);
+                }
+            }
+            return null;
+        }
+
+        /**
+         * Cancel all tasks having the specified <code>id</code>.
+         *
+         * @param id                    the cancellation identifier
+         * @param mayInterruptIfRunning <code>true</code> if the thread executing this task should be
+         *                              interrupted; otherwise, in-progress tasks are allowed to
+         *                              complete
+         */
+        public static synchronized void cancelAll(String id, boolean mayInterruptIfRunning) {
+            for (int i = TASKS.size() - 1; i >= 0; i--) {
+                Task task = TASKS.get(i);
+                if (id.equals(task.id)) {
+                    if (task.future != null) {
+                        task.future.cancel(mayInterruptIfRunning);
+                        if (!task.managed.getAndSet(true)) {
+						/*
+						 * the task has been submitted to the executor, but its
+						 * execution has not started yet, so that its run()
+						 * method will never call postExecute()
+						 */
+                            task.postExecute();
+                        }
+                    } else if (task.executionAsked) {
+                        Log.w(TAG, "A task with id " + task.id + " cannot be cancelled (the executor set does not support it)");
+                    } else {
+					/* this task has not been submitted to the executor */
+                        TASKS.remove(i);
+                    }
+                }
+            }
+
+        }
+
+        public static abstract class Task implements Runnable {
+
+            private String id;
+            private long remainingDelay;
+            private long targetTimeMillis; /* since epoch */
+            private String serial;
+            private boolean executionAsked;
+            private Future<?> future;
+
+            /*
+             * A task can be cancelled after it has been submitted to the executor
+             * but before its run() method is called. In that case, run() will never
+             * be called, hence neither will postExecute(): the tasks with the same
+             * serial identifier (if any) will never be submitted.
+             *
+             * Therefore, cancelAll() *must* call postExecute() if run() is not
+             * started.
+             *
+             * This flag guarantees that either cancelAll() or run() manages this
+             * task post execution, but not both.
+             */
+            private AtomicBoolean managed = new AtomicBoolean();
+
+            public Task(String id, long delay, String serial) {
+                if (!"".equals(id)) {
+                    this.id = id;
+                }
+                if (delay > 0) {
+                    remainingDelay = delay;
+                    targetTimeMillis = System.currentTimeMillis() + delay;
+                }
+                if (!"".equals(serial)) {
+                    this.serial = serial;
+                }
+            }
+
+            @Override
+            public void run() {
+                if (managed.getAndSet(true)) {
+                /* cancelled and postExecute() already called */
+                    return;
+                }
+
+                try {
+                    CURRENT_SERIAL.set(serial);
+                    execute();
+                } finally {
+                /* handle next tasks */
+                    postExecute();
+                }
+            }
+
+            public abstract void execute();
+
+            private void postExecute() {
+                if (id == null && serial == null) {
+				/* nothing to do */
+                    return;
+                }
+                CURRENT_SERIAL.set(null);
+                synchronized (BackgroundExecutor.class) {
+				/* execution complete */
+                    TASKS.remove(this);
+
+                    if (serial != null) {
+                        Task next = take(serial);
+                        if (next != null) {
+                            if (next.remainingDelay != 0) {
+							/* the delay may not have elapsed yet */
+                                next.remainingDelay = Math.max(0L, targetTimeMillis - System.currentTimeMillis());
+                            }
+						/* a task having the same serial was queued, execute it */
+                            BackgroundExecutor.execute(next);
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
+
+
