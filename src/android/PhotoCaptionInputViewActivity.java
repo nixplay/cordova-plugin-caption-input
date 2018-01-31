@@ -172,17 +172,17 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
         SharedPreferences sharedPrefs = getSharedPreferences("group.com.creedon.Nixplay", Context.MODE_PRIVATE);
         boolean isOptimizeSize = false;
-        try{
-            isOptimizeSize = sharedPrefs.getBoolean("nixSettings.settings.resolution",false);
-        }catch(Exception e){
+        try {
+            isOptimizeSize = sharedPrefs.getBoolean("nixSettings.settings.resolution", false);
+        } catch (Exception e) {
             try {
                 String ret = sharedPrefs.getString("nixSettings.settings.resolution", "");
                 isOptimizeSize = Boolean.parseBoolean(ret);
-            }catch (Exception e1){
+            } catch (Exception e1) {
                 e1.printStackTrace();
             }
         }
-        if(isOptimizeSize) {
+        if (isOptimizeSize) {
             this.width = 1820;
             this.height = 1820;
         }
@@ -345,14 +345,14 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     public void onClick(View view) {
                         ArrayList<Uri> serialPreselectedAssets = new ArrayList<Uri>();
                         // if image from camera?
-                        if(imageList.size() == 1) {
+                        if (imageList.size() == 1) {
                             for (String s : imageList) {
                                 File file = new File(s.replaceFirst("file://", ""));
                                 if (file.exists()) {
                                     serialPreselectedAssets.add(getImageContentUri(PhotoCaptionInputViewActivity.this, file));
                                 }
                             }
-                        }else{
+                        } else {
                             for (String s : preSelectedAssets) {
                                 serialPreselectedAssets.add(Uri.parse(s));
                             }
@@ -366,7 +366,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                                 .countable(true)
                                 .showSingleMediaType(true)
                                 .maxSelectable(PhotoCaptionInputViewActivity.this.maxImages)
-                                .gridExpectedSize((int) convertDpToPixel(120,PhotoCaptionInputViewActivity.this))
+                                .gridExpectedSize((int) convertDpToPixel(120, PhotoCaptionInputViewActivity.this))
                                 .restrictOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
                                 .thumbnailScale(0.85f)
                                 .imageEngine(new GlideEngine())
@@ -393,13 +393,14 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             finish();
         }
     }
+
     public static Uri getImageContentUri(Context context, File imageFile) {
         String filePath = imageFile.getAbsolutePath();
         Cursor cursor = context.getContentResolver().query(
                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                new String[] { MediaStore.Images.Media._ID },
+                new String[]{MediaStore.Images.Media._ID},
                 MediaStore.Images.Media.DATA + "=? ",
-                new String[] { filePath }, null);
+                new String[]{filePath}, null);
         if (cursor != null && cursor.moveToFirst()) {
             int id = cursor.getInt(cursor.getColumnIndex(MediaStore.MediaColumns._ID));
             cursor.close();
@@ -621,6 +622,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     @Override
     public void onBackPressed() {
         super.onBackPressed();
+        if (imageResizer != null) {
+            imageResizer.cancel();
+        }
         setResult(Activity.RESULT_CANCELED);
         finish();
     }
@@ -652,7 +656,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             if (recyclerViewAdapter.getItemCount() > 0 || recyclerViewAdapter != null) {
                 recyclerViewAdapter.notifyDataSetChanged();
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -671,7 +675,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             if (recyclerViewAdapter.getItemCount() > 0 || recyclerViewAdapter != null) {
                 recyclerViewAdapter.notifyDataSetChanged();
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -679,14 +683,14 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
-            if (resultCode == RESULT_OK && requestCode == REQUEST_CODE_CHOOSE){
+            if (resultCode == RESULT_OK && requestCode == REQUEST_CODE_CHOOSE) {
                 ArrayList<String> newImages = new ArrayList<String>();
                 ArrayList<String> newPreselectedAssets = new ArrayList<String>();
                 ArrayList<String> newCaptions = new ArrayList<String>();
 
                 List<Uri> result = Matisse.obtainResult(data);
                 List<String> fileActualPaths = Matisse.obtainPathResult(data);
-                for (int i = 0 ; i < result.size() ; i++) {
+                for (int i = 0; i < result.size(); i++) {
                     String fileActualPath = fileActualPaths.get(i);
                     String uriString = result.get(i).toString();
                     int index = preSelectedAssets.indexOf(uriString);
@@ -697,13 +701,13 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     }
 
                     newPreselectedAssets.add(uriString);
-                    if(preSelectedAssets.contains(uriString)){
-                        if(index>0 && index < captions.size()){
+                    if (preSelectedAssets.contains(uriString)) {
+                        if (index > 0 && index < captions.size()) {
                             newCaptions.add(captions.get(index));
-                        }else{
+                        } else {
                             newCaptions.add("");
                         }
-                    }else{
+                    } else {
                         newCaptions.add("");
                     }
 
@@ -767,7 +771,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             public void onResizeSuccess(String result, Integer index) {
                 outList.add(result);
 
-                if(index >= imageList.size()){
+                if (index >= imageList.size() - 1) {
                     kProgressHUD.dismiss();
                     Bundle conData = new Bundle();
                     try {
@@ -789,10 +793,18 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     setResult(RESULT_OK, intent);
                     finishActivity(Constants.REQUEST_SUBMIT);
                     finish();
-                }else {
-                    int nextIndex = index + 1;
-                    boolean isResize = imageList.get(nextIndex).toLowerCase().endsWith("bmp");
-                    imageResizer.processFile(imageList.get(nextIndex), nextIndex, isResize);
+                } else {
+                    final int nextIndex = index + 1;
+                    final String fileName = imageList.get(nextIndex).toLowerCase();
+                    Thread t = new Thread(new Runnable() {
+                        public void run() {
+                            boolean isResize = fileName.endsWith("bmp");
+                            imageResizer.processFile(imageList.get(nextIndex), nextIndex, isResize);
+                        }
+                    });
+                    t.run();
+
+
                 }
             }
 
@@ -809,6 +821,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
             @Override
             public void onResizeFailed(String s) {
+                imageResizer.cancel();
                 kProgressHUD.dismiss();
                 Log.e(TAG, s);
                 Intent intent = new Intent();
@@ -818,6 +831,8 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
             }
         });
+        boolean isResize = imageList.get(0).toLowerCase().endsWith("bmp");
+        imageResizer.processFile(imageList.get(0), 0, isResize);
 
     }
 
@@ -826,7 +841,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
 
         String outFilePath = System.getProperty("java.io.tmpdir") + "/";
-        if(!(inFilePath + File.separator + inFileName).equals(outFilePath + inFileName)) {
+        if (!(inFilePath + File.separator + inFileName).equals(outFilePath + inFileName)) {
             copyFile(inFilePath + File.separator, inFileName, outFilePath);
             try {
                 copyExif(inFilePath + File.separator + inFileName, outFilePath + inFileName);
@@ -1034,7 +1049,6 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
         }
 
-        //        https://stackoverflow.com/questions/13695649/refresh-images-on-fragmentstatepageradapter-on-resuming-activity
         @Override
         public int getItemPosition(Object object) {
             return POSITION_NONE;
@@ -1055,7 +1069,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         private final Context context;
         private final ArrayList<String> files;
         private OnResizedCallback callback;
-
+        private boolean isCancel;
 
 
         public ImageResizer(Context context, ArrayList<String> files, OnResizedCallback callback) {
@@ -1066,26 +1080,14 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         }
 
 
-//        public void run() {
-//            processFiles();
-//
-//        }
-
-//        private void processFiles() {
-//            try {
-//                //start progress
-//                processFile(  , 0);
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//
-//            }
-//        }
-
         public void processFile(String fileName, Integer index, boolean isResize) {
+            if (isCancel) {
+                callback.onResizeFailed("User cancelled");
+            }
             if (files.size() > 0) {
 
                 //fixed http://crashes.to/s/d00290ba305 stackoverflow
-                if ((width != 0 && height != 0)  || isResize) {
+                if ((width != 0 && height != 0) || isResize) {
                     try {
                         URI uri = new URI(fileName);
 
@@ -1117,7 +1119,6 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                         DataSource<CloseableReference<CloseableImage>> dataSource = imagePipeline.fetchDecodedImage(request, this);
 
                         CallerThreadExecutor executor = CallerThreadExecutor.getInstance();
-                        final Integer[] copyindex = {index};
                         dataSource.subscribe(new Subscriber(callback, index, imageFile), executor);
 
                     } catch (URISyntaxException e) {
@@ -1152,6 +1153,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             }
         }
 
+        public void cancel() {
+            isCancel = true;
+        }
     }
 
     class Subscriber extends BaseBitmapDataSubscriber {
@@ -1213,17 +1217,18 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             callback.onResizePrecess(index);
         }
     }
+
     /**
      * This method converts dp unit to equivalent pixels, depending on device density.
      *
-     * @param dp A value in dp (density independent pixels) unit. Which we need to convert into pixels
+     * @param dp      A value in dp (density independent pixels) unit. Which we need to convert into pixels
      * @param context Context to get resources and device specific display metrics
      * @return A float value to represent px equivalent to dp depending on device density
      */
-    public static float convertDpToPixel(float dp, Context context){
+    public static float convertDpToPixel(float dp, Context context) {
         Resources resources = context.getResources();
         DisplayMetrics metrics = resources.getDisplayMetrics();
-        float px = dp * ((float)metrics.densityDpi / DisplayMetrics.DENSITY_DEFAULT);
+        float px = dp * ((float) metrics.densityDpi / DisplayMetrics.DENSITY_DEFAULT);
         return px;
     }
 
