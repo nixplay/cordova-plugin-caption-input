@@ -16,7 +16,6 @@ import android.graphics.Rect;
 import android.media.ExifInterface;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -50,7 +49,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.inputmethod.InputMethodManager;
-import android.webkit.MimeTypeMap;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -85,7 +83,16 @@ import java.lang.ref.WeakReference;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.TreeMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static android.view.View.GONE;
 import static com.creedon.cordova.plugin.captioninput.Constants.KEY_CAPTIONS;
@@ -151,10 +158,10 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     currentPosition = mPager.getCurrentItem();
                     mPagerAdapter.stopVideoPlayback(currentPosition);
                     setActionBarTitle(imageList, currentPosition);
-                    if(isVideo(imageList.get(currentPosition))){
+                    if (isVideo(imageList.get(currentPosition))) {
                         mEditText.setText("");
                         mEditText.setVisibility(View.INVISIBLE);
-                    }else {
+                    } else {
                         mEditText.setText(captions.get(currentPosition));
                         mEditText.setVisibility(View.VISIBLE);
                     }
@@ -174,6 +181,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     };
     private ArrayList<String> preSelectedAssets = new ArrayList<String>();
     private int maxImages;
+    private ImageResizer imageResizer;
+
+    private ArrayList<String> currentTaskIDs = new ArrayList<String>();
 
 
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
@@ -285,7 +295,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 mEditText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
                     @Override
                     public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                        Log.d("onEditorAction", " TextView " + v.toString() + " actionId " + actionId + " event " + event);
+                        Log.d(TAG, " TextView " + v.toString() + " actionId " + actionId + " event " + event);
                         return false;
                     }
                 });
@@ -431,6 +441,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         filePath = filePath.toLowerCase();
         return filePath.endsWith(".mp4");
     }
+
     /**
      * Get a file path from a Uri. This will get the the path for Storage Access
      * Framework Documents, as well as the _data field for the MediaStore and
@@ -636,6 +647,10 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     @Override
     public void onBackPressed() {
         super.onBackPressed();
+        for (String currentTaskID : currentTaskIDs) {
+            BackgroundExecutor.cancelAll(currentTaskID, true);
+        }
+        currentTaskIDs.clear();
         setResult(Activity.RESULT_CANCELED);
         finish();
     }
@@ -650,6 +665,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 if (!outRect.contains((int) event.getRawX(), (int) event.getRawY())) {
                     v.clearFocus();
                     InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                    assert imm != null;
                     imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
                 }
             }
@@ -694,7 +710,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
-            if (resultCode == RESULT_OK && requestCode == REQUEST_CODE_CHOOSE) {
+            if (requestCode == REQUEST_CODE_CHOOSE) {
                 ArrayList<String> newImages = new ArrayList<String>();
                 ArrayList<String> newPreselectedAssets = new ArrayList<String>();
                 ArrayList<String> newCaptions = new ArrayList<String>();
@@ -747,27 +763,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     }
 
     private void finishWithResult(final String type) throws JSONException {
-//        Bundle conData = new Bundle();
-//        try {
-//            JSONObject jsonObject = new JSONObject();
-//
-//            JSONArray array = new JSONArray(imageList);
-//
-//            jsonObject.put(KEY_IMAGES, array);
-//            jsonObject.put(KEY_CAPTIONS, new JSONArray(captions));
-//            jsonObject.put(KEY_PRESELECTS, new JSONArray());
-//            jsonObject.put(KEY_INVALIDIMAGES, new JSONArray());
-//            conData.putString(Constants.RESULT, jsonObject.toString());
-//        } catch (JSONException e) {
-//            e.printStackTrace();
-//        }
-//        Intent intent = new Intent();
-//        intent.putExtras(conData);
-//        setResult(RESULT_OK, intent);
-//        finishActivity(Constants.REQUEST_SUBMIT);
-//        finish();
 
-        //for testing james 20170615
         recyclerViewAdapter = null;
         if (mPager != null) {
             mPager.removeOnPageChangeListener(onPageChangeListener);
@@ -794,75 +790,118 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
             }
         });
-        ImageResizer imageResizer = new ImageResizer(this, imageList);
-        imageResizer.run();
-//        ImageResizeTask task = new ImageResizeTask();
-
-        imageResizer.setCallback(new ResizeCallback() {
-
-            @Override
-            public void onResizeSuccess(ArrayList<String> outList, JSONArray jsonArray) {
-                kProgressHUD.dismiss();
-                Bundle conData = new Bundle();
-                try {
-                    JSONObject jsonObject = new JSONObject();
-
-                    JSONArray array = new JSONArray(outList);
-
-                    jsonObject.put(KEY_IMAGES, array);
-                    jsonObject.put(KEY_CAPTIONS, new JSONArray(captions));
-                    jsonObject.put(KEY_PRESELECTS, new JSONArray());
-                    jsonObject.put(KEY_INVALIDIMAGES, new JSONArray());
-                    jsonObject.put(KEY_TYPE, type);
-                    jsonObject.put(KEY_METADATAS, jsonArray);
-                    conData.putString(Constants.RESULT, jsonObject.toString());
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-                Intent intent = new Intent();
-                intent.putExtras(conData);
-                setResult(RESULT_OK, intent);
-                finishActivity(Constants.REQUEST_SUBMIT);
-                finish();
-            }
+        imageResizer = new ImageResizer(this, new OnResizedCallback() {
+            //https://stackoverflow.com/questions/7860822/sorting-hashmap-based-on-keys
+            TreeMap<Integer, String> outList = new TreeMap<Integer, String>();
+            TreeMap<Integer, JSONObject> metaDatas = new TreeMap<Integer, JSONObject>();
 
             @Override
-            public void onResizePrecess(final Integer process) {
+            public void onResizeSuccess(String result, Integer index, String originalFilename, JSONObject metaData) {
+                outList.put(index, result);
+                metaDatas.put(index, ((metaData == null) ? new JSONObject() : metaData));
+                final int process = outList.size();
+//                Log.d(TAG,"onResizeSuccess "+index+": result-> "+result+ " originalFilename : "+originalFilename);
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         kProgressHUD.setProgress(process);
                     }
                 });
+
+                if (outList.size() == imageList.size()) {
+                    kProgressHUD.dismiss();
+
+                    Bundle conData = new Bundle();
+                    try {
+                        JSONObject jsonObject = new JSONObject();
+                        //https://stackoverflow.com/questions/15402321/how-to-convert-hashmap-to-json-array-in-android
+                        Collection<String> values = outList.values();
+
+                        Collection<JSONObject> jsonMetaDataValues = metaDatas.values();
+
+                        JSONArray array = new JSONArray(values);
+                        JSONArray jsonMetaDataArray = new JSONArray(jsonMetaDataValues);
+                        jsonObject.put(KEY_IMAGES, array);
+                        jsonObject.put(KEY_CAPTIONS, new JSONArray(captions));
+                        jsonObject.put(KEY_PRESELECTS, new JSONArray());
+                        jsonObject.put(KEY_INVALIDIMAGES, new JSONArray());
+                        jsonObject.put(KEY_TYPE, type);
+                        jsonObject.put(KEY_METADATAS, jsonMetaDataArray);
+
+                        conData.putString(Constants.RESULT, jsonObject.toString());
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                    for (String currentTaskID : currentTaskIDs) {
+                        BackgroundExecutor.cancelAll(currentTaskID, true);
+                    }
+                    currentTaskIDs.clear();
+                    Intent intent = new Intent();
+                    intent.putExtras(conData);
+                    setResult(RESULT_OK, intent);
+                    finishActivity(Constants.REQUEST_SUBMIT);
+                    finish();
+
+                }
+            }
+
+            @Override
+            public void onResizePrecess(final Integer process) {
+//                runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        kProgressHUD.setProgress(process);
+//                    }
+//                });
+
             }
 
             @Override
             public void onResizeFailed(String s) {
-                kProgressHUD.dismiss();
                 Log.e(TAG, s);
-                Intent intent = new Intent();
-
-                setResult(RESULT_CANCELED, intent);
-                finish();
-
             }
         });
-//        task.execute(imageResizer);
+
+
+        for (int i = 0; i < imageList.size(); i++) {
+
+            final int nextIndex = i;
+            final String fileName = imageList.get(nextIndex).toLowerCase();
+//            Log.d(TAG,"imagelist "+String.valueOf(i)+ " : "+fileName);
+            String currentTaskID = String.valueOf(i);
+            currentTaskIDs.add(currentTaskID);
+            BackgroundExecutor.execute(
+                    new BackgroundExecutor.Task(currentTaskID, 0L, fileName) {
+                        @Override
+                        public void execute() {
+                            try {
+                                imageResizer.processFile(imageList.get(nextIndex), nextIndex);
+                            } catch (final Throwable e) {
+                                Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), e);
+                            }
+                        }
+                    }
+            );
+        }
+
 
     }
 
 
-    protected String storeImage(String inFilePath, String inFileName) throws JSONException, IOException, URISyntaxException {
+    protected String storeImage(String inFilePath, String inFileName) throws JSONException, URISyntaxException {
 
 
         String outFilePath = System.getProperty("java.io.tmpdir") + "/";
         if (!(inFilePath + File.separator + inFileName).equals(outFilePath + inFileName)) {
             copyFile(inFilePath + File.separator, inFileName, outFilePath);
             try {
-                copyExif(inFilePath + File.separator + inFileName, outFilePath + inFileName);
-            } catch (Exception e) {
+                if (inFilePath.toLowerCase().endsWith("jpeg") || inFilePath.toLowerCase().endsWith("jpg")) {
+                    copyExif(inFilePath + File.separator + inFileName, outFilePath + inFileName);
+                }
+            } catch (IOException e) {
                 e.printStackTrace();
             }
+
             return outFilePath + inFileName;
         }
         return inFilePath + File.separator + inFileName;
@@ -952,9 +991,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             out = null;
 
         } catch (FileNotFoundException fnfe1) {
-            Log.e("tag", fnfe1.getMessage());
+            Log.e(TAG, fnfe1.getMessage());
         } catch (Exception e) {
-            Log.e("tag", e.getMessage());
+            Log.e(TAG, e.getMessage());
         }
 
     }
@@ -1115,7 +1154,6 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
         }
 
-        //        https://stackoverflow.com/questions/13695649/refresh-images-on-fragmentstatepageradapter-on-resuming-activity
         @Override
         public int getItemPosition(Object object) {
             return POSITION_NONE;
@@ -1130,188 +1168,84 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     }
 
 
-    private interface ResizeCallback {
-        void onResizeSuccess(ArrayList<String> outList, JSONArray jsonArray);
+    private interface OnResizedCallback {
+        void onResizeSuccess(String result, Integer index, String originalFilename, @Nullable JSONObject metaData);
 
         void onResizePrecess(Integer process);
 
         void onResizeFailed(String s);
     }
 
-    private class ImageResizeTask extends AsyncTask<ImageResizer, Void, Void> {
-        protected Void doInBackground(ImageResizer... imageResizers) {
-            int count = imageResizers.length;
-            long totalSize = 0;
-            for (int i = 0; i < count; i++) {
-                imageResizers[i].run();
-            }
-            return null;
-        }
-
-        protected void onProgressUpdate(Void... voids) {
-
-        }
-
-        protected void onPostExecute(Void result) {
-
-        }
-    }
 
     public class ImageResizer {
         private final Context context;
-        private final ArrayList<String> files;
-        private ResizeCallback callback;
-        private ArrayList<String> outList;
-        private JSONArray outMetaList;
-        OnImageResized onImageResizedCallback = new OnImageResized() {
 
-            @Override
-            public void resizeProcessed(Integer index) {
-                callback.onResizePrecess(index);
-                processFile(onImageResizedCallback, index);
-            }
+        private OnResizedCallback callback;
+        private boolean isCancel;
 
-            @Override
-            public void resizeCompleted(ArrayList<String> outList) {
-                if (callback != null) {
-                    onDone();
-                }
-            }
-        };
-//        private String originalFileName;
-//        private String subfileName;
-//        private String previewBitmapFileName;
-//        private String thumbnailBitmapFileName;
 
-        public ImageResizer(Context context, ArrayList<String> files) {
+        public ImageResizer(Context context, OnResizedCallback callback) {
             this.context = context;
-            this.files = files;
-            this.outList = new ArrayList<String>();
-            this.outMetaList = new JSONArray();
-        }
 
-
-        public void run() {
-            processFiles();
+            this.callback = callback;
 
         }
 
-        private void processFiles() {
-            try {
-                //start progress
-                processFile( onImageResizedCallback , 0);
-            } catch (Exception e) {
-                e.printStackTrace();
 
+        public void processFile(String fileName, Integer index) {
+            if (isCancel) {
+                if (callback != null) callback.onResizeFailed("User cancelled");
+                return;
             }
-        }
-        private void processFile( final OnImageResized onImageResized, Integer index) {
-            if (files.size() > 0) {
-                //fixed http://crashes.to/s/d00290ba305 stackoverflow
-                String fileName = files.get(0);
-                Uri src = Uri.parse(fileName);
-                if ((width != 0 && height != 0)  || MimeType.BMP.checkType(getContentResolver(), src)) {
-                    try {
-                        URI uri = new URI(fileName);
 
-                        final File imageFile = new File(uri);
-                        ImageRequest request = null;
-                        if (width != 0 && height != 0) {
-                            final BitmapFactory.Options options = new BitmapFactory.Options();
-                            options.inJustDecodeBounds = true;
-                            BitmapFactory.decodeFile(imageFile.getAbsolutePath(), options);
-                            float scale = 1.0f;
-                            if (options.outWidth > options.outHeight) {
-                                scale = (width * 1.0f) / (options.outWidth * 1.0f);
-                            } else {
-                                scale = (height * 1.0f) / (options.outHeight * 1.0f);
-                            }
-                            if (scale > 1 || scale <= 0) {
-                                scale = 1;
-                            }
-                            float reqWidth = options.outWidth * scale;
-                            float reqHeight = options.outHeight * scale;
-                            request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(fileName))
-                                    .setResizeOptions(new ResizeOptions((int) reqWidth, (int) reqHeight))
-                                    .build();
+
+            //fixed http://crashes.to/s/d00290ba305 stackoverflow
+
+            Uri src = Uri.parse(fileName);
+            if ((width != 0 && height != 0) || MimeType.BMP.checkType(getContentResolver(), src)) {
+                try {
+                    URI uri = new URI(fileName);
+
+                    final File imageFile = new File(uri);
+                    ImageRequest request;
+                    if (width != 0 && height != 0) {
+                        final BitmapFactory.Options options = new BitmapFactory.Options();
+                        options.inJustDecodeBounds = true;
+                        BitmapFactory.decodeFile(imageFile.getAbsolutePath(), options);
+                        float scale = 1.0f;
+                        if (options.outWidth > options.outHeight) {
+                            scale = (width * 1.0f) / (options.outWidth * 1.0f);
                         } else {
-                            request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(fileName))
-                                    .build();
+                            scale = (height * 1.0f) / (options.outHeight * 1.0f);
                         }
-                        ImagePipeline imagePipeline = Fresco.getImagePipeline();
-                        DataSource<CloseableReference<CloseableImage>> dataSource = imagePipeline.fetchDecodedImage(request, this);
-
-                        CallerThreadExecutor executor = CallerThreadExecutor.getInstance();
-                        final Integer[] copyindex = {index};
-                        dataSource.subscribe(
-                                new BaseBitmapDataSubscriber() {
-                                    @Override
-                                    protected void onFailureImpl(DataSource<CloseableReference<CloseableImage>> dataSource) {
-                                        callback.onResizeFailed("Failed to resize at onFailureImpl " + imageFile.getAbsolutePath());
-                                    }
-
-                                    @Override
-                                    protected void onNewResultImpl(Bitmap bmp) {
-                                        ExifInterface exif = null;
-                                        try {
-                                            if (imageFile.getName().toLowerCase().endsWith("jpg") || imageFile.getName().toLowerCase().endsWith("jpeg")) {
-                                                exif = new ExifInterface(imageFile.getAbsolutePath());
-                                                exif.setAttribute(ExifInterface.TAG_ORIENTATION, String.valueOf(ExifInterface.ORIENTATION_NORMAL));
-                                            }
-                                        } catch (IOException e) {
-                                            e.printStackTrace();
-                                            callback.onResizeFailed("IOException storeImage " + e.getMessage());
-                                        }
-                                        try {
-                                            Log.d("processFile", "storeImageWithExif " + imageFile);
-                                            String outFilePath;
-                                            if (exif != null) {
-                                                outFilePath = storeImageWithExif(imageFile.getName(), bmp, exif);
-                                            } else {
-                                                outFilePath = storeImage(imageFile.getParentFile().getAbsolutePath(), imageFile.getName());
-                                            }
-                                            addData(Uri.fromFile(new File(outFilePath)).toString(), new JSONObject());
-
-                                        } catch (JSONException e) {
-                                            e.printStackTrace();
-                                            callback.onResizeFailed("JSONException " + e.getMessage());
-                                        } catch (IOException e) {
-                                            e.printStackTrace();
-                                            callback.onResizeFailed("IOException " + e.getMessage());
-                                        } catch (URISyntaxException e) {
-                                            e.printStackTrace();
-                                            callback.onResizeFailed("URISyntaxException " + e.getMessage());
-                                        } finally {
-                                            files.remove(0);
-
-                                            if(files.size() == 0) {
-                                                //if filesize = 0 end progress
-                                                onImageResized.resizeCompleted(outList);
-                                            }else {
-                                                //if filesize > 0 continue progress
-                                                Integer nextIndex = copyindex[0]+1;
-                                                onImageResized.resizeProcessed( nextIndex);
-                                            }
-                                        }
-
-                                    }
-                                }
-                                , executor);
-
-                    } catch (URISyntaxException e) {
-                        e.printStackTrace();
-                        callback.onResizeFailed("URISyntaxException " + e.getMessage());
+                        if (scale > 1 || scale <= 0) {
+                            scale = 1;
+                        }
+                        float reqWidth = options.outWidth * scale;
+                        float reqHeight = options.outHeight * scale;
+                        request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(fileName))
+                                .setResizeOptions(new ResizeOptions((int) reqWidth, (int) reqHeight))
+                                .build();
+                    } else {
+                        request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(fileName))
+                                .build();
                     }
-                } else if (MimeType.MP4.checkType(getContentResolver(), src)) {
-                    URI uri = null;
-                    try {
-                        uri = new URI(fileName);
+                    ImagePipeline imagePipeline = Fresco.getImagePipeline();
+                    DataSource<CloseableReference<CloseableImage>> dataSource = imagePipeline.fetchDecodedImage(request, this);
 
-                        File inFile = new File(uri);
-                        Log.d("processFile", "storeImage " + uri);
+                    CallerThreadExecutor executor = CallerThreadExecutor.getInstance();
+                    dataSource.subscribe(new Subscriber(callback, index, imageFile), executor);
 
-                        MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
-                        mediaMetadataRetriever.setDataSource(PhotoCaptionInputViewActivity.this, src);
+                } catch (URISyntaxException e) {
+                    e.printStackTrace();
+                    if (callback != null) callback.onResizeFailed("URISyntaxException " + e.getMessage());
+                }
+            } else if (MimeType.MP4.checkType(getContentResolver(), src)) {
+                JSONObject metaData = new JSONObject();
+                try {
+
+                    MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
+                    mediaMetadataRetriever.setDataSource(PhotoCaptionInputViewActivity.this, src);
 //                        Bitmap previewBitmap = mediaMetadataRetriever.getFrameAtTime(0);
 //                        Bitmap thumbnailBitmap = (previewBitmap.getWidth() >= previewBitmap.getHeight()) ?
 //                                Bitmap.createBitmap(
@@ -1337,126 +1271,123 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 //                        String thumbnailBitmapFilePath = storeImage(thumbnailBitmapFileName, thumbnailBitmap);
 //                        Log.d("previewBitmapFilePath", previewBitmapFilePath);
 //                        Log.d("thumbnailBitmapFilePath", thumbnailBitmapFilePath);
-                        JSONObject metaData = new JSONObject();
-
-                        long durationMs = Long.parseLong(mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
-                        long videoWidth = Long.parseLong(mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH));
-                        long videoHeight = Long.parseLong(mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT));
 
 
-                        /* testing only */
+                    long durationMs = Long.parseLong(mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
+                    long videoWidth = Long.parseLong(mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH));
+                    long videoHeight = Long.parseLong(mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT));
 
-                        metaData.put("start", 0L);
-
-                        metaData.put("duration", 15000L > durationMs ? durationMs : 15000L);
-                        metaData.put("width", videoWidth);
-                        metaData.put("height", videoHeight);
-                        metaData.put("originalDuration", durationMs);
-                        metaData.put("edited", "auto");
-
-                        addData(Uri.fromFile(inFile).toString(), metaData);
-                    } catch (URISyntaxException e) {
-                        e.printStackTrace();
-                        callback.onResizeFailed("URISyntaxException storeImage " + e.getMessage());
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                        callback.onResizeFailed("JSONException storeImage " + e.getMessage());
-                    } finally {
-                        files.remove(0);
-                        if(files.size() == 0) {
-                            //if filesize = 0 end progress
-                            onImageResized.resizeCompleted(outList);
-                        }else {
-                            Integer nextIndex = index+1;
-                            onImageResized.resizeProcessed(nextIndex);
-                        }
-                    }
-
-                } else if (MimeType.JPEG.checkType(getContentResolver(), src) || MimeType.PNG.checkType(getContentResolver(), src)) {
-                    try {
-                        URI uri = new URI(files.get(0));
-                        File inFile = new File(uri);
-                        Log.d("processFile", "storeImage " + uri);
-                        String outFilePath = storeImage(inFile.getParentFile().getAbsolutePath(), inFile.getName());
-                        addData(Uri.fromFile(new File(outFilePath)).toString(), new JSONObject());
-                    } catch (URISyntaxException e) {
-                        e.printStackTrace();
-                        callback.onResizeFailed("URISyntaxException storeImage " + e.getMessage());
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                        callback.onResizeFailed("JSONException storeImage " + e.getMessage());
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        callback.onResizeFailed("IOException storeImage " + e.getMessage());
-                    } finally {
-                        files.remove(0);
-                        if(files.size() == 0) {
-                            //if filesize = 0 end progress
-                            onImageResized.resizeCompleted(outList);
-                        }else {
-                            //if filesize > 0 continue progress
-                            Integer nextIndex = index+1;
-                            onImageResized.resizeProcessed(nextIndex);
-                        }
-                    }
+                    metaData.put("start", 0L);
+                    metaData.put("duration", 15000L > durationMs ? durationMs : 15000L);
+                    metaData.put("width", videoWidth);
+                    metaData.put("height", videoHeight);
+                    metaData.put("originalDuration", durationMs);
+                    metaData.put("edited", "auto");
 
 
-                } else {
-                    addData("", new JSONObject());
-                    files.remove(0);
-                    Integer nextIndex = index+1;
-                    if(files.size() == 0) {
-                        //if filesize = 0 end progress
-                        onImageResized.resizeCompleted(outList);
-                    }else {
-                        onImageResized.resizeProcessed(nextIndex);
-                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    if (callback != null) callback.onResizeFailed("JSONException storeImage " + e.getMessage());
                 }
-            }
-        }
-
-        private void addData(String s, JSONObject jsonObject) {
-            outList.add(s);
-            outMetaList.put(jsonObject);
-        }
-
-        private void onDone() {
-            try {
                 if (callback != null) {
-                    ((Activity) context).runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            callback.onResizeSuccess(outList, outMetaList);
-                        }
-                    });
+                    callback.onResizeSuccess(Uri.fromFile(new File(fileName)).toString(), index, fileName, metaData);
+                    callback.onResizePrecess(index + 1);
                 }
-            } catch (NullPointerException e) {
+
+
+            } else if (MimeType.JPEG.checkType(getContentResolver(), src) || MimeType.PNG.checkType(getContentResolver(), src)) {
+                String outFilePath = "";
+                try {
+                    URI uri = new URI(fileName);
+                    File inFile = new File(uri);
+                    outFilePath = storeImage(inFile.getParentFile().getAbsolutePath(), inFile.getName());
+
+
+                } catch (URISyntaxException e) {
+                    e.printStackTrace();
+                    if (callback != null) callback.onResizeFailed("URISyntaxException storeImage " + e.getMessage());
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    if (callback != null) callback.onResizeFailed("JSONException storeImage " + e.getMessage());
+                }
+                if (callback != null) {
+                    callback.onResizeSuccess(Uri.fromFile(new File(outFilePath)).toString(), index, fileName, null);
+                    callback.onResizePrecess(index);
+                }
+
+
+            } else {
+                if (callback != null){
+                    callback.onResizeSuccess("", index, fileName, null);
+                    callback.onResizePrecess(index + 1);
+                }
+            }
+
+        }
+
+        public void cancel() {
+            isCancel = true;
+        }
+    }
+
+    class Subscriber extends BaseBitmapDataSubscriber {
+        private OnResizedCallback callback;
+        private Integer index;
+        private File imageFile;
+
+        public Subscriber(OnResizedCallback callback, Integer index, File imageFile) {
+            this.callback = callback;
+            this.index = index;
+            this.imageFile = imageFile;
+        }
+
+        @Override
+        public void onProgressUpdate(DataSource<CloseableReference<CloseableImage>> dataSource) {
+            super.onProgressUpdate(dataSource);
+        }
+
+        @Override
+        protected void onFailureImpl(DataSource<CloseableReference<CloseableImage>> dataSource) {
+            if (callback != null) callback.onResizeFailed("Failed to resize at onFailureImpl " + imageFile.getAbsolutePath());
+        }
+
+        @Override
+        protected void onNewResultImpl(Bitmap bmp) {
+            ExifInterface exif = null;
+            try {
+                if (imageFile.getName().toLowerCase().endsWith("jpg") || imageFile.getName().toLowerCase().endsWith("jpeg")) {
+                    exif = new ExifInterface(imageFile.getAbsolutePath());
+                    exif.setAttribute(ExifInterface.TAG_ORIENTATION, String.valueOf(ExifInterface.ORIENTATION_NORMAL));
+                }
+            } catch (IOException e) {
                 e.printStackTrace();
-                callback.onResizeFailed("NullPointerException storeImage " + e.getMessage());
+            }
+            String outFilePath = "";
+            try {
+//                Log.d("processFile", "storeImageWithExif " + imageFile);
+
+                if (exif != null) {
+                    outFilePath = storeImageWithExif(imageFile.getName(), bmp, exif);
+                } else {
+                    outFilePath = storeImage(imageFile.getParentFile().getAbsolutePath(), imageFile.getName());
+                }
+
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+                if (callback != null) callback.onResizeFailed("JSONException " + e.getMessage());
+            } catch (IOException e) {
+                e.printStackTrace();
+                if (callback != null) callback.onResizeFailed("IOException " + e.getMessage());
+            } catch (URISyntaxException e) {
+                e.printStackTrace();
+                if (callback != null) callback.onResizeFailed("URISyntaxException " + e.getMessage());
+            }
+            if (callback != null) {
+                callback.onResizeSuccess(Uri.fromFile(new File(outFilePath)).toString(), index, imageFile.getAbsolutePath(), null);
+                callback.onResizePrecess(index);
             }
         }
-
-
-        public void setCallback(ResizeCallback callback) {
-            this.callback = callback;
-        }
-
-
-    }
-
-    public static String getMimeType(String url) {
-        String type = null;
-        String extension = MimeTypeMap.getFileExtensionFromUrl(url);
-        if (extension != null) {
-            type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
-        }
-        return type;
-    }
-
-    private interface OnImageResized {
-        void resizeProcessed(Integer index);
-
-        void resizeCompleted(ArrayList<String> outList);
     }
 
     /**
@@ -1473,4 +1404,227 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         return px;
     }
 
+    static final class BackgroundExecutor {
+
+
+        public static final Executor DEFAULT_EXECUTOR = Executors.newScheduledThreadPool(2 * Runtime.getRuntime().availableProcessors());
+        private static Executor executor = DEFAULT_EXECUTOR;
+
+        public static List<Task> getTASKS() {
+            return TASKS;
+        }
+
+        private static final List<Task> TASKS = new ArrayList<Task>();
+        private static final ThreadLocal<String> CURRENT_SERIAL = new ThreadLocal<String>();
+
+        private BackgroundExecutor() {
+        }
+
+        /**
+         * Execute a runnable after the given delay.
+         *
+         * @param runnable the task to execute
+         * @param delay    the time from now to delay execution, in milliseconds
+         *                 <p>
+         *                 if <code>delay</code> is strictly positive and the current
+         *                 executor does not support scheduling (if
+         *                 Executor has been called with such an
+         *                 executor)
+         * @return Future associated to the running task
+         * @throws IllegalArgumentException if the current executor set by Executor
+         *                                  does not support scheduling
+         */
+        private static Future<?> directExecute(Runnable runnable, long delay) {
+            Future<?> future = null;
+            if (delay > 0) {
+            /* no serial, but a delay: schedule the task */
+                if (!(executor instanceof ScheduledExecutorService)) {
+                    throw new IllegalArgumentException("The executor set does not support scheduling");
+                }
+                ScheduledExecutorService scheduledExecutorService = (ScheduledExecutorService) executor;
+                future = scheduledExecutorService.schedule(runnable, delay, TimeUnit.MILLISECONDS);
+            } else {
+                if (executor instanceof ExecutorService) {
+                    ExecutorService executorService = (ExecutorService) executor;
+                    future = executorService.submit(runnable);
+                } else {
+                /* non-cancellable task */
+                    executor.execute(runnable);
+                }
+            }
+            return future;
+        }
+
+        /**
+         * Execute a task after (at least) its delay <strong>and</strong> after all
+         * tasks added with the same non-null <code>serial</code> (if any) have
+         * completed execution.
+         *
+         * @param task the task to execute
+         * @throws IllegalArgumentException if <code>task.delay</code> is strictly positive and the
+         *                                  current executor does not support scheduling (if
+         *                                  Executor has been called with such an
+         *                                  executor)
+         */
+        public static synchronized void execute(Task task) {
+            Future<?> future = null;
+            if (task.serial == null || !hasSerialRunning(task.serial)) {
+                task.executionAsked = true;
+                future = directExecute(task, task.remainingDelay);
+            }
+            if ((task.id != null || task.serial != null) && !task.managed.get()) {
+            /* keep task */
+                task.future = future;
+                TASKS.add(task);
+            }
+        }
+
+        /**
+         * Indicates whether a task with the specified <code>serial</code> has been
+         * submitted to the executor.
+         *
+         * @param serial the serial queue
+         * @return <code>true</code> if such a task has been submitted,
+         * <code>false</code> otherwise
+         */
+        private static boolean hasSerialRunning(String serial) {
+            for (Task task : TASKS) {
+                if (task.executionAsked && serial.equals(task.serial)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /**
+         * Retrieve and remove the first task having the specified
+         * <code>serial</code> (if any).
+         *
+         * @param serial the serial queue
+         * @return task if found, <code>null</code> otherwise
+         */
+        private static Task take(String serial) {
+            int len = TASKS.size();
+            for (int i = 0; i < len; i++) {
+                if (serial.equals(TASKS.get(i).serial)) {
+                    return TASKS.remove(i);
+                }
+            }
+            return null;
+        }
+
+        /**
+         * Cancel all tasks having the specified <code>id</code>.
+         *
+         * @param id                    the cancellation identifier
+         * @param mayInterruptIfRunning <code>true</code> if the thread executing this task should be
+         *                              interrupted; otherwise, in-progress tasks are allowed to
+         *                              complete
+         */
+        public static synchronized void cancelAll(String id, boolean mayInterruptIfRunning) {
+            for (int i = TASKS.size() - 1; i >= 0; i--) {
+                Task task = TASKS.get(i);
+                if (id.equals(task.id)) {
+                    if (task.future != null) {
+                        task.future.cancel(mayInterruptIfRunning);
+                        if (!task.managed.getAndSet(true)) {
+                        /*
+                         * the task has been submitted to the executor, but its
+						 * execution has not started yet, so that its run()
+						 * method will never call postExecute()
+						 */
+                            task.postExecute();
+                        }
+                    } else if (task.executionAsked) {
+                        Log.w(TAG, "A task with id " + task.id + " cannot be cancelled (the executor set does not support it)");
+                    } else {
+					/* this task has not been submitted to the executor */
+                        TASKS.remove(i);
+                    }
+                }
+            }
+
+        }
+
+        public static abstract class Task implements Runnable {
+
+            private String id;
+            private long remainingDelay;
+            private long targetTimeMillis; /* since epoch */
+            private String serial;
+            private boolean executionAsked;
+            private Future<?> future;
+
+            /*
+             * A task can be cancelled after it has been submitted to the executor
+             * but before its run() method is called. In that case, run() will never
+             * be called, hence neither will postExecute(): the tasks with the same
+             * serial identifier (if any) will never be submitted.
+             *
+             * Therefore, cancelAll() *must* call postExecute() if run() is not
+             * started.
+             *
+             * This flag guarantees that either cancelAll() or run() manages this
+             * task post execution, but not both.
+             */
+            private AtomicBoolean managed = new AtomicBoolean();
+
+            public Task(String id, long delay, String serial) {
+                if (!"".equals(id)) {
+                    this.id = id;
+                }
+                if (delay > 0) {
+                    remainingDelay = delay;
+                    targetTimeMillis = System.currentTimeMillis() + delay;
+                }
+                if (!"".equals(serial)) {
+                    this.serial = serial;
+                }
+            }
+
+            @Override
+            public void run() {
+                if (managed.getAndSet(true)) {
+                /* cancelled and postExecute() already called */
+                    return;
+                }
+
+                try {
+                    CURRENT_SERIAL.set(serial);
+                    execute();
+                } finally {
+                /* handle next tasks */
+                    postExecute();
+                }
+            }
+
+            public abstract void execute();
+
+            private void postExecute() {
+                if (id == null && serial == null) {
+				/* nothing to do */
+                    return;
+                }
+                CURRENT_SERIAL.set(null);
+                synchronized (BackgroundExecutor.class) {
+				/* execution complete */
+                    TASKS.remove(this);
+
+                    if (serial != null) {
+                        Task next = take(serial);
+                        if (next != null) {
+                            if (next.remainingDelay != 0) {
+							/* the delay may not have elapsed yet */
+                                next.remainingDelay = Math.max(0L, targetTimeMillis - System.currentTimeMillis());
+                            }
+						/* a task having the same serial was queued, execute it */
+                            BackgroundExecutor.execute(next);
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
+
+
