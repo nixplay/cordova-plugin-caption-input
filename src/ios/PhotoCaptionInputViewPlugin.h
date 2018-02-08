@@ -32,6 +32,8 @@
 @property (nonatomic, assign) NSInteger outputType;
 @property (nonatomic, assign) NSInteger maximumImagesCount;
 @property (nonatomic, assign) BOOL allow_video;
+@property (nonatomic, assign) BOOL camera;
+@property (nonatomic, assign) NSTimeInterval videoMaximumDuration;
 @property (nonatomic, assign) AVAssetExportSessionStatus status;
 @property (nonatomic, strong) SDAVAssetExportSession* exportSession;
 @property (nonatomic,assign) PhotoCaptionInputViewController* photoCaptionInputViewController;

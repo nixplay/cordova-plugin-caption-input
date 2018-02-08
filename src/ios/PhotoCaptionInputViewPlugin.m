@@ -69,6 +69,7 @@
         self.quality = 100;
     }
     self.allow_video = [[options objectForKey:@"allow_video" ] boolValue ];
+    self.camera = [[options objectForKey:@"camera" ] boolValue ];
     //    NSUInteger photoIndex = [[options objectForKey:@"index"] intValue];
     self.preSelectedAssets = [options objectForKey:@"preSelectedAssets"];
 
@@ -113,8 +114,10 @@
 
     PhotoCaptionInputViewController *vc = [[PhotoCaptionInputViewController alloc] initWithPhotos:_photos thumbnails:_thumbnails preselectedAssets:self.preSelectedAssets delegate:self];
     vc.allow_video = self.allow_video;
-    vc.alwaysShowControls = YES;
+    vc.alwaysShowControls = NO;
     vc.maximumImagesCount = self.maximumImagesCount;
+    vc.camera = self.camera;
+    vc.videoMaximumDuration = self.videoMaximumDuration;
     _photoCaptionInputViewController = vc;
 
     CustomViewController *nc = [[CustomViewController alloc]initWithRootViewController:vc];
