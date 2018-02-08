@@ -20,11 +20,11 @@
 		<source-file src="src/ios/AVAsset+VideoOrientation.m"/>
 		<pods-config ios-min-version="9.0" use-frameworks="true"></pods-config>
 		<pod name="SDAVAssetExportSession" git="https://github.com/nixplay/SDAVAssetExportSession.git" branch="master"/>
-		<pod name="PhotoCaptionInputView" git="https://github.com/nixplay/PhotoCaptionInputView.git" branch="develop" />
+		<pod name="PhotoCaptionInputView" git="https://github.com/nixplay/PhotoCaptionInputView.git" branch="feature/video_upload" />
 		<pod name="MWPhotoBrowser" git="https://github.com/nixplay/MWPhotoBrowser.git" branch="develop" />
 		<pod name="GMImagePicker" git="https://github.com/nixplay/GMImagePicker.git" branch="develop"/>
 		<pod name="ICGVideoTrimmer" git="https://github.com/nixplay/ICGVideoTrimmer.git" branch="develop"/>
-		<pod name="NixCamera" git="https://github.com/nixplay/NixCamera.git" tag="0.1.1"/>
+
 		<pod name="SDWebImage" version="4.2.2"/>
 		<pod name="PopupDialog" version="0.6.1"/>
 		<pod name="MRProgress"/>
