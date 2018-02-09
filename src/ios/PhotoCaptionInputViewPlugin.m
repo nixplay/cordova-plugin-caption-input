@@ -894,7 +894,7 @@
              forToolbarPosition:UIToolbarPositionAny
                      barMetrics:UIBarMetricsDefault];
 
-    [toolBar setBackgroundColor:[UIColor clearColor]];
+    [toolBar setBackgroundColor:[UIColor blackColor]];
     toolBar.clipsToBounds = YES;
     for (UIView *subView in [toolBar subviews]) {
         if ([subView isKindOfClass:[UIImageView class]]) {
