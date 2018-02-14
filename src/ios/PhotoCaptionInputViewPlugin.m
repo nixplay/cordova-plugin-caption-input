@@ -69,7 +69,7 @@
         self.quality = 100;
     }
     self.allow_video = [[options objectForKey:@"allow_video" ] boolValue ];
-    self.camera = [[options objectForKey:@"camera" ] boolValue ];
+    self.camera = false;//[[options objectForKey:@"camera" ] boolValue ];
     //    NSUInteger photoIndex = [[options objectForKey:@"index"] intValue];
     self.preSelectedAssets = [options objectForKey:@"preSelectedAssets"];
 
