@@ -419,7 +419,7 @@
         NSDictionary * dic = [_buttonOptions objectAtIndex:0];
         CGRect newFrame = CGRectMake(0,0,
                                      self.viewController.view.frame.size.width - 10,
-                                     toolBar.frame.size.height - margin*2 );
+                                     44 );
         UIButton *button = [[UIButton alloc] initWithFrame: newFrame];
         [button setBackgroundColor:LIGHT_BLUE_COLOR];
         button.layer.cornerRadius = 2; // this value vary as per your desire
