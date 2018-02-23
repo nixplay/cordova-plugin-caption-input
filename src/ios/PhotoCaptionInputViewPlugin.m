@@ -199,7 +199,7 @@
     MBProgressHUD *hud = [MBProgressHUD showHUDAddedTo:controller.view animated:YES];
     hud.mode = MBProgressHUDModeAnnularDeterminate;
     hud.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.3];
-    
+    hud.label.text = [NSString stringWithFormat:@"%.f%% %@",0.0f, NSLocalizedString(@"OPTIMIZING", nil)];
 
     dispatch_group_async(dispatchGroup, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
         __block CGFloat numberOfImage = [photos count];
