@@ -199,7 +199,7 @@
     MBProgressHUD *hud = [MBProgressHUD showHUDAddedTo:controller.view animated:YES];
     hud.mode = MBProgressHUDModeAnnularDeterminate;
     hud.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.3];
-    hud.label.text = NSLocalizedString(@"OPTIMIZING", nil);
+    
 
     dispatch_group_async(dispatchGroup, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
         __block CGFloat numberOfImage = [photos count];
@@ -246,6 +246,7 @@
                   //                  [progressView setProgress:((CGFloat)index/(CGFloat)numberOfImage)+((progress/100.0f)*(1/(CGFloat)numberOfImage))];
                   float outputprogress = ((CGFloat)index/(CGFloat)numberOfImage)+((progress/100.0f)*(1/(CGFloat)numberOfImage));
 //                  hud.label.text = [NSString stringWithFormat:@"%.f%%",outputprogress*100];
+                  hud.label.text = [NSString stringWithFormat:@"%.f%% %@",outputprogress*100, NSLocalizedString(@"OPTIMIZING", nil)];
                   hud.progress = outputprogress;
               });
           } errorCallback:^(CDVPluginResult *errorResult) {
