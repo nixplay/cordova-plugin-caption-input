@@ -131,6 +131,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     private ArrayList<String> imageList;
     private int width, height;
     private JSONArray buttonOptions;
+    TreeMap<Integer,String> outList = new TreeMap<Integer,String>();
     ViewPager.OnPageChangeListener onPageChangeListener = new ViewPager.OnPageChangeListener() {
         public void onPageScrollStateChanged(int state) {
         }
@@ -165,7 +166,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     };
     private ArrayList<String> preSelectedAssets = new ArrayList<String>();
     private int maxImages;
-    private ImageResizer imageResizer;
+//    private ImageResizer imageResizer;
 
     private ArrayList<String> currentTaskIDs = new ArrayList<String>();
 
@@ -778,15 +779,23 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
             }
         });
-        imageResizer = new ImageResizer(this, imageList, new OnResizedCallback() {
+        final ImageResizer imageResizer = new ImageResizer(this, imageList, new OnResizedCallback() {
 //https://stackoverflow.com/questions/7860822/sorting-hashmap-based-on-keys
-            public TreeMap<Integer,String> outList = new TreeMap<Integer,String>();
-
             @Override
             public void onResizeSuccess(String result, Integer index, String originalFilename) {
-                outList.put(index,result);
+                //potential crash : https://fabric.io/nixplay/android/apps/com.creedon.nixplay/issues/5a71870d8cb3c2fa63f95e36?time=last-seven-days
+                //
+                try{
+                    outList.put(index,result);
+                } catch (NullPointerException ignored){
+                    ignored.printStackTrace();
+                    setResult(RESULT_CANCELED, null);
+                    finishActivity(Constants.REQUEST_SUBMIT);
+                    finish();
+                    return;
+                }
+
                 final int process = outList.size();
-//                Log.d(TAG,"onResizeSuccess "+index+": result-> "+result+ " originalFilename : "+originalFilename);
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -798,19 +807,12 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     kProgressHUD.dismiss();
                     Set<Map.Entry<Integer, String>> entries = outList.entrySet();
                     Iterator<Map.Entry<Integer, String>> it = entries.iterator();
-
-//                    while(it.hasNext()){
-//                        Map.Entry<Integer, String> o = it.next();
-//                        Log.d( TAG , "To JSON Array "+String.valueOf(o.getKey()) +" : "+ o.getValue());
-//                    }
-
                     Bundle conData = new Bundle();
                     try {
                         JSONObject jsonObject = new JSONObject();
                         //https://stackoverflow.com/questions/15402321/how-to-convert-hashmap-to-json-array-in-android
                         Collection<String> values = outList.values();
                         JSONArray array = new JSONArray(values);
-//                        Log.d(TAG, array.toString());
 
                         jsonObject.put(KEY_IMAGES, array);
                         jsonObject.put(KEY_CAPTIONS, new JSONArray(captions));
@@ -835,19 +837,18 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             }
 
             @Override
-            public void onResizePrecess(final Integer process) {
-//                runOnUiThread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        kProgressHUD.setProgress(process);
-//                    }
-//                });
+            public void onResizeProgress(final Integer process) {
+
 
             }
 
             @Override
             public void onResizeFailed(String s) {
                 Log.e(TAG, s);
+
+                setResult(RESULT_CANCELED, null);
+                finishActivity(Constants.REQUEST_SUBMIT);
+                finish();
             }
         });
 
@@ -1103,7 +1104,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     private interface OnResizedCallback {
         void onResizeSuccess(String result, Integer index, String originalFilename);
 
-        void onResizePrecess(Integer process);
+        void onResizeProgress(Integer process);
 
         void onResizeFailed(String s);
     }
@@ -1187,7 +1188,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                         callback.onResizeFailed("JSONException storeImage " + e.getMessage());
                     }
                     callback.onResizeSuccess(Uri.fromFile(new File(outFilePath)).toString(), index, fileName);
-                    callback.onResizePrecess(index);
+                    callback.onResizeProgress(index);
 
 
 
@@ -1254,7 +1255,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 callback.onResizeFailed("URISyntaxException " + e.getMessage());
             }
             callback.onResizeSuccess(Uri.fromFile(new File(outFilePath)).toString(), index, imageFile.getAbsolutePath());
-            callback.onResizePrecess(index);
+            callback.onResizeProgress(index);
         }
     }
 
@@ -1396,17 +1397,17 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     if (task.future != null) {
                         task.future.cancel(mayInterruptIfRunning);
                         if (!task.managed.getAndSet(true)) {
-						/*
-						 * the task has been submitted to the executor, but its
-						 * execution has not started yet, so that its run()
-						 * method will never call postExecute()
-						 */
+                        /*
+                         * the task has been submitted to the executor, but its
+                         * execution has not started yet, so that its run()
+                         * method will never call postExecute()
+                         */
                             task.postExecute();
                         }
                     } else if (task.executionAsked) {
                         Log.w(TAG, "A task with id " + task.id + " cannot be cancelled (the executor set does not support it)");
                     } else {
-					/* this task has not been submitted to the executor */
+                    /* this task has not been submitted to the executor */
                         TASKS.remove(i);
                     }
                 }
@@ -1470,22 +1471,22 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
             private void postExecute() {
                 if (id == null && serial == null) {
-				/* nothing to do */
+                /* nothing to do */
                     return;
                 }
                 CURRENT_SERIAL.set(null);
                 synchronized (BackgroundExecutor.class) {
-				/* execution complete */
+                /* execution complete */
                     TASKS.remove(this);
 
                     if (serial != null) {
                         Task next = take(serial);
                         if (next != null) {
                             if (next.remainingDelay != 0) {
-							/* the delay may not have elapsed yet */
+                            /* the delay may not have elapsed yet */
                                 next.remainingDelay = Math.max(0L, targetTimeMillis - System.currentTimeMillis());
                             }
-						/* a task having the same serial was queued, execute it */
+                        /* a task having the same serial was queued, execute it */
                             BackgroundExecutor.execute(next);
                         }
                     }
