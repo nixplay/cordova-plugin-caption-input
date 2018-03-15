@@ -478,35 +478,35 @@
                     scale = scale > 1.0 ? 1.0 : scale;
                     
                     LBVideoOrientation orientation = [avasset videoOrientation];
-                    NSString * orientation = @"unknown";
+                    NSString * orientationString = @"unknown";
                     switch(orientation){
                         case LBVideoOrientationUp:
-                            orientation = @"up";
+                            orientationString = @"up";
                             break;
                         case LBVideoOrientationDown:
-                            orientation = @"down";
+                            orientationString = @"down";
                             break;
                         case LBVideoOrientationLeft:
-                            orientation = @"left";
+                            orientationString = @"left";
                             break;
                         case LBVideoOrientationRight:
-                            orientation = @"right";
+                            orientationString = @"right";
                             break;
                         case LBVideoOrientationNotFound:
-                            orientation = @"notfound";
+                            orientationString = @"notfound";
                             break;
                     }
-//                    NSLog(@"LBVideoOrientation : %@",
-//                          orientation == LBVideoOrientationUp ? @"LBVideoOrientationUp" :
-//                          orientation == LBVideoOrientationDown ? @"LBVideoOrientationDown" :
-//                          orientation == LBVideoOrientationLeft ? @"LBVideoOrientationLeft" :
-//                          orientation == LBVideoOrientationRight ? @"LBVideoOrientationRight" :
-//                          @"LBVideoOrientationNotFound");
+                    //                    NSLog(@"LBVideoOrientation : %@",
+                    //                          orientation == LBVideoOrientationUp ? @"LBVideoOrientationUp" :
+                    //                          orientation == LBVideoOrientationDown ? @"LBVideoOrientationDown" :
+                    //                          orientation == LBVideoOrientationLeft ? @"LBVideoOrientationLeft" :
+                    //                          orientation == LBVideoOrientationRight ? @"LBVideoOrientationRight" :
+                    //                          @"LBVideoOrientationNotFound");
                     float letterBoxWidth = 20;
                     mediaResize = (orientation == LBVideoOrientationUp || orientation == LBVideoOrientationDown ) ?
                     (mediaSize.width > mediaSize.height ? CGSizeMake(mediaSize.height*scale+letterBoxWidth, mediaSize.width*scale) : CGSizeMake(mediaSize.width*scale+letterBoxWidth, mediaSize.height*scale))
                     : CGSizeMake(mediaSize.width*scale, mediaSize.height*scale);
-                
+                    
                     __block NSDictionary *metaDic = @{
                                                       @"duration": @((int)((CMTimeGetSeconds(duration)*1000))),
                                                       @"width": @((int)mediaSize.width),
@@ -514,7 +514,7 @@
                                                       @"originalDuration":@((int)(CMTimeGetSeconds(avasset.duration)*1000)),
                                                       @"edited":edited,
                                                       @"videoType":videoType,
-                                                      @"orientation": orientation
+                                                      @"orientation": orientationString
                                                       };
                     _exportSession = [[SDAVAssetExportSession alloc] initWithAsset:avasset ];
                     //                    exportSession.outputURL = furl;
