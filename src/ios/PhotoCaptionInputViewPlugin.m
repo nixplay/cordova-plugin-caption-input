@@ -496,17 +496,17 @@
                             orientationString = @"notfound";
                             break;
                     }
-                    //                    NSLog(@"LBVideoOrientation : %@",
-                    //                          orientation == LBVideoOrientationUp ? @"LBVideoOrientationUp" :
-                    //                          orientation == LBVideoOrientationDown ? @"LBVideoOrientationDown" :
-                    //                          orientation == LBVideoOrientationLeft ? @"LBVideoOrientationLeft" :
-                    //                          orientation == LBVideoOrientationRight ? @"LBVideoOrientationRight" :
-                    //                          @"LBVideoOrientationNotFound");
+//                    NSLog(@"LBVideoOrientation : %@",
+//                          orientation == LBVideoOrientationUp ? @"LBVideoOrientationUp" :
+//                          orientation == LBVideoOrientationDown ? @"LBVideoOrientationDown" :
+//                          orientation == LBVideoOrientationLeft ? @"LBVideoOrientationLeft" :
+//                          orientation == LBVideoOrientationRight ? @"LBVideoOrientationRight" :
+//                          @"LBVideoOrientationNotFound");
                     float letterBoxWidth = 20;
                     mediaResize = (orientation == LBVideoOrientationUp || orientation == LBVideoOrientationDown ) ?
                     (mediaSize.width > mediaSize.height ? CGSizeMake(mediaSize.height*scale+letterBoxWidth, mediaSize.width*scale) : CGSizeMake(mediaSize.width*scale+letterBoxWidth, mediaSize.height*scale))
                     : CGSizeMake(mediaSize.width*scale, mediaSize.height*scale);
-                    
+                
                     __block NSDictionary *metaDic = @{
                                                       @"duration": @((int)((CMTimeGetSeconds(duration)*1000))),
                                                       @"width": @((int)mediaSize.width),
@@ -683,7 +683,11 @@
                                         nextCallback(internalIndex,nil, nil, localIdentifier, nil);
                                     } else {
                                         internalIndex++;
-                                        nextCallback(internalIndex,[[NSURL fileURLWithPath:exportFileName] absoluteString], localIdentifier, nil, metaDic);
+                                        unsigned long long fileSize = [[[NSFileManager defaultManager] attributesOfItemAtPath:exportFileName error:nil] fileSize];
+                                        NSLog(@"fileSize %llu",fileSize);
+                                        NSMutableDictionary * metaDicCopy = [NSMutableDictionary dictionaryWithDictionary:metaDic];
+                                        [metaDicCopy setValue:@(fileSize) forKey:@"fileSize"];
+                                        nextCallback(internalIndex,[[NSURL fileURLWithPath:exportFileName] absoluteString], localIdentifier, nil, metaDicCopy);
                                     }
                                     dispatch_group_async(dispatch_group_create(), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
                                         [self processAssets:fetchAssets
