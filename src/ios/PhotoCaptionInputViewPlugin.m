@@ -473,13 +473,14 @@
                     }
                     
                     CGSize mediaResize =mediaSize;
+                    NSString * orientationString = @"unknown";
                     if(mediaSize.width > 1280 || mediaSize.height > 720){
                         
                         CGFloat scale  = mediaSize.width > mediaSize.height ? 1280.0f/mediaSize.width : 1280.0f/mediaSize.height;
                         scale = scale > 1.0 ? 1.0 : scale;
                         
                         LBVideoOrientation orientation = [avasset videoOrientation];
-                        NSString * orientationString = @"unknown";
+                        
                         switch(orientation){
                             case LBVideoOrientationUp:
                                 orientationString = @"up";
