@@ -473,40 +473,41 @@
                     }
                     
                     CGSize mediaResize =mediaSize;
-                    
-                    CGFloat scale  = mediaSize.width > mediaSize.height ? 1280.0f/mediaSize.width : 1280.0f/mediaSize.height;
-                    scale = scale > 1.0 ? 1.0 : scale;
-                    
-                    LBVideoOrientation orientation = [avasset videoOrientation];
-                    NSString * orientationString = @"unknown";
-                    switch(orientation){
-                        case LBVideoOrientationUp:
-                            orientationString = @"up";
-                            break;
-                        case LBVideoOrientationDown:
-                            orientationString = @"down";
-                            break;
-                        case LBVideoOrientationLeft:
-                            orientationString = @"left";
-                            break;
-                        case LBVideoOrientationRight:
-                            orientationString = @"right";
-                            break;
-                        case LBVideoOrientationNotFound:
-                            orientationString = @"notfound";
-                            break;
+                    if(mediaSize.width > 1280 || mediaSize.height > 720){
+                        
+                        CGFloat scale  = mediaSize.width > mediaSize.height ? 1280.0f/mediaSize.width : 1280.0f/mediaSize.height;
+                        scale = scale > 1.0 ? 1.0 : scale;
+                        
+                        LBVideoOrientation orientation = [avasset videoOrientation];
+                        NSString * orientationString = @"unknown";
+                        switch(orientation){
+                            case LBVideoOrientationUp:
+                                orientationString = @"up";
+                                break;
+                            case LBVideoOrientationDown:
+                                orientationString = @"down";
+                                break;
+                            case LBVideoOrientationLeft:
+                                orientationString = @"left";
+                                break;
+                            case LBVideoOrientationRight:
+                                orientationString = @"right";
+                                break;
+                            case LBVideoOrientationNotFound:
+                                orientationString = @"notfound";
+                                break;
+                        }
+                        //                    NSLog(@"LBVideoOrientation : %@",
+                        //                          orientation == LBVideoOrientationUp ? @"LBVideoOrientationUp" :
+                        //                          orientation == LBVideoOrientationDown ? @"LBVideoOrientationDown" :
+                        //                          orientation == LBVideoOrientationLeft ? @"LBVideoOrientationLeft" :
+                        //                          orientation == LBVideoOrientationRight ? @"LBVideoOrientationRight" :
+                        //                          @"LBVideoOrientationNotFound");
+                        float letterBoxWidth = 20;
+                        mediaResize = (orientation == LBVideoOrientationUp || orientation == LBVideoOrientationDown ) ?
+                        (mediaSize.width > mediaSize.height ? CGSizeMake(mediaSize.height*scale+letterBoxWidth, mediaSize.width*scale) : CGSizeMake(mediaSize.width*scale+letterBoxWidth, mediaSize.height*scale))
+                        : CGSizeMake(mediaSize.width*scale, mediaSize.height*scale);
                     }
-//                    NSLog(@"LBVideoOrientation : %@",
-//                          orientation == LBVideoOrientationUp ? @"LBVideoOrientationUp" :
-//                          orientation == LBVideoOrientationDown ? @"LBVideoOrientationDown" :
-//                          orientation == LBVideoOrientationLeft ? @"LBVideoOrientationLeft" :
-//                          orientation == LBVideoOrientationRight ? @"LBVideoOrientationRight" :
-//                          @"LBVideoOrientationNotFound");
-                    float letterBoxWidth = 20;
-                    mediaResize = (orientation == LBVideoOrientationUp || orientation == LBVideoOrientationDown ) ?
-                    (mediaSize.width > mediaSize.height ? CGSizeMake(mediaSize.height*scale+letterBoxWidth, mediaSize.width*scale) : CGSizeMake(mediaSize.width*scale+letterBoxWidth, mediaSize.height*scale))
-                    : CGSizeMake(mediaSize.width*scale, mediaSize.height*scale);
-                
                     __block NSDictionary *metaDic = @{
                                                       @"duration": @((int)((CMTimeGetSeconds(duration)*1000))),
                                                       @"width": @((int)mediaSize.width),
