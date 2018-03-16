@@ -69,7 +69,7 @@
         self.quality = 100;
     }
     self.allow_video = [[options objectForKey:@"allow_video" ] boolValue ];
-    
+    self.camera = false;//[[options objectForKey:@"camera" ] boolValue ];
     //    NSUInteger photoIndex = [[options objectForKey:@"index"] intValue];
     self.preSelectedAssets = [options objectForKey:@"preSelectedAssets"];
     
@@ -102,7 +102,6 @@
     
     
     [self.preSelectedAssets enumerateObjectsUsingBlock:^(NSString * _Nonnull localIdentifier, NSUInteger idx, BOOL * _Nonnull stop) {
-        
         PHFetchResult<PHAsset *> * result = [PHAsset fetchAssetsWithLocalIdentifiers:@[localIdentifier] options:nil];
         PHAsset *asset = [result objectAtIndex:0];
         [images addObject:[MWPhotoExt photoWithAsset:asset targetSize:imageTargetSize] ];
@@ -115,8 +114,10 @@
     
     PhotoCaptionInputViewController *vc = [[PhotoCaptionInputViewController alloc] initWithPhotos:_photos thumbnails:_thumbnails preselectedAssets:self.preSelectedAssets delegate:self];
     vc.allow_video = self.allow_video;
-    vc.alwaysShowControls = YES;
+    vc.alwaysShowControls = NO;
     vc.maximumImagesCount = self.maximumImagesCount;
+    vc.camera = self.camera;
+    vc.videoMaximumDuration = self.videoMaximumDuration;
     _photoCaptionInputViewController = vc;
     
     CustomViewController *nc = [[CustomViewController alloc]initWithRootViewController:vc];
@@ -139,7 +140,6 @@
     [_buttonOptions enumerateObjectsUsingBlock:^(NSDictionary *obj, NSUInteger idx, BOOL * _Nonnull stop) {
         
         if([[obj valueForKey:KEY_LABEL] isEqualToString:button.titleLabel.text]){
-            
             _destinationType = [obj valueForKey:KEY_TYPE];
         }
     }];
@@ -155,16 +155,17 @@
 #ifdef DEBUG
     NSLog(@"%@", message);
 #endif
-    if(self.exportSession){
-        [self.exportSession cancelExport];
-    }
-    
     
     pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[NSDictionary new]];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:self.callbackId];
 #ifdef DEBUG
     NSLog(@"PhotoCaptionInputView: User pressed cancel button");
 #endif
+    if(self.exportSession){
+        [self.exportSession cancelExport];
+    }
+    
+    
     [controller dismissViewControllerAnimated:YES completion:nil];
     
 }
@@ -198,15 +199,9 @@
     MBProgressHUD *hud = [MBProgressHUD showHUDAddedTo:controller.view animated:YES];
     hud.mode = MBProgressHUDModeAnnularDeterminate;
     hud.backgroundColor = [UIColor colorWithWhite:0.0 alpha:0.3];
-    hud.label.text = NSLocalizedString(@"LOADING", nil);
+    hud.label.text = [NSString stringWithFormat:@"%.f%% %@",0.0f, NSLocalizedString(@"OPTIMIZING", nil)];
     
-    //    [controller.view addSubview:progressView];
-    //    [progressView mas_makeConstraints:^(MASConstraintMaker *make) {
-    //        make.centerY.equalTo(progressView.superview.mas_centerY);
-    //        make.centerX.equalTo(progressView.superview.mas_centerX);
-    //    }];
     dispatch_group_async(dispatchGroup, dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
-        //        PHFetchResult<PHAsset *> * fetchArray = [PHAsset fetchAssetsWithLocalIdentifiers:inPhotos options:nil];
         __block CGFloat numberOfImage = [photos count];
         [self processAssets:photos
                       index:0
@@ -220,6 +215,7 @@
                   result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: [NSDictionary dictionaryWithObjectsAndKeys: preSelectedAssets, @"preSelectedAssets", fileStrings, @"images", captions, @"captions",  invalidImages, @"invalidImages", metaDatas, @"metaDatas", _destinationType, KEY_TYPE, nil]];
               }
               dispatch_group_notify(dispatchGroup, dispatch_get_main_queue(), ^{
+                  
                   [hud hideAnimated:YES];
                   [self.commandDelegate sendPluginResult:result callbackId:self.callbackId];
                   [controller.presentingViewController dismissViewControllerAnimated:YES completion:nil];
@@ -227,6 +223,7 @@
                   
                   
               });
+              
           } nextCallback:^(NSInteger index, NSString *filePath, NSString *localIdentifier, NSString *_Nullable invalidImage, NSDictionary * _Nullable metadata) {
               if(invalidImage != nil){
                   [fileStrings addObject:@""];
@@ -248,7 +245,8 @@
               dispatch_async(dispatch_get_main_queue(), ^{
                   //                  [progressView setProgress:((CGFloat)index/(CGFloat)numberOfImage)+((progress/100.0f)*(1/(CGFloat)numberOfImage))];
                   float outputprogress = ((CGFloat)index/(CGFloat)numberOfImage)+((progress/100.0f)*(1/(CGFloat)numberOfImage));
-                  hud.label.text = [NSString stringWithFormat:@"%.f%%",outputprogress*100];
+                  //                  hud.label.text = [NSString stringWithFormat:@"%.f%%",outputprogress*100];
+                  hud.label.text = [NSString stringWithFormat:@"%.f%% %@",outputprogress*100, NSLocalizedString(@"OPTIMIZING", nil)];
                   hud.progress = outputprogress;
               });
           } errorCallback:^(CDVPluginResult *errorResult) {
@@ -276,7 +274,6 @@
          nextCallback:(void(^)(NSInteger index , NSString* filePath, NSString* localIdentifier, NSString* _Nullable invalidImage, NSDictionary *_Nullable metadata))nextCallback
      progressCallback:(void(^)(NSInteger index , CGFloat progress))progressCallback
         errorCallback:(void(^)(CDVPluginResult* errorResult))errorCallback{
-    
     if(index >= [fetchAssets count]){
         completedCallback();
         return;
@@ -286,6 +283,7 @@
     NSString *assetString = [fetchAssets objectAtIndex:internalIndex];
     PHFetchResult<PHAsset*> *fetchResult = [PHAsset fetchAssetsWithLocalIdentifiers: @[assetString] options:nil];
     PHAsset *asset = [fetchResult objectAtIndex:0];
+    
     NSString *localIdentifier;
     NSError * err;
     CDVPluginResult *result = nil;
@@ -403,6 +401,7 @@
                                 }];
             
             
+            
         }
     } else if(asset.mediaType == PHAssetMediaTypeVideo){
         localIdentifier = [asset localIdentifier];
@@ -459,23 +458,65 @@
                     //                    @"height": height,
                     //                    @"originalDuration": originalDuration,
                     //                    @"edited":edited
+                    NSString *videoType = @"normal";
+                    switch(asset.mediaSubtypes){
+                        case PHAssetMediaSubtypeVideoHighFrameRate:
+                            videoType = @"slowmotion";
+                            break;
+                        case PHAssetMediaSubtypeVideoTimelapse:
+                            videoType = @"timelapse";
+                            break;
+                        default:
+                            videoType = @"normal";
+                            break;
+                            
+                    }
                     
+                    CGSize mediaResize =mediaSize;
+                    if(mediaSize.width > 1280 || mediaSize.height > 720){
+                        
+                        CGFloat scale  = mediaSize.width > mediaSize.height ? 1280.0f/mediaSize.width : 1280.0f/mediaSize.height;
+                        scale = scale > 1.0 ? 1.0 : scale;
+                        
+                        LBVideoOrientation orientation = [avasset videoOrientation];
+                        NSString * orientationString = @"unknown";
+                        switch(orientation){
+                            case LBVideoOrientationUp:
+                                orientationString = @"up";
+                                break;
+                            case LBVideoOrientationDown:
+                                orientationString = @"down";
+                                break;
+                            case LBVideoOrientationLeft:
+                                orientationString = @"left";
+                                break;
+                            case LBVideoOrientationRight:
+                                orientationString = @"right";
+                                break;
+                            case LBVideoOrientationNotFound:
+                                orientationString = @"notfound";
+                                break;
+                        }
+                        //                    NSLog(@"LBVideoOrientation : %@",
+                        //                          orientation == LBVideoOrientationUp ? @"LBVideoOrientationUp" :
+                        //                          orientation == LBVideoOrientationDown ? @"LBVideoOrientationDown" :
+                        //                          orientation == LBVideoOrientationLeft ? @"LBVideoOrientationLeft" :
+                        //                          orientation == LBVideoOrientationRight ? @"LBVideoOrientationRight" :
+                        //                          @"LBVideoOrientationNotFound");
+                        float letterBoxWidth = 20;
+                        mediaResize = (orientation == LBVideoOrientationUp || orientation == LBVideoOrientationDown ) ?
+                        (mediaSize.width > mediaSize.height ? CGSizeMake(mediaSize.height*scale+letterBoxWidth, mediaSize.width*scale) : CGSizeMake(mediaSize.width*scale+letterBoxWidth, mediaSize.height*scale))
+                        : CGSizeMake(mediaSize.width*scale, mediaSize.height*scale);
+                    }
                     __block NSDictionary *metaDic = @{
                                                       @"duration": @((int)((CMTimeGetSeconds(duration)*1000))),
                                                       @"width": @((int)mediaSize.width),
                                                       @"height":@((int)mediaSize.height),
                                                       @"originalDuration":@((int)(CMTimeGetSeconds(avasset.duration)*1000)),
-                                                      @"edited":edited
+                                                      @"edited":edited,
+                                                      @"videoType":videoType,
+                                                      @"orientation": orientationString
                                                       };
-                    CGFloat scale  = mediaSize.width > mediaSize.height ? 1280.0f/mediaSize.width : 1280.0f/mediaSize.height;
-                    scale = scale > 1.0 ? 1.0 : scale;
-                    
-                    LBVideoOrientation orientation = [avasset videoOrientation];
-                    float letterBoxWidth = 20;
-                    CGSize mediaResize = (orientation == LBVideoOrientationUp || orientation == LBVideoOrientationDown ) ?
-                    (mediaSize.width > mediaSize.height ? CGSizeMake(mediaSize.height*scale+letterBoxWidth, mediaSize.width*scale) : CGSizeMake(mediaSize.width*scale+letterBoxWidth, mediaSize.height*scale))
-                    : CGSizeMake(mediaSize.width*scale, mediaSize.height*scale);
-                    
                     _exportSession = [[SDAVAssetExportSession alloc] initWithAsset:avasset ];
                     //                    exportSession.outputURL = furl;
                     //                    exportSession.outputFileType=AVFileTypeQuickTimeMovie;
@@ -485,17 +526,25 @@
                     _exportSession.outputURL = furl;
                     _exportSession.timeRange = range;
                     _exportSession.shouldOptimizeForNetworkUse = YES;
+#if TARGET_IPHONE_SIMULATOR
+                    NSDictionary * compressionPropertiesKey = @{
+                                                                AVVideoAverageBitRateKey: @5000000,
+                                                                AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel
+                                                                };
+#else
+                    NSDictionary * compressionPropertiesKey = @{
+                                                                AVVideoAverageBitRateKey: @5000000,
+                                                                AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
+                                                                AVVideoAverageNonDroppableFrameRateKey:@(24)
+                                                                };
+#endif
+                    
                     _exportSession.videoSettings = @
                     {
                     AVVideoCodecKey: AVVideoCodecH264,
                     AVVideoWidthKey: @(mediaResize.width),
                     AVVideoHeightKey: @(mediaResize.height),
-                    AVVideoCompressionPropertiesKey: @
-                        {
-                        AVVideoAverageBitRateKey: @5000000,
-                        AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
-                        AVVideoAverageNonDroppableFrameRateKey:@(24),
-                        },
+                    AVVideoCompressionPropertiesKey: compressionPropertiesKey,
                     };
                     _exportSession.audioSettings = @
                     {
@@ -635,7 +684,11 @@
                                         nextCallback(internalIndex,nil, nil, localIdentifier, nil);
                                     } else {
                                         internalIndex++;
-                                        nextCallback(internalIndex,[[NSURL fileURLWithPath:exportFileName] absoluteString], localIdentifier, nil, metaDic);
+                                        unsigned long long fileSize = [[[NSFileManager defaultManager] attributesOfItemAtPath:exportFileName error:nil] fileSize];
+                                        NSLog(@"fileSize %llu",fileSize);
+                                        NSMutableDictionary * metaDicCopy = [NSMutableDictionary dictionaryWithDictionary:metaDic];
+                                        [metaDicCopy setValue:@(fileSize) forKey:@"fileSize"];
+                                        nextCallback(internalIndex,[[NSURL fileURLWithPath:exportFileName] absoluteString], localIdentifier, nil, metaDicCopy);
                                     }
                                     dispatch_group_async(dispatch_group_create(), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
                                         [self processAssets:fetchAssets
@@ -897,7 +950,7 @@
              forToolbarPosition:UIToolbarPositionAny
                      barMetrics:UIBarMetricsDefault];
     
-    [toolBar setBackgroundColor:[UIColor clearColor]];
+    [toolBar setBackgroundColor:[UIColor blackColor]];
     toolBar.clipsToBounds = YES;
     for (UIView *subView in [toolBar subviews]) {
         if ([subView isKindOfClass:[UIImageView class]]) {
