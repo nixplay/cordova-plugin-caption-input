@@ -1319,8 +1319,12 @@ static dispatch_time_t getDispatchTimeFromSeconds(float seconds) {
         NSLog(@"Error: Could not create data from image destination");
 #endif
     }
-    CFRelease(destination);
-    CFRelease(source);
+    if (destination) {
+        CFRelease(destination);
+    }
+    if(source){
+        CFRelease(source);
+    }
     return dest_data;
 }
 
