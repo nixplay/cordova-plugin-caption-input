@@ -80,6 +80,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -168,7 +169,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     private int maxImages;
 //    private ImageResizer imageResizer;
 
-    private ArrayList<String> currentTaskIDs = new ArrayList<String>();
+    private List<String> currentTaskIDs = Collections.synchronizedList(new ArrayList());
 
 
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
@@ -637,6 +638,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     @Override
     public void onBackPressed() {
         super.onBackPressed();
+
         for(String currentTaskID : currentTaskIDs) {
             BackgroundExecutor.cancelAll(currentTaskID, true);
         }
@@ -779,6 +781,11 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
             }
         });
+        for(int i = 0 ; i < imageList.size() ; i++) {
+            String currentTaskID = String.valueOf(i);
+            Log.d("currentTaskIDs.add ", currentTaskID);
+            currentTaskIDs.add(currentTaskID);
+        }
         final ImageResizer imageResizer = new ImageResizer(this, imageList, new OnResizedCallback() {
 //https://stackoverflow.com/questions/7860822/sorting-hashmap-based-on-keys
             @Override
@@ -857,11 +864,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
             final int nextIndex = i ;
             final String fileName = imageList.get(nextIndex).toLowerCase();
-//            Log.d(TAG,"imagelist "+String.valueOf(i)+ " : "+fileName);
-            String currentTaskID = String.valueOf(i);
-            currentTaskIDs.add(currentTaskID);
+
             BackgroundExecutor.execute(
-                    new BackgroundExecutor.Task(currentTaskID, 0L, fileName) {
+                    new BackgroundExecutor.Task(currentTaskIDs.get(i), 0L, fileName) {
                         @Override
                         public void execute() {
                             try {
