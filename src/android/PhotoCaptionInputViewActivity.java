@@ -642,7 +642,6 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         for(String currentTaskID : currentTaskIDs) {
             BackgroundExecutor.cancelAll(currentTaskID, true);
         }
-        currentTaskIDs.clear();
         setResult(Activity.RESULT_CANCELED);
         finish();
     }
