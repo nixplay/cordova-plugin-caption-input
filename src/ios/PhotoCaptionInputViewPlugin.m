@@ -327,7 +327,8 @@
                                         
                                         if (imageData != nil) {
                                             
-                                            @autoreleasepool {
+//                                            @autoreleasepool
+                                            {
                                                 // Save off the properties
                                                 
                                                 CGImageSourceRef imageSource = CGImageSourceCreateWithData((__bridge CFDataRef) imageData, NULL);
@@ -1373,10 +1374,10 @@ static dispatch_time_t getDispatchTimeFromSeconds(float seconds) {
         NSLog(@"Error: Could not create data from image destination");
 #endif
     }
-    if (destination) {
+    if (destination != NULL) {
         CFRelease(destination);
     }
-    if(source){
+    if(source != NULL){
         CFRelease(source);
     }
     return dest_data;
