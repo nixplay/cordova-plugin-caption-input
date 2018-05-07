@@ -110,8 +110,7 @@
 
     self.photos = images;
     self.thumbnails = thumbs;
-
-
+    
     PhotoCaptionInputViewController *vc = [[PhotoCaptionInputViewController alloc] initWithPhotos:_photos thumbnails:_thumbnails preselectedAssets:self.preSelectedAssets delegate:self];
     vc.allow_video = self.allow_video;
     vc.alwaysShowControls = NO;
@@ -942,10 +941,11 @@
 
     [toolBar setBackgroundImage:[UIImage new]
              forToolbarPosition:UIToolbarPositionAny
-                     barMetrics:UIBarMetricsDefault];
+                     barMetrics:UIBarMetricsCompact];
 
     [toolBar setBackgroundColor:[UIColor blackColor]];
-    toolBar.clipsToBounds = YES;
+
+    toolBar.clipsToBounds = NO;
     for (UIView *subView in [toolBar subviews]) {
         if ([subView isKindOfClass:[UIImageView class]]) {
             // Hide the hairline border
@@ -1028,7 +1028,7 @@
     //    [items addObject:fixedSpace2];
     toolBar.barStyle = UIBarStyleDefault;
 
-    toolBar.barTintColor = [UIColor whiteColor];;
+    toolBar.barTintColor = [UIColor blackColor];;
     return items;
 }
 
