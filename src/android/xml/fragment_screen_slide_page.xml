@@ -9,11 +9,25 @@
     <!-- TODO: Update blank fragment layout -->
 
 
+    <VideoView
+        android:id="@+id/videoView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center"
+        android:visibility="visible"/>
+
     <com.creedon.cordova.plugin.captioninput.zoomable.ZoomableDraweeView
         android:id="@+id/draweeView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         fresco:placeholderImageScaleType="fitCenter"/>
 
+    <ImageView
+        android:id="@+id/iv_play"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="false"
+        android:layout_gravity="center_vertical|center_horizontal"
+        android:src="@drawable/play_button"/>
 
 </FrameLayout>
