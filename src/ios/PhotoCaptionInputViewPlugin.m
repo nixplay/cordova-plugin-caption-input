@@ -110,7 +110,7 @@
 
     self.photos = images;
     self.thumbnails = thumbs;
-    
+
     PhotoCaptionInputViewController *vc = [[PhotoCaptionInputViewController alloc] initWithPhotos:_photos thumbnails:_thumbnails preselectedAssets:self.preSelectedAssets delegate:self];
     vc.allow_video = self.allow_video;
     vc.alwaysShowControls = NO;
@@ -326,8 +326,7 @@
 
                                         if (imageData != nil) {
 
-//                                            @autoreleasepool
-                                            {
+                                            @autoreleasepool {
                                                 // Save off the properties
 
                                                 CGImageSourceRef imageSource = CGImageSourceCreateWithData((__bridge CFDataRef) imageData, NULL);
@@ -499,7 +498,7 @@
                                 orientationString = @"notfound";
                                 break;
                         }
-                        float letterBoxWidth = 20;
+                        float letterBoxWidth = 0;
                         mediaResize = (orientation == LBVideoOrientationUp || orientation == LBVideoOrientationDown ) ?
                         (mediaSize.width > mediaSize.height ? CGSizeMake(mediaSize.height*scale+letterBoxWidth, mediaSize.width*scale) : CGSizeMake(mediaSize.width*scale+letterBoxWidth, mediaSize.height*scale))
                         : CGSizeMake(mediaSize.width*scale, mediaSize.height*scale);
@@ -527,8 +526,7 @@
 #else
                     NSDictionary * compressionPropertiesKey = @{
                                                                 AVVideoAverageBitRateKey: @5000000,
-                                                                AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
-                                                                AVVideoAverageNonDroppableFrameRateKey:@(24)
+                                                                AVVideoProfileLevelKey: AVVideoProfileLevelH264High40
                                                                 };
 #endif
 
@@ -1366,10 +1364,10 @@ static dispatch_time_t getDispatchTimeFromSeconds(float seconds) {
         NSLog(@"Error: Could not create data from image destination");
 #endif
     }
-    if (destination != NULL) {
+    if (destination) {
         CFRelease(destination);
     }
-    if(source != NULL){
+    if(source){
         CFRelease(source);
     }
     return dest_data;
