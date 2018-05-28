@@ -605,7 +605,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             //delete current page image
             if (imageList.size() > 0) {
                 imageList.remove(currentPosition);
-                preSelectedAssets.remove(currentPosition);
+//                preSelectedAssets.remove(currentPosition);
                 captions.remove(currentPosition);
                 recyclerViewAdapter.notifyItemRemoved(currentPosition);
                 currentPosition = Math.max(0, Math.min(currentPosition, imageList.size() - 1));
