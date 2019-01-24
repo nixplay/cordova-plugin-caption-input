@@ -616,7 +616,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             //delete current page image
             if (imageList.size() > 0) {
                 imageList.remove(currentPosition);
-                preSelectedAssets.remove(currentPosition);
+//                preSelectedAssets.remove(currentPosition);
                 captions.remove(currentPosition);
                 recyclerViewAdapter.notifyItemRemoved(currentPosition);
                 currentPosition = Math.max(0, Math.min(currentPosition, imageList.size() - 1));
@@ -840,9 +840,9 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
-                    for (String currentTaskID : currentTaskIDs) {
-                        BackgroundExecutor.cancelAll(currentTaskID, true);
-                    }
+//                    for(String currentTaskID : currentTaskIDs) {
+//                        BackgroundExecutor.cancelAll(currentTaskID, true);
+//                    }
                     currentTaskIDs.clear();
                     Intent intent = new Intent();
                     intent.putExtras(conData);

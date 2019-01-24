@@ -114,6 +114,8 @@
 		<source-file src="src/android/xml/menu_photoscaptioninput.xml" target-dir="res/menu" />
 		<source-file src="src/android/drawable-xxhdpi/add.png" target-dir="res/drawable-xxhdpi" />
 		<source-file src="src/android/drawable-xxxhdpi/add.png" target-dir="res/drawable-xxxhdpi" />
+		<source-file src="src/android/drawable-xxxhdpi/play_button.png" target-dir="res/drawable-xxxhdpi" />
+		<source-file src="src/android/drawable-xxxhdpi/video_overlay.png" target-dir="res/drawable-xxxhdpi" />
 		<source-file src="src/android/drawable-xxhdpi/sendfriend.png" target-dir="res/drawable-xxhdpi" />
 
 		<source-file src="src/android/drawable-xxhdpi/round_corner_button.xml" target-dir="res/drawable-xxhdpi" />
