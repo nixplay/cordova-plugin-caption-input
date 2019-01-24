@@ -14,7 +14,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Rect;
 import android.media.ExifInterface;
-import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -39,14 +38,12 @@ import android.text.InputFilter;
 import android.text.TextWatcher;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.util.SparseArray;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.Window;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
@@ -79,7 +76,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.lang.ref.WeakReference;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -87,6 +83,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -100,7 +98,6 @@ import static android.view.View.GONE;
 import static com.creedon.cordova.plugin.captioninput.Constants.KEY_CAPTIONS;
 import static com.creedon.cordova.plugin.captioninput.Constants.KEY_IMAGES;
 import static com.creedon.cordova.plugin.captioninput.Constants.KEY_INVALIDIMAGES;
-import static com.creedon.cordova.plugin.captioninput.Constants.KEY_METADATAS;
 import static com.creedon.cordova.plugin.captioninput.Constants.KEY_PRESELECTS;
 
 /**
@@ -135,44 +132,31 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     private ArrayList<String> imageList;
     private int width, height;
     private JSONArray buttonOptions;
+    TreeMap<Integer,String> outList = new TreeMap<Integer,String>();
     ViewPager.OnPageChangeListener onPageChangeListener = new ViewPager.OnPageChangeListener() {
-        Boolean first = true;
-
         public void onPageScrollStateChanged(int state) {
         }
 
         public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-            mPagerAdapter.stopVideoPlayback(position);
-
-            if (first && positionOffset == 0 && positionOffsetPixels == 0) {
-                onPageSelected(0);
-                first = false;
-            } else {
-                onPageSelected(position);
-            }
         }
 
         public void onPageSelected(int position) {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
+            // Check if this is the page you want.
+            if (currentPosition != mPager.getCurrentItem()) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
 
-                    currentPosition = mPager.getCurrentItem();
-                    mPagerAdapter.stopVideoPlayback(currentPosition);
-                    setActionBarTitle(imageList, currentPosition);
-                    if (isVideo(imageList.get(currentPosition))) {
-                        mEditText.setText("");
-                        mEditText.setVisibility(View.INVISIBLE);
-                    } else {
+                        currentPosition = mPager.getCurrentItem();
+                        setActionBarTitle(imageList, currentPosition);
                         mEditText.setText(captions.get(currentPosition));
-                        mEditText.setVisibility(View.VISIBLE);
+                        linearLayoutManager.scrollToPositionWithOffset(currentPosition, -1);
+                        if (recyclerViewAdapter != null) {
+                            recyclerViewAdapter.notifyDataSetChanged();
+                        }
                     }
-                    linearLayoutManager.scrollToPositionWithOffset(currentPosition, -1);
-                    if (recyclerViewAdapter != null) {
-                        recyclerViewAdapter.notifyDataSetChanged();
-                    }
-                }
-            });
+                });
+            }
         }
     };
     private ViewPager.OnAdapterChangeListener onAdapterChangeListener = new ViewPager.OnAdapterChangeListener() {
@@ -183,7 +167,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     };
     private ArrayList<String> preSelectedAssets = new ArrayList<String>();
     private int maxImages;
-    private ImageResizer imageResizer;
+//    private ImageResizer imageResizer;
 
     private List<String> currentTaskIDs = Collections.synchronizedList(new ArrayList());
 
@@ -376,18 +360,27 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                     @Override
                     public void onClick(View view) {
                         ArrayList<Uri> serialPreselectedAssets = new ArrayList<Uri>();
-//content uri all the way
-                        for (String s : preSelectedAssets) {
-                            serialPreselectedAssets.add(Uri.parse(s));
+                        // if image from camera?
+                        if (imageList.size() == 1) {
+                            for (String s : imageList) {
+                                File file = new File(s.replaceFirst("file://", ""));
+                                if (file.exists()) {
+                                    serialPreselectedAssets.add(getImageContentUri(PhotoCaptionInputViewActivity.this, file));
+                                }
+                            }
+                        } else {
+                            for (String s : preSelectedAssets) {
+                                serialPreselectedAssets.add(Uri.parse(s));
+                            }
                         }
-
                         Matisse.from(PhotoCaptionInputViewActivity.this)
                                 .choose(MimeType.of(
                                         MimeType.JPEG,
-                                        MimeType.PNG,
-                                        MimeType.MP4
-                                ), false)
+                                        MimeType.PNG
+
+                                ), true)
                                 .countable(true)
+                                .showSingleMediaType(true)
                                 .maxSelectable(PhotoCaptionInputViewActivity.this.maxImages)
                                 .gridExpectedSize((int) convertDpToPixel(120, PhotoCaptionInputViewActivity.this))
                                 .restrictOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
@@ -395,6 +388,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                                 .imageEngine(new GlideEngine())
                                 .enablePreview(false)
                                 .showUseOrigin(false)
+                                .showSingleMediaType(true)
                                 .forResult(REQUEST_CODE_CHOOSE, serialPreselectedAssets);
 
                     }
@@ -437,11 +431,6 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 return null;
             }
         }
-    }
-
-    private static boolean isVideo(String filePath) {
-        filePath = filePath.toLowerCase();
-        return filePath.endsWith(".mp4");
     }
 
     /**
@@ -616,7 +605,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             //delete current page image
             if (imageList.size() > 0) {
                 imageList.remove(currentPosition);
-                preSelectedAssets.remove(currentPosition);
+//                preSelectedAssets.remove(currentPosition);
                 captions.remove(currentPosition);
                 recyclerViewAdapter.notifyItemRemoved(currentPosition);
                 currentPosition = Math.max(0, Math.min(currentPosition, imageList.size() - 1));
@@ -667,7 +656,6 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                 if (!outRect.contains((int) event.getRawX(), (int) event.getRawY())) {
                     v.clearFocus();
                     InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                    assert imm != null;
                     imm.hideSoftInputFromWindow(v.getWindowToken(), 0);
                 }
             }
@@ -712,7 +700,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK) {
-            if (requestCode == REQUEST_CODE_CHOOSE) {
+            if (resultCode == RESULT_OK && requestCode == REQUEST_CODE_CHOOSE) {
                 ArrayList<String> newImages = new ArrayList<String>();
                 ArrayList<String> newPreselectedAssets = new ArrayList<String>();
                 ArrayList<String> newCaptions = new ArrayList<String>();
@@ -797,18 +785,23 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             Log.d("currentTaskIDs.add ", currentTaskID);
             currentTaskIDs.add(currentTaskID);
         }
-        imageResizer = new ImageResizer(this, imageList, new OnResizedCallback() {
-            //https://stackoverflow.com/questions/7860822/sorting-hashmap-based-on-keys
-            TreeMap<Integer, String> outList = new TreeMap<Integer, String>();
-            TreeMap<Integer, JSONObject> metaDatas = new TreeMap<Integer, JSONObject>();
-
-
+        final ImageResizer imageResizer = new ImageResizer(this, imageList, new OnResizedCallback() {
+//https://stackoverflow.com/questions/7860822/sorting-hashmap-based-on-keys
             @Override
-            public void onResizeSuccess(String result, Integer index, String originalFilename, JSONObject metaData) {
-                outList.put(index, result);
-                metaDatas.put(index, ((metaData == null) ? new JSONObject() : metaData));
+            public void onResizeSuccess(String result, Integer index, String originalFilename) {
+                //potential crash : https://fabric.io/nixplay/android/apps/com.creedon.nixplay/issues/5a71870d8cb3c2fa63f95e36?time=last-seven-days
+                //
+                try{
+                    outList.put(index,result);
+                } catch (NullPointerException ignored){
+                    ignored.printStackTrace();
+                    setResult(RESULT_CANCELED, null);
+                    finishActivity(Constants.REQUEST_SUBMIT);
+                    finish();
+                    return;
+                }
+
                 final int process = outList.size();
-//                Log.d(TAG,"onResizeSuccess "+index+": result-> "+result+ " originalFilename : "+originalFilename);
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -818,31 +811,27 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
                 if (outList.size() == imageList.size()) {
                     kProgressHUD.dismiss();
-
+                    Set<Map.Entry<Integer, String>> entries = outList.entrySet();
+                    Iterator<Map.Entry<Integer, String>> it = entries.iterator();
                     Bundle conData = new Bundle();
                     try {
                         JSONObject jsonObject = new JSONObject();
                         //https://stackoverflow.com/questions/15402321/how-to-convert-hashmap-to-json-array-in-android
                         Collection<String> values = outList.values();
-
-                        Collection<JSONObject> jsonMetaDataValues = metaDatas.values();
-
                         JSONArray array = new JSONArray(values);
-                        JSONArray jsonMetaDataArray = new JSONArray(jsonMetaDataValues);
+
                         jsonObject.put(KEY_IMAGES, array);
                         jsonObject.put(KEY_CAPTIONS, new JSONArray(captions));
                         jsonObject.put(KEY_PRESELECTS, new JSONArray());
                         jsonObject.put(KEY_INVALIDIMAGES, new JSONArray());
                         jsonObject.put(KEY_TYPE, type);
-                        jsonObject.put(KEY_METADATAS, jsonMetaDataArray);
-
                         conData.putString(Constants.RESULT, jsonObject.toString());
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
-                    for (String currentTaskID : currentTaskIDs) {
-                        BackgroundExecutor.cancelAll(currentTaskID, true);
-                    }
+//                    for(String currentTaskID : currentTaskIDs) {
+//                        BackgroundExecutor.cancelAll(currentTaskID, true);
+//                    }
                     currentTaskIDs.clear();
                     Intent intent = new Intent();
                     intent.putExtras(conData);
@@ -854,26 +843,25 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
             }
 
             @Override
-            public void onResizePrecess(final Integer process) {
-//                runOnUiThread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        kProgressHUD.setProgress(process);
-//                    }
-//                });
+            public void onResizeProgress(final Integer process) {
+
 
             }
 
             @Override
             public void onResizeFailed(String s) {
                 Log.e(TAG, s);
+
+                setResult(RESULT_CANCELED, null);
+                finishActivity(Constants.REQUEST_SUBMIT);
+                finish();
             }
         });
 
 
-        for (int i = 0; i < imageList.size(); i++) {
+        for(int i = 0 ; i < imageList.size() ; i++) {
 
-            final int nextIndex = i;
+            final int nextIndex = i ;
             final String fileName = imageList.get(nextIndex).toLowerCase();
 
             BackgroundExecutor.execute(
@@ -881,7 +869,8 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
                         @Override
                         public void execute() {
                             try {
-                                imageResizer.processFile(imageList.get(nextIndex), nextIndex);
+                                boolean isResize = fileName.endsWith("bmp");
+                                imageResizer.processFile(imageList.get(nextIndex), nextIndex, isResize);
                             } catch (final Throwable e) {
                                 Thread.getDefaultUncaughtExceptionHandler().uncaughtException(Thread.currentThread(), e);
                             }
@@ -901,42 +890,16 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         if (!(inFilePath + File.separator + inFileName).equals(outFilePath + inFileName)) {
             copyFile(inFilePath + File.separator, inFileName, outFilePath);
             try {
-                if (inFilePath.toLowerCase().endsWith("jpeg") || inFilePath.toLowerCase().endsWith("jpg")) {
+                if(inFilePath.toLowerCase().endsWith("jpeg") || inFilePath.toLowerCase().endsWith("jpg")) {
                     copyExif(inFilePath + File.separator + inFileName, outFilePath + inFileName);
                 }
-            } catch (IOException e) {
+            } catch (IOException e){
                 e.printStackTrace();
             }
 
             return outFilePath + inFileName;
         }
         return inFilePath + File.separator + inFileName;
-
-    }
-
-    protected String storeImage(String inFileName, Bitmap bmp) throws JSONException, IOException, URISyntaxException {
-
-        String filename = inFileName;
-        filename.replace("bmp", "jpg");
-        String filePath = System.getProperty("java.io.tmpdir") + "/" + filename;
-//        exif.writeExif(bmp, filePath, 100);
-        FileOutputStream out = null;
-        try {
-            out = new FileOutputStream(filePath);
-            bmp.compress(Bitmap.CompressFormat.JPEG, 100, out); // bmp is your Bitmap instance
-            // PNG is a lossless format, the compression factor (100) is ignored
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                if (out != null) {
-                    out.close();
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        return filePath;
 
     }
 
@@ -1107,7 +1070,6 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
     private class ScreenSlidePagerAdapter extends FragmentStatePagerAdapter {
         private ArrayList<String> itemList;
-        private SparseArray<WeakReference<ScreenSlidePageFragment>> mPageReferenceMap = new SparseArray<WeakReference<ScreenSlidePageFragment>>();
 
         ScreenSlidePagerAdapter(FragmentManager fm, ArrayList<String> itemList) {
             super(fm);
@@ -1116,32 +1078,8 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
         @Override
         public Fragment getItem(int position) {
-            return getFragment(position);
-        }
 
-        @NonNull
-        @Override
-        public Object instantiateItem(ViewGroup container, int position) {
-            ScreenSlidePageFragment myFragment = ScreenSlidePageFragment.newInstance(itemList.get(position));
-            mPageReferenceMap.put(position, new WeakReference<ScreenSlidePageFragment>(myFragment));
-
-            return super.instantiateItem(container, position);
-        }
-
-        @Override
-        public void destroyItem(ViewGroup container, int position, Object object) {
-            super.destroyItem(container, position, object);
-            mPageReferenceMap.remove(position);
-        }
-
-        public ScreenSlidePageFragment getFragment(int position) {
-            WeakReference<ScreenSlidePageFragment> weakReference = mPageReferenceMap.get(position);
-
-            if (null != weakReference) {
-                return (ScreenSlidePageFragment) weakReference.get();
-            } else {
-                return null;
-            }
+            return ScreenSlidePageFragment.newInstance(itemList.get(position));
         }
 
         @Override
@@ -1164,20 +1102,13 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         public int getItemPosition(Object object) {
             return POSITION_NONE;
         }
-
-        public void stopVideoPlayback(int position) {
-            ScreenSlidePageFragment fragment = getFragment(position);
-            if (fragment != null) {
-                fragment.stopVideoPlayback();
-            }
-        }
     }
 
 
     private interface OnResizedCallback {
-        void onResizeSuccess(String result, Integer index, String originalFilename, @Nullable JSONObject metaData);
+        void onResizeSuccess(String result, Integer index, String originalFilename);
 
-        void onResizePrecess(Integer process);
+        void onResizeProgress(Integer process);
 
         void onResizeFailed(String s);
     }
@@ -1185,150 +1116,88 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
     public class ImageResizer {
         private final Context context;
-
+        private final ArrayList<String> files;
         private OnResizedCallback callback;
         private boolean isCancel;
 
 
-        public ImageResizer(Context context, OnResizedCallback callback) {
+        public ImageResizer(Context context, ArrayList<String> files, OnResizedCallback callback) {
             this.context = context;
-
+            this.files = files;
             this.callback = callback;
 
         }
 
 
-        public void processFile(String fileName, Integer index) {
+        public void processFile(String fileName, Integer index, boolean isResize) {
             if (isCancel) {
-                if (callback != null) callback.onResizeFailed("User cancelled");
+                callback.onResizeFailed("User cancelled");
                 return;
             }
+            if (files.size() > 0) {
 
+                //fixed http://crashes.to/s/d00290ba305 stackoverflow
+                if ((width != 0 && height != 0) || isResize) {
+                    try {
+                        URI uri = new URI(fileName);
 
-            //fixed http://crashes.to/s/d00290ba305 stackoverflow
-
-            Uri src = Uri.parse(fileName);
-            if ((width != 0 && height != 0) || MimeType.BMP.checkType(getContentResolver(), src)) {
-                try {
-                    URI uri = new URI(fileName);
-
-                    final File imageFile = new File(uri);
-                    ImageRequest request;
-                    if (width != 0 && height != 0) {
-                        final BitmapFactory.Options options = new BitmapFactory.Options();
-                        options.inJustDecodeBounds = true;
-                        BitmapFactory.decodeFile(imageFile.getAbsolutePath(), options);
-                        float scale = 1.0f;
-                        if (options.outWidth > options.outHeight) {
-                            scale = (width * 1.0f) / (options.outWidth * 1.0f);
+                        final File imageFile = new File(uri);
+                        ImageRequest request = null;
+                        if (width != 0 && height != 0) {
+                            final BitmapFactory.Options options = new BitmapFactory.Options();
+                            options.inJustDecodeBounds = true;
+                            BitmapFactory.decodeFile(imageFile.getAbsolutePath(), options);
+                            float scale = 1.0f;
+                            if (options.outWidth > options.outHeight) {
+                                scale = (width * 1.0f) / (options.outWidth * 1.0f);
+                            } else {
+                                scale = (height * 1.0f) / (options.outHeight * 1.0f);
+                            }
+                            if (scale > 1 || scale <= 0) {
+                                scale = 1;
+                            }
+                            float reqWidth = options.outWidth * scale;
+                            float reqHeight = options.outHeight * scale;
+                            request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(fileName))
+                                    .setResizeOptions(new ResizeOptions((int) reqWidth, (int) reqHeight))
+                                    .build();
                         } else {
-                            scale = (height * 1.0f) / (options.outHeight * 1.0f);
+                            request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(fileName))
+                                    .build();
                         }
-                        if (scale > 1 || scale <= 0) {
-                            scale = 1;
-                        }
-                        float reqWidth = options.outWidth * scale;
-                        float reqHeight = options.outHeight * scale;
-                        request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(fileName))
-                                .setResizeOptions(new ResizeOptions((int) reqWidth, (int) reqHeight))
-                                .build();
-                    } else {
-                        request = ImageRequestBuilder.newBuilderWithSource(Uri.parse(fileName))
-                                .build();
+                        ImagePipeline imagePipeline = Fresco.getImagePipeline();
+                        DataSource<CloseableReference<CloseableImage>> dataSource = imagePipeline.fetchDecodedImage(request, this);
+
+                        CallerThreadExecutor executor = CallerThreadExecutor.getInstance();
+                        dataSource.subscribe(new Subscriber(callback, index, imageFile), executor);
+
+                    } catch (URISyntaxException e) {
+                        e.printStackTrace();
+                        callback.onResizeFailed("URISyntaxException " + e.getMessage());
                     }
-                    ImagePipeline imagePipeline = Fresco.getImagePipeline();
-                    DataSource<CloseableReference<CloseableImage>> dataSource = imagePipeline.fetchDecodedImage(request, this);
-
-                    CallerThreadExecutor executor = CallerThreadExecutor.getInstance();
-                    dataSource.subscribe(new Subscriber(callback, index, imageFile), executor);
-
-                } catch (URISyntaxException e) {
-                    e.printStackTrace();
-                    if (callback != null) callback.onResizeFailed("URISyntaxException " + e.getMessage());
-                }
-            } else if (MimeType.MP4.checkType(getContentResolver(), src)) {
-                JSONObject metaData = new JSONObject();
-                try {
-
-                    MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
-                    mediaMetadataRetriever.setDataSource(PhotoCaptionInputViewActivity.this, src);
-//                        Bitmap previewBitmap = mediaMetadataRetriever.getFrameAtTime(0);
-//                        Bitmap thumbnailBitmap = (previewBitmap.getWidth() >= previewBitmap.getHeight()) ?
-//                                Bitmap.createBitmap(
-//                                        previewBitmap,
-//                                        previewBitmap.getWidth() / 2 - previewBitmap.getHeight() / 2,
-//                                        0,
-//                                        previewBitmap.getHeight(),
-//                                        previewBitmap.getHeight()
-//                                ) :
-//                                Bitmap.createBitmap(
-//                                        previewBitmap,
-//                                        0,
-//                                        previewBitmap.getHeight() / 2 - previewBitmap.getWidth() / 2,
-//                                        previewBitmap.getWidth(),
-//                                        previewBitmap.getWidth()
-//                                );
-//
-//                        originalFileName = temp.get(0).substring(temp.get(0).lastIndexOf("/") + 1);
-//                        subfileName = temp.get(0).substring(temp.get(0).lastIndexOf(".") + 1);
-//                        previewBitmapFileName = originalFileName.replace(subfileName, "-preview.jpg");
-//                        thumbnailBitmapFileName = originalFileName.replace(subfileName, "-thumbnail.jpg");
-//                        String previewBitmapFilePath = storeImage(previewBitmapFileName, previewBitmap);
-//                        String thumbnailBitmapFilePath = storeImage(thumbnailBitmapFileName, thumbnailBitmap);
-//                        Log.d("previewBitmapFilePath", previewBitmapFilePath);
-//                        Log.d("thumbnailBitmapFilePath", thumbnailBitmapFilePath);
+                } else {
+                    String outFilePath = "";
+                    try {
+                        URI uri = new URI(fileName);
+                        File inFile = new File(uri);
+//                        Log.d("processFile", "storeImage " + uri);
+                        outFilePath = storeImage(inFile.getParentFile().getAbsolutePath(), inFile.getName());
 
 
-                    long durationMs = Long.parseLong(mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION));
-                    long videoWidth = Long.parseLong(mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH));
-                    long videoHeight = Long.parseLong(mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT));
-
-                    metaData.put("start", 0L);
-                    metaData.put("duration", 15000L > durationMs ? durationMs : 15000L);
-                    metaData.put("width", videoWidth);
-                    metaData.put("height", videoHeight);
-                    metaData.put("originalDuration", durationMs);
-                    metaData.put("edited", "auto");
-
-
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                    if (callback != null) callback.onResizeFailed("JSONException storeImage " + e.getMessage());
-                }
-                if (callback != null) {
-                    callback.onResizeSuccess(Uri.fromFile(new File(fileName)).toString(), index, fileName, metaData);
-                    callback.onResizePrecess(index + 1);
-                }
+                    } catch (URISyntaxException e) {
+                        e.printStackTrace();
+                        callback.onResizeFailed("URISyntaxException storeImage " + e.getMessage());
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                        callback.onResizeFailed("JSONException storeImage " + e.getMessage());
+                    }
+                    callback.onResizeSuccess(Uri.fromFile(new File(outFilePath)).toString(), index, fileName);
+                    callback.onResizeProgress(index);
 
 
-            } else if (MimeType.JPEG.checkType(getContentResolver(), src) || MimeType.PNG.checkType(getContentResolver(), src)) {
-                String outFilePath = "";
-                try {
-                    URI uri = new URI(fileName);
-                    File inFile = new File(uri);
-                    outFilePath = storeImage(inFile.getParentFile().getAbsolutePath(), inFile.getName());
 
-
-                } catch (URISyntaxException e) {
-                    e.printStackTrace();
-                    if (callback != null) callback.onResizeFailed("URISyntaxException storeImage " + e.getMessage());
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                    if (callback != null) callback.onResizeFailed("JSONException storeImage " + e.getMessage());
-                }
-                if (callback != null) {
-                    callback.onResizeSuccess(Uri.fromFile(new File(outFilePath)).toString(), index, fileName, null);
-                    callback.onResizePrecess(index);
-                }
-
-
-            } else {
-                if (callback != null){
-                    callback.onResizeSuccess("", index, fileName, null);
-                    callback.onResizePrecess(index + 1);
                 }
             }
-
         }
 
         public void cancel() {
@@ -1354,7 +1223,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
         @Override
         protected void onFailureImpl(DataSource<CloseableReference<CloseableImage>> dataSource) {
-            if (callback != null) callback.onResizeFailed("Failed to resize at onFailureImpl " + imageFile.getAbsolutePath());
+            callback.onResizeFailed("Failed to resize at onFailureImpl " + imageFile.getAbsolutePath());
         }
 
         @Override
@@ -1381,18 +1250,16 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
 
             } catch (JSONException e) {
                 e.printStackTrace();
-                if (callback != null) callback.onResizeFailed("JSONException " + e.getMessage());
+                callback.onResizeFailed("JSONException " + e.getMessage());
             } catch (IOException e) {
                 e.printStackTrace();
-                if (callback != null) callback.onResizeFailed("IOException " + e.getMessage());
+                callback.onResizeFailed("IOException " + e.getMessage());
             } catch (URISyntaxException e) {
                 e.printStackTrace();
-                if (callback != null) callback.onResizeFailed("URISyntaxException " + e.getMessage());
+                callback.onResizeFailed("URISyntaxException " + e.getMessage());
             }
-            if (callback != null) {
-                callback.onResizeSuccess(Uri.fromFile(new File(outFilePath)).toString(), index, imageFile.getAbsolutePath(), null);
-                callback.onResizePrecess(index);
-            }
+            callback.onResizeSuccess(Uri.fromFile(new File(outFilePath)).toString(), index, imageFile.getAbsolutePath());
+            callback.onResizeProgress(index);
         }
     }
 
@@ -1409,8 +1276,8 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         float px = dp * ((float) metrics.densityDpi / DisplayMetrics.DENSITY_DEFAULT);
         return px;
     }
-
     static final class BackgroundExecutor {
+
 
 
         public static final Executor DEFAULT_EXECUTOR = Executors.newScheduledThreadPool(2 * Runtime.getRuntime().availableProcessors());
@@ -1421,7 +1288,7 @@ public class PhotoCaptionInputViewActivity extends AppCompatActivity implements 
         }
 
         private static final List<Task> TASKS = new ArrayList<Task>();
-        private static final ThreadLocal<String> CURRENT_SERIAL = new ThreadLocal<String>();
+        private static final ThreadLocal<String> CURRENT_SERIAL = new ThreadLocal<String >();
 
         private BackgroundExecutor() {
         }
